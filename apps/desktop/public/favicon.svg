@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <clipPath id="ld-mark">
+      <path d="M16 1.5 30.5 16 16 30.5 1.5 16Z" />
+    </clipPath>
+  </defs>
+  <path d="M16 1.5 30.5 16 16 30.5 1.5 16Z" fill="#111823" stroke="#D4AF37" stroke-width="1.4" />
+  <g clip-path="url(#ld-mark)">
+    <path d="M0 0h18.5L10 32H0Z" fill="#1E3A5F" />
+    <path d="M18.5 0H32v32H10Z" fill="#4A1D1D" />
+  </g>
+  <path d="M16 5.5 26.5 16 16 26.5 5.5 16Z" fill="none" stroke="#D4AF37" stroke-width="1" opacity="0.8" />
+  <text x="16" y="20.4" text-anchor="middle" font-size="9.5" font-weight="800" fill="#E6EDF5" font-family="Segoe UI, system-ui, sans-serif">LD</text>
+</svg>

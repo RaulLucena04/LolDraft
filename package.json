@@ -1,0 +1,17 @@
+{
+  "name": "loldraft",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/desktop"],
+  "scripts": {
+    "dev": "npm run dev --workspace loldraft-desktop",
+    "build:ui": "npm run build --workspace loldraft-desktop",
+    "tauri": "tauri",
+    "app:dev": "tauri dev",
+    "app:build": "tauri build",
+    "icon": "tauri icon apps/desktop/src-tauri-icon.png -o src-tauri/icons"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

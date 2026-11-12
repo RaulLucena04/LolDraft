@@ -1,0 +1,24 @@
+# Rust
+/target/
+**/*.rs.bk
+**/.DS_Store
+
+# Node / UI
+**/node_modules/
+/apps/desktop/dist/
+*.log
+npm-debug.log*
+
+# Tauri generated artifacts
+/src-tauri/gen/
+
+# Local runtime data (SQLite lives in the OS app-data directory)
+/data/*.sqlite3
+/data/*.sqlite3-shm
+/data/*.sqlite3-wal
+
+# OS / editors
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/

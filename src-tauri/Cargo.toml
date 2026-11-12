@@ -1,0 +1,28 @@
+[package]
+name = "loldraft-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "loldraft_app"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "loldraft"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+loldraft-domain.workspace = true
+loldraft-engine.workspace = true
+loldraft-data.workspace = true
+loldraft-sources.workspace = true
+tauri = { version = "2", features = [] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+base64.workspace = true

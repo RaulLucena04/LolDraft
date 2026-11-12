@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    background-image:
+      radial-gradient(circle at 8% -10%, rgba(59, 130, 246, 0.14), transparent 34rem),
+      radial-gradient(circle at 94% 0%, rgba(239, 68, 68, 0.1), transparent 30rem);
+    background-attachment: fixed;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2b3a4e transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #2b3a4e;
+    border-radius: 999px;
+  }
+
+  :focus-visible {
+    outline: 2px solid #d4af37;
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: rgba(212, 175, 55, 0.35);
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-line bg-surface shadow-panel;
+  }
+
+  .panel-quiet {
+    @apply rounded-xl border border-line/80 bg-surface/70;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .btn-ghost {
+    @apply btn border-line bg-surface2 text-ink hover:border-muted/60 hover:bg-surface2/80;
+  }
+
+  .btn-gold {
+    @apply btn border-gold/70 bg-gold text-[#1b1505] hover:bg-[#e0bd4e];
+  }
+
+  .btn-blue {
+    @apply btn border-blue/70 bg-blue text-white hover:bg-blue/90;
+  }
+
+  .field {
+    @apply rounded-lg border border-line bg-bg/60 px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:border-gold/70 focus:outline-none;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-md border border-line bg-surface2 px-2 py-0.5 text-[11px] font-medium text-muted;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

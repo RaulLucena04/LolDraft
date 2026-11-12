@@ -1,0 +1,9 @@
+[package]
+name = "loldraft-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+loldraft-domain.workspace = true
+serde.workspace = true
