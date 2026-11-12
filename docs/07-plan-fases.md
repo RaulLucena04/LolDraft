@@ -106,9 +106,11 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 ## Fase 2 — Análisis estratégico
 
 > **Estado:** en curso. Implementados: taxonomía v1.0.0 (20 arquetipos, 18 traits y rúbrica de cinco
-> anclas), esquema de perfiles con procedencia, confianza y validación en `loldraft-engine`, y
+> anclas), esquema de perfiles con procedencia, confianza y validación en `loldraft-engine`,
 > persistencia SQLite de conjuntos completos (roles, arquetipos, traits, activación única y carga
-> atómica). Aún no hay perfiles de campeón, agregación de composiciones ni UI de análisis.
+> atómica) y agregación de composiciones con intervalos, daño, curva, CC, necesidades, amenazas y
+> condiciones de victoria. Aún no hay perfiles de campeón revisados, sinergias/matchups, UI de
+> análisis ni herramienta de curación.
 
 **Objetivo:** que el motor explique qué es una composición, qué le falta y cómo se enfrenta a otra.
 

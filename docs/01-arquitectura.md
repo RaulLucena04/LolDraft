@@ -110,11 +110,11 @@ Dependencias: `serde`, `thiserror`.
 Contiene:
 - Estado del draft y máquina de turnos para cada formato.
 - Asignación óptima de roles.
-- Análisis de composición, necesidades, sinergias y matchups.
-- Tipos de salida con confianza y procedencia.
+- Identidad de campeones y tipos base compartidos.
 
 ### `loldraft-engine`
-Puntuación multicriterio y explicaciones. Depende de `domain`.
+Taxonomía, perfiles, análisis de composición, puntuación multicriterio y explicaciones. Depende de
+`domain`.
 No consulta la base de datos: recibe un `DraftSnapshot` ya resuelto (campeones, perfiles,
 estadísticas y configuración). Esto permite tests con fixtures y backtesting reproducible.
 

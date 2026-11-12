@@ -4,9 +4,16 @@
 //! confianza y validación. La agregación de composiciones y la puntuación
 //! multicriterio llegan en incrementos posteriores.
 
+pub mod analysis;
 pub mod profile;
 pub mod taxonomy;
 
+pub use analysis::{
+    analyze_draft, analyze_team, AnalysisError, AnalysisParams, AnalysisParamsError, CcProfile,
+    Coverage, DamageProfile, Dimension, DraftAnalysis, Need, NeedSource, NeedStatus,
+    PickedChampion, PowerCurve, RangeProfile, Signal, TeamAnalysis, ThreatRuleId, WinCondition,
+    WinConditionId,
+};
 pub use profile::{
     ArchetypeRating, ChampionProfile, DamageShares, ProfileError, ProfileRole, ProfileSet,
     Provenance, TraitRating, DAMAGE_SHARE_TOLERANCE,
@@ -16,7 +23,7 @@ pub use taxonomy::{
     TaxonomyError, TraitEntry, TraitId, TraitKind, TAXONOMY_VERSION,
 };
 
-pub const ENGINE_VERSION: &str = "0.2.0-phase2-foundation";
+pub const ENGINE_VERSION: &str = "0.3.0-phase2-composition";
 
 pub fn engine_version() -> &'static str {
     ENGINE_VERSION

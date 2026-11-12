@@ -49,10 +49,13 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
   versionados que se cargan enteros o se rechazan.
 - **Persistencia SQLite** de conjuntos de perfiles: roles, arquetipos y traits versionados por
   conjunto, activación única e importación transaccional que no deja datos a medias.
-- **Pendiente:** perfiles piloto revisados, agregación de composiciones, necesidades y UI de análisis.
+- **Agregación de composiciones** con intervalos de desconocimiento, daño, curva de poder, rango, CC,
+  movilidad, waveclear, objetivos, necesidades por suelos/amenazas/balance, condiciones de victoria,
+  confianza y señales explicables.
+- **Pendiente:** perfiles piloto revisados, sinergias/matchups, UI de análisis y herramienta de curación.
 
-Todavía **no** incluye: análisis de composición, recomendaciones de pick/ban, estadísticas externas,
-importación de drafts profesionales ni fearless draft.
+Todavía **no** incluye: recomendaciones de pick/ban, sinergias y matchups implementados, estadísticas
+externas, importación de drafts profesionales ni fearless draft.
 
 ## Arranque rápido (Windows)
 

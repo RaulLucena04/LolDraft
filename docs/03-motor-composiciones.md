@@ -1,8 +1,17 @@
 # 03 — Motor de análisis de composiciones
 
-> Estado: diseño. Este documento define la metodología que se implementará y calibrará en Fase 2.
-> Los valores numéricos son parámetros iniciales documentados, no verdades universales ni datos de
-> campeones reales.
+> Estado: implementación parcial en `loldraft-engine` (v0.3). Ya funcionan la agregación saturante con
+> intervalos, daño, curva, rango, CC, movilidad, waveclear, objetivos, suelos, balance de daño,
+> reglas de amenaza, condiciones de victoria, confianza y señales explicables. Sinergias y matchups
+> siguen en diseño. Los valores numéricos son parámetros iniciales documentados, no verdades
+> universales ni datos de campeones reales.
+>
+> Desviaciones conscientes de la v0.3: (1) las reglas de amenaza escalan la necesidad por la
+> cobertura actual de la herramienta en lugar de sumar una cantidad fija, para no pedir algo que ya
+> está cubierto; (2) el balance de daño solo se afirma con ≥ 60 % del peso de oro conocido; (3)
+> `range`, `mobility`, `lane_safety`, `gold_dependency` y `execution_difficulty` usan media ponderada,
+> mientras las herramientas de equipo usan suma saturante; (4) no hay estadísticas externas todavía,
+> así que la confianza no incluye `stat_confidence`.
 
 ## 1. Objetivo y límites
 
@@ -443,6 +452,11 @@ pub struct Need {
 
 La UI puede mostrar `value_estimate` solo cuando `value_high - value_low ≤ 0.20`; si no, muestra el
 intervalo. Esto evita barras de progreso falsamente precisas.
+
+> En v0.3 la salida implementada se llama `TeamAnalysis` (por equipo) y `DraftAnalysis` (ambos
+> equipos). Ya incluye coberturas, daño, curva, rango, CC, movilidad, necesidades, condiciones de
+> victoria, señales y confianza. `synergies` y `matchups` se añadirán cuando existan las reglas de
+> las secciones 7 y 8.
 
 ## 11. Ejemplo sintético (fixture, no datos reales)
 
