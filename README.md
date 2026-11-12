@@ -47,6 +47,8 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Esquema de perfiles** con procedencia (`Riot`, curado, importado o inferido), confianza por celda,
   distinción entre `None` (desconocido) y `0.0` (no aporta), validación de shares de daño y conjuntos
   versionados que se cargan enteros o se rechazan.
+- **Persistencia SQLite** de conjuntos de perfiles: roles, arquetipos y traits versionados por
+  conjunto, activación única e importación transaccional que no deja datos a medias.
 - **Pendiente:** perfiles piloto revisados, agregación de composiciones, necesidades y UI de análisis.
 
 Todavía **no** incluye: análisis de composición, recomendaciones de pick/ban, estadísticas externas,

@@ -336,6 +336,14 @@ export function DraftScreen({
                 </dd>
               </div>
               <div className="flex justify-between gap-2">
+                <dt className="text-muted">Perfiles</dt>
+                <dd className="text-ink">
+                  {data.profileCount > 0
+                    ? `${data.profileCount} · set ${data.activeProfileSet ?? "activo"}`
+                    : "pendientes"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
                 <dt className="text-muted">Sincronización</dt>
                 <dd className="text-ink">
                   {data.lastSyncMs

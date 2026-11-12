@@ -88,6 +88,10 @@ impl ArchetypeId {
         }
     }
 
+    pub fn from_code(code: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|id| id.as_str() == code)
+    }
+
     pub fn category(self) -> ArchetypeCategory {
         match self {
             ArchetypeId::Engage | ArchetypeId::Catch | ArchetypeId::WomboCombo => {
@@ -129,6 +133,17 @@ pub enum ArchetypeCategory {
 }
 
 impl ArchetypeCategory {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ArchetypeCategory::Initiation => "initiation",
+            ArchetypeCategory::Defense => "defense",
+            ArchetypeCategory::Damage => "damage",
+            ArchetypeCategory::Tempo => "tempo",
+            ArchetypeCategory::Utility => "utility",
+            ArchetypeCategory::MapControl => "map_control",
+        }
+    }
+
     pub fn label_es(self) -> &'static str {
         match self {
             ArchetypeCategory::Initiation => "Inicio",
@@ -209,6 +224,10 @@ impl TraitId {
         }
     }
 
+    pub fn from_code(code: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|id| id.as_str() == code)
+    }
+
     pub fn kind(self) -> TraitKind {
         match self {
             TraitId::DamagePhysical | TraitId::DamageMagic | TraitId::DamageTrue => {
@@ -236,6 +255,15 @@ pub enum TraitKind {
     DamageShare,
     /// Capacidad escalar 0..1.
     Scalar,
+}
+
+impl TraitKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            TraitKind::DamageShare => "damage_share",
+            TraitKind::Scalar => "scalar",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

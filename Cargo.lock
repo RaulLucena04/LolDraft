@@ -1910,6 +1910,7 @@ name = "loldraft-data"
 version = "0.1.0"
 dependencies = [
  "loldraft-domain",
+ "loldraft-engine",
  "rusqlite",
  "serde",
  "serde_json",

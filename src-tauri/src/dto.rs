@@ -238,9 +238,10 @@ pub struct DataStatusDto {
     pub taxonomy_version: String,
     pub archetype_count: usize,
     pub trait_count: usize,
-    pub curated_profiles: usize,
-    /// Estado honesto: la taxonomía ya está validada, pero los perfiles de
-    /// campeón todavía no están curados.
+    /// Perfiles del conjunto activo; no implica que estén revisados.
+    pub profile_count: usize,
+    pub active_profile_set: Option<String>,
+    /// Estado honesto: taxonomía lista, perfiles cargados o análisis completo.
     pub strategic_profile_status: &'static str,
     pub warnings: Vec<String>,
 }

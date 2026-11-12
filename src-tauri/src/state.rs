@@ -144,7 +144,7 @@ impl AppState {
     }
 
     pub fn data_status(&self) -> Result<DataStatusDto, CommandError> {
-        let (patch, last_sync_ms, catalog_source, roles_source, champion_count) = {
+        let (patch, last_sync_ms, catalog_source, roles_source, champion_count, active_profile_set) = {
             let db = self
                 .db
                 .lock()
@@ -155,6 +155,7 @@ impl AppState {
                 get_json_string(&db, "ddragon.source")?,
                 get_json_string(&db, "ddragon.roles_source")?,
                 db.champion_count()?,
+                db.active_profile_set()?,
             )
         };
 
@@ -190,6 +191,11 @@ impl AppState {
         }
 
         let taxonomy = loldraft_engine::taxonomy();
+        let profile_count = active_profile_set
+            .as_ref()
+            .map(|set| set.champion_count)
+            .unwrap_or(0);
+        let active_profile_version = active_profile_set.map(|set| set.version);
 
         Ok(DataStatusDto {
             patch,
@@ -211,8 +217,13 @@ impl AppState {
             taxonomy_version: taxonomy.version.clone(),
             archetype_count: taxonomy.archetypes.len(),
             trait_count: taxonomy.traits.len(),
-            curated_profiles: 0,
-            strategic_profile_status: "taxonomy_ready",
+            profile_count,
+            active_profile_set: active_profile_version,
+            strategic_profile_status: if profile_count > 0 {
+                "profiles_loaded"
+            } else {
+                "taxonomy_ready"
+            },
             warnings,
         })
     }

@@ -235,23 +235,42 @@ CREATE TABLE champion_roles (
 
 -- ---------------------------------------------------------------- perfiles
 CREATE TABLE profile_sets (
-  id          TEXT PRIMARY KEY,               -- ULID
-  version     TEXT NOT NULL,                  -- "2026.11.1"
-  patch       TEXT,
-  notes       TEXT,
-  is_active   INTEGER NOT NULL DEFAULT 0 CHECK (is_active IN (0,1)),
-  created_at  INTEGER NOT NULL
+  id                TEXT PRIMARY KEY,             -- ULID
+  version           TEXT NOT NULL,                -- "2026.11.1"
+  taxonomy_version  TEXT NOT NULL,                -- "1.0.0"
+  patch             TEXT,
+  notes             TEXT,
+  is_active         INTEGER NOT NULL DEFAULT 0 CHECK (is_active IN (0,1)),
+  created_at        INTEGER NOT NULL
 ) STRICT;
 
 CREATE UNIQUE INDEX ux_profile_sets_active
   ON profile_sets(is_active) WHERE is_active = 1;
 
+-- Referencia de la taxonomía embebida; la rúbrica global vive en settings.
 CREATE TABLE archetypes (
   id          TEXT PRIMARY KEY,
   name        TEXT NOT NULL,
   category    TEXT NOT NULL,
-  description TEXT NOT NULL,
-  rubric_json TEXT NOT NULL DEFAULT '{}'
+  description TEXT NOT NULL
+) STRICT;
+
+CREATE TABLE traits (
+  id          TEXT PRIMARY KEY,
+  kind        TEXT NOT NULL CHECK (kind IN ('damage_share','scalar')),
+  name        TEXT NOT NULL,
+  description TEXT NOT NULL
+) STRICT;
+
+-- Los roles también se versionan con el conjunto para reproducir el análisis.
+CREATE TABLE profile_set_roles (
+  profile_set_id  TEXT NOT NULL REFERENCES profile_sets(id) ON DELETE CASCADE,
+  champion_key    INTEGER NOT NULL REFERENCES champions(riot_key) ON DELETE CASCADE,
+  role_id         TEXT NOT NULL CHECK (role_id IN ('top','jungle','mid','adc','support')),
+  proficiency     REAL NOT NULL CHECK (proficiency BETWEEN 0 AND 1),
+  confidence      REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+  source_json     TEXT NOT NULL,                -- Provenance serializado
+  PRIMARY KEY (profile_set_id, champion_key, role_id)
 ) STRICT;
 
 CREATE TABLE champion_archetypes (
@@ -260,25 +279,19 @@ CREATE TABLE champion_archetypes (
   archetype_id    TEXT NOT NULL REFERENCES archetypes(id),
   intensity       REAL CHECK (intensity BETWEEN 0 AND 1),  -- NULL = desconocido
   confidence      REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
-  source          TEXT NOT NULL,
-  notes           TEXT,
+  source_json     TEXT NOT NULL,
   updated_at      INTEGER NOT NULL,
   PRIMARY KEY (profile_set_id, champion_key, archetype_id)
-) STRICT;
-
-CREATE TABLE traits (
-  id          TEXT PRIMARY KEY,
-  kind        TEXT NOT NULL,                  -- scalar | share
-  description TEXT NOT NULL
 ) STRICT;
 
 CREATE TABLE champion_traits (
   profile_set_id  TEXT NOT NULL REFERENCES profile_sets(id) ON DELETE CASCADE,
   champion_key    INTEGER NOT NULL REFERENCES champions(riot_key) ON DELETE CASCADE,
   trait_id        TEXT NOT NULL REFERENCES traits(id),
-  value           REAL,                       -- NULL = desconocido
+  value           REAL CHECK (value BETWEEN 0 AND 1),      -- NULL = desconocido
   confidence      REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
-  source          TEXT NOT NULL,
+  source_json     TEXT NOT NULL,
+  updated_at      INTEGER NOT NULL,
   PRIMARY KEY (profile_set_id, champion_key, trait_id)
 ) STRICT;
 
@@ -406,6 +419,10 @@ CREATE TABLE recommendation_runs (
   output_json      TEXT NOT NULL
 ) STRICT;
 ```
+
+Las celdas estratégicas guardan `source_json` con el enum `Provenance`. Una fila ausente y una fila
+con valor `NULL` significan "desconocido"; ninguna se convierte en cero. Los conjuntos se validan
+contra la taxonomía y se importan en una sola transacción.
 
 ### 4.1 Índices y consultas críticas
 

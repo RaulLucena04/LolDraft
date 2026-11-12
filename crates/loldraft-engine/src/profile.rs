@@ -338,6 +338,10 @@ impl ProfileSet {
         self.champions.get(&key)
     }
 
+    pub fn get_mut(&mut self, key: ChampionKey) -> Option<&mut ChampionProfile> {
+        self.champions.get_mut(&key)
+    }
+
     pub fn len(&self) -> usize {
         self.champions.len()
     }

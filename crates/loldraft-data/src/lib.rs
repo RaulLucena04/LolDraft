@@ -4,10 +4,12 @@
 
 pub mod db;
 pub mod error;
+pub mod profiles;
 pub mod seed;
 
 pub use db::{now_ms, Database, SessionRecord, SessionSummary};
 pub use error::DataError;
+pub use profiles::{ActiveProfileSet, ProfileSetSummary};
 pub use seed::{
     default_seed, default_seed_json, parse_seed, ChampionIdentity, ChampionSeedFile, SeedChampion,
     SeedDataset,

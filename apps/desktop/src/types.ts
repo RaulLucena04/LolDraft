@@ -61,8 +61,9 @@ export interface DataStatus {
   taxonomyVersion: string;
   archetypeCount: number;
   traitCount: number;
-  curatedProfiles: number;
-  strategicProfileStatus: "taxonomy_ready" | "profiles_pending" | "ready";
+  profileCount: number;
+  activeProfileSet: string | null;
+  strategicProfileStatus: "taxonomy_ready" | "profiles_loaded" | "ready";
   warnings: string[];
 }
 

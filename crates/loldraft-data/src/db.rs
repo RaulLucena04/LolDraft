@@ -65,10 +65,76 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 );
 "#;
 
-const MIGRATIONS: &[&str] = &[MIGRATION_1];
+const MIGRATION_2: &str = r#"
+CREATE TABLE IF NOT EXISTS profile_sets (
+    id                TEXT PRIMARY KEY,
+    version           TEXT NOT NULL,
+    taxonomy_version  TEXT NOT NULL,
+    patch             TEXT,
+    notes             TEXT,
+    is_active         INTEGER NOT NULL DEFAULT 0 CHECK (is_active IN (0,1)),
+    created_at        INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_profile_sets_active
+    ON profile_sets(is_active) WHERE is_active = 1;
+
+CREATE TABLE IF NOT EXISTS archetypes (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    category    TEXT NOT NULL,
+    description TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS traits (
+    id          TEXT PRIMARY KEY,
+    kind        TEXT NOT NULL CHECK (kind IN ('damage_share','scalar')),
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS profile_set_roles (
+    profile_set_id TEXT NOT NULL REFERENCES profile_sets(id) ON DELETE CASCADE,
+    champion_key   INTEGER NOT NULL REFERENCES champions(riot_key) ON DELETE CASCADE,
+    role_id        TEXT NOT NULL CHECK (role_id IN ('top','jungle','mid','adc','support')),
+    proficiency    REAL NOT NULL CHECK (proficiency BETWEEN 0 AND 1),
+    confidence     REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    source_json    TEXT NOT NULL,
+    PRIMARY KEY (profile_set_id, champion_key, role_id)
+);
+
+CREATE TABLE IF NOT EXISTS champion_archetypes (
+    profile_set_id TEXT NOT NULL REFERENCES profile_sets(id) ON DELETE CASCADE,
+    champion_key   INTEGER NOT NULL REFERENCES champions(riot_key) ON DELETE CASCADE,
+    archetype_id   TEXT NOT NULL REFERENCES archetypes(id),
+    intensity      REAL CHECK (intensity BETWEEN 0 AND 1),
+    confidence     REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    source_json    TEXT NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    PRIMARY KEY (profile_set_id, champion_key, archetype_id)
+);
+
+CREATE TABLE IF NOT EXISTS champion_traits (
+    profile_set_id TEXT NOT NULL REFERENCES profile_sets(id) ON DELETE CASCADE,
+    champion_key   INTEGER NOT NULL REFERENCES champions(riot_key) ON DELETE CASCADE,
+    trait_id       TEXT NOT NULL REFERENCES traits(id),
+    value          REAL CHECK (value BETWEEN 0 AND 1),
+    confidence     REAL NOT NULL CHECK (confidence BETWEEN 0 AND 1),
+    source_json    TEXT NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    PRIMARY KEY (profile_set_id, champion_key, trait_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_champion_archetypes_set
+    ON champion_archetypes(profile_set_id);
+CREATE INDEX IF NOT EXISTS ix_champion_traits_set
+    ON champion_traits(profile_set_id);
+"#;
+
+const MIGRATIONS: &[&str] = &[MIGRATION_1, MIGRATION_2];
 
 pub struct Database {
-    conn: Connection,
+    pub(crate) conn: Connection,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +179,7 @@ impl Database {
         conn.execute_batch("PRAGMA foreign_keys = ON; PRAGMA synchronous = NORMAL;")?;
         let mut database = Self { conn };
         database.migrate()?;
+        database.sync_taxonomy()?;
         Ok(database)
     }
 

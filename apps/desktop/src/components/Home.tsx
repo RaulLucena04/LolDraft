@@ -267,7 +267,9 @@ export function Home({
               <div className="flex items-start justify-between gap-3">
                 <dt className="text-muted">Perfiles estratégicos</dt>
                 <dd className="text-right text-warning">
-                  {data.curatedProfiles} curados · piloto pendiente
+                  {data.profileCount > 0
+                    ? `${data.profileCount} en set ${data.activeProfileSet ?? "activo"}`
+                    : "0 · piloto pendiente"}
                 </dd>
               </div>
               <div className="flex items-start justify-between gap-3">
