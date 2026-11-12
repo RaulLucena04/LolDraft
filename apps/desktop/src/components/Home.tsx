@@ -258,9 +258,16 @@ export function Home({
                 <dd className="text-right text-ink">{data.rolesSource}</dd>
               </div>
               <div className="flex items-start justify-between gap-3">
+                <dt className="text-muted">Taxonomía</dt>
+                <dd className="text-right text-ink">
+                  v{data.taxonomyVersion} · {data.archetypeCount} arq. ·{" "}
+                  {data.traitCount} traits
+                </dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
                 <dt className="text-muted">Perfiles estratégicos</dt>
                 <dd className="text-right text-warning">
-                  Pendientes (Fase 2)
+                  {data.curatedProfiles} curados · piloto pendiente
                 </dd>
               </div>
               <div className="flex items-start justify-between gap-3">

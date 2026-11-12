@@ -153,11 +153,11 @@ export function ChampionDrawer({
             <ul className="mt-3 space-y-1.5 text-[11px] text-muted/80">
               <li className="flex gap-2">
                 <span aria-hidden="true" className="text-muted/50">1</span>
-                Taxonomía versionada y rúbricas.
+                Taxonomía v1 validada (20 arquetipos, 18 traits).
               </li>
               <li className="flex gap-2">
                 <span aria-hidden="true" className="text-muted/50">2</span>
-                Curación por lotes con fuente y confianza.
+                Curación por lotes con fuente y confianza: en curso.
               </li>
               <li className="flex gap-2">
                 <span aria-hidden="true" className="text-muted/50">3</span>

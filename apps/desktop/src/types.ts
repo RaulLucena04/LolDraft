@@ -58,8 +58,11 @@ export interface DataStatus {
   championCount: number;
   championsWithRoles: number;
   championsWithoutRoles: number;
+  taxonomyVersion: string;
+  archetypeCount: number;
+  traitCount: number;
   curatedProfiles: number;
-  strategicProfileStatus: "pending";
+  strategicProfileStatus: "taxonomy_ready" | "profiles_pending" | "ready";
   warnings: string[];
 }
 

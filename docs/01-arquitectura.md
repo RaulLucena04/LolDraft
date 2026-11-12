@@ -220,7 +220,7 @@ DTOs:
 
 Órdenes de magnitud esperados, no optimizaciones prematuras:
 
-- 173 campeones × 20 arquetipos × 20 traits: análisis de una composición en microsegundos.
+- 173 campeones × 20 arquetipos × 18 traits: análisis de una composición en microsegundos.
 - Evaluación de candidatos: como máximo 173 candidatos × 120 asignaciones de rol (5!); en Rust son
   decenas de miles de operaciones, muy por debajo de 10 ms.
 - Matriz de sinergias precalculada al cargar el catálogo (~15 000 pares), invalidada por versión de

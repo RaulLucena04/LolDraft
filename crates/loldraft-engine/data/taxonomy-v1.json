@@ -1,0 +1,262 @@
+{
+  "version": "1.0.0",
+  "archetypes": [
+    {
+      "id": "engage",
+      "category": "initiation",
+      "label_es": "Iniciación",
+      "definition": "Inicia peleas 5v5 de forma fiable y comprometida."
+    },
+    {
+      "id": "disengage",
+      "category": "defense",
+      "label_es": "Desenganche",
+      "definition": "Detiene o evita iniciaciones enemigas."
+    },
+    {
+      "id": "frontline",
+      "category": "defense",
+      "label_es": "Primera línea",
+      "definition": "Ocupa espacio y absorbe presión delante del equipo."
+    },
+    {
+      "id": "tank",
+      "category": "defense",
+      "label_es": "Tanque",
+      "definition": "Resistencia sostenida y capacidad de aguantar foco."
+    },
+    {
+      "id": "bruiser",
+      "category": "damage",
+      "label_es": "Bruiser",
+      "definition": "Combina daño y resistencia en primera línea."
+    },
+    {
+      "id": "assassin",
+      "category": "damage",
+      "label_es": "Asesino",
+      "definition": "Amenaza letal sobre objetivos prioritarios aislados."
+    },
+    {
+      "id": "poke",
+      "category": "damage",
+      "label_es": "Poke",
+      "definition": "Desgasta a distancia antes de la pelea."
+    },
+    {
+      "id": "burst",
+      "category": "damage",
+      "label_es": "Burst",
+      "definition": "Concentra mucho daño en una ventana corta."
+    },
+    {
+      "id": "dps",
+      "category": "damage",
+      "label_es": "DPS",
+      "definition": "Daño sostenido y repetible en peleas largas."
+    },
+    {
+      "id": "scaling",
+      "category": "tempo",
+      "label_es": "Escalado",
+      "definition": "Mejora de forma notable con oro, niveles e items."
+    },
+    {
+      "id": "early_game",
+      "category": "tempo",
+      "label_es": "Early game",
+      "definition": "Fuerte antes de la primera gran pelea."
+    },
+    {
+      "id": "peel",
+      "category": "defense",
+      "label_es": "Peel",
+      "definition": "Protege a los carries con escudos, curas o control."
+    },
+    {
+      "id": "utility",
+      "category": "utility",
+      "label_es": "Utilidad",
+      "definition": "Aporta herramientas no dañinas relevantes para el equipo."
+    },
+    {
+      "id": "catch",
+      "category": "initiation",
+      "label_es": "Catch",
+      "definition": "Castiga objetivos aislados sin comprometer una pelea 5v5."
+    },
+    {
+      "id": "splitpush",
+      "category": "map_control",
+      "label_es": "Splitpush",
+      "definition": "Presión lateral y duelos fuera del grupo."
+    },
+    {
+      "id": "wombo_combo",
+      "category": "initiation",
+      "label_es": "Wombo combo",
+      "definition": "Combina habilidades de área con aliados."
+    },
+    {
+      "id": "zone_control",
+      "category": "utility",
+      "label_es": "Control de zona",
+      "definition": "Niega espacio o accesos con amenazas persistentes."
+    },
+    {
+      "id": "sustain",
+      "category": "defense",
+      "label_es": "Sostenibilidad",
+      "definition": "Recupera vida o mantiene al equipo en el mapa."
+    },
+    {
+      "id": "anti_tank",
+      "category": "damage",
+      "label_es": "Anti-tanque",
+      "definition": "Rompe tanques con daño porcentual, verdadero o penetración."
+    },
+    {
+      "id": "siege",
+      "category": "map_control",
+      "label_es": "Asedio",
+      "definition": "Presiona torres y objetivos a distancia."
+    }
+  ],
+  "traits": [
+    {
+      "id": "damage_physical",
+      "kind": "damage_share",
+      "label_es": "Daño físico",
+      "definition": "Proporción del daño del kit que es físico; los tres shares suman 1."
+    },
+    {
+      "id": "damage_magic",
+      "kind": "damage_share",
+      "label_es": "Daño mágico",
+      "definition": "Proporción del daño del kit que es mágico; los tres shares suman 1."
+    },
+    {
+      "id": "damage_true",
+      "kind": "damage_share",
+      "label_es": "Daño verdadero",
+      "definition": "Proporción del daño del kit que es verdadero; los tres shares suman 1."
+    },
+    {
+      "id": "range",
+      "kind": "scalar",
+      "label_es": "Alcance",
+      "definition": "0 = cuerpo a cuerpo; 1 = rango largo."
+    },
+    {
+      "id": "mobility",
+      "kind": "scalar",
+      "label_es": "Movilidad",
+      "definition": "Capacidad de reposicionarse, entrar, salir y kite."
+    },
+    {
+      "id": "hard_cc",
+      "kind": "scalar",
+      "label_es": "CC duro",
+      "definition": "Control que impide actuar: stun, root, suppress, knock-up fiable."
+    },
+    {
+      "id": "soft_cc",
+      "kind": "scalar",
+      "label_es": "CC blando",
+      "definition": "Ralentizaciones, silencios y control condicionado."
+    },
+    {
+      "id": "waveclear",
+      "kind": "scalar",
+      "label_es": "Limpieza de oleadas",
+      "definition": "Velocidad para limpiar oleadas y defender torres."
+    },
+    {
+      "id": "objective_dps",
+      "kind": "scalar",
+      "label_es": "Daño a objetivos",
+      "definition": "Daño sostenido y seguro a objetivos neutrales."
+    },
+    {
+      "id": "durability",
+      "kind": "scalar",
+      "label_es": "Resistencia",
+      "definition": "Resistencia efectiva a daño y capacidad de sobrevivir foco."
+    },
+    {
+      "id": "lane_safety",
+      "kind": "scalar",
+      "label_es": "Seguridad de línea",
+      "definition": "Seguridad al ser ciego en línea y ante ganks tempranos."
+    },
+    {
+      "id": "early_power",
+      "kind": "scalar",
+      "label_es": "Poder temprano",
+      "definition": "Fuerza relativa antes de la primera gran pelea."
+    },
+    {
+      "id": "mid_power",
+      "kind": "scalar",
+      "label_es": "Poder medio",
+      "definition": "Fuerza relativa en la ventana de dos a tres items."
+    },
+    {
+      "id": "late_power",
+      "kind": "scalar",
+      "label_es": "Poder tardío",
+      "definition": "Fuerza relativa con builds completas y niveles altos."
+    },
+    {
+      "id": "aoe",
+      "kind": "scalar",
+      "label_es": "Daño en área",
+      "definition": "Proporción del kit que golpea a varios objetivos."
+    },
+    {
+      "id": "single_target",
+      "kind": "scalar",
+      "label_es": "Objetivo único",
+      "definition": "Amenaza concentrada sobre un objetivo prioritario."
+    },
+    {
+      "id": "gold_dependency",
+      "kind": "scalar",
+      "label_es": "Dependencia de oro",
+      "definition": "Recursos que necesita para cumplir su función en la composición."
+    },
+    {
+      "id": "execution_difficulty",
+      "kind": "scalar",
+      "label_es": "Dificultad de ejecución",
+      "definition": "Riesgo mecánico o de posicionamiento al ejecutar su función."
+    }
+  ],
+  "rubric": [
+    {
+      "value": 0.0,
+      "label_es": "No aporta",
+      "definition": "No tiene la herramienta o es irrelevante."
+    },
+    {
+      "value": 0.25,
+      "label_es": "Incidental",
+      "definition": "La aporta de forma secundaria o condicionada."
+    },
+    {
+      "value": 0.5,
+      "label_es": "Sólida",
+      "definition": "La aporta de forma fiable en la mayoría de partidas."
+    },
+    {
+      "value": 0.75,
+      "label_es": "Fuerte",
+      "definition": "Es una herramienta central de su kit."
+    },
+    {
+      "value": 1.0,
+      "label_es": "Definitoria",
+      "definition": "La identidad del campeón gira alrededor de ello."
+    }
+  ]
+}

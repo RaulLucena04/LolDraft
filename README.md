@@ -3,10 +3,11 @@
 Aplicación de escritorio para simular, analizar y asistir drafts competitivos de League of Legends.
 Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind CSS.
 
-> **Estado del repositorio:** Fase 1 implementada. El simulador estándar de 20 acciones funciona,
-> persiste en SQLite y muestra los 173 campeones de Data Dragon con sus roles importados. El análisis
-> estratégico y las recomendaciones llegan en las fases 2 y 3; mientras tanto la UI lo dice
-> explícitamente y no muestra puntuaciones inventadas.
+> **Estado del repositorio:** Fase 1 implementada; Fase 2 en curso. El simulador estándar de 20
+> acciones funciona, persiste en SQLite y muestra los 173 campeones de Data Dragon con sus roles
+> importados. La taxonomía v1 y el esquema de perfiles con procedencia y confianza ya están
+> implementados y validados; los perfiles piloto, el análisis de composiciones y las recomendaciones
+> aún no están disponibles, y la UI lo dice explícitamente.
 
 ## Qué hace diferente a esta herramienta
 
@@ -39,6 +40,14 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
   filtros, drawer de campeón y avisos de error estables.
 - **Datos honestos:** los perfiles estratégicos aparecen como pendientes; no se muestran ceros ni
   winrates falsos.
+
+## Fase 2 en curso
+
+- **Taxonomía v1.0.0** validada: 20 arquetipos, 18 traits y una rúbrica de intensidad de cinco anclas.
+- **Esquema de perfiles** con procedencia (`Riot`, curado, importado o inferido), confianza por celda,
+  distinción entre `None` (desconocido) y `0.0` (no aporta), validación de shares de daño y conjuntos
+  versionados que se cargan enteros o se rechazan.
+- **Pendiente:** perfiles piloto revisados, agregación de composiciones, necesidades y UI de análisis.
 
 Todavía **no** incluye: análisis de composición, recomendaciones de pick/ban, estadísticas externas,
 importación de drafts profesionales ni fearless draft.

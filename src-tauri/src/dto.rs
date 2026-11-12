@@ -235,8 +235,12 @@ pub struct DataStatusDto {
     pub champion_count: usize,
     pub champions_with_roles: usize,
     pub champions_without_roles: usize,
+    pub taxonomy_version: String,
+    pub archetype_count: usize,
+    pub trait_count: usize,
     pub curated_profiles: usize,
-    /// Estado honesto: los perfiles estratégicos aún no existen en la Fase 1.
+    /// Estado honesto: la taxonomía ya está validada, pero los perfiles de
+    /// campeón todavía no están curados.
     pub strategic_profile_status: &'static str,
     pub warnings: Vec<String>,
 }

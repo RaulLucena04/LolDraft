@@ -329,6 +329,13 @@ export function DraftScreen({
                 <dd className="text-ink">{data.rolesSource}</dd>
               </div>
               <div className="flex justify-between gap-2">
+                <dt className="text-muted">Taxonomía</dt>
+                <dd className="text-ink">
+                  v{data.taxonomyVersion} · {data.archetypeCount} arq. ·{" "}
+                  {data.traitCount} traits
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
                 <dt className="text-muted">Sincronización</dt>
                 <dd className="text-ink">
                   {data.lastSyncMs

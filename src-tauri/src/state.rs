@@ -189,6 +189,8 @@ impl AppState {
             );
         }
 
+        let taxonomy = loldraft_engine::taxonomy();
+
         Ok(DataStatusDto {
             patch,
             last_sync_ms,
@@ -206,8 +208,11 @@ impl AppState {
             champion_count,
             champions_with_roles: with_roles,
             champions_without_roles: without_roles,
+            taxonomy_version: taxonomy.version.clone(),
+            archetype_count: taxonomy.archetypes.len(),
+            trait_count: taxonomy.traits.len(),
             curated_profiles: 0,
-            strategic_profile_status: "pending",
+            strategic_profile_status: "taxonomy_ready",
             warnings,
         })
     }
