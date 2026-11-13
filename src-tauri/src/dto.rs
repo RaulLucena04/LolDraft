@@ -394,6 +394,77 @@ pub struct TeamMatchupDto {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProfileProvenanceDto {
+    /// Código estable: `riot`, `curated`, `imported` o `inferred`.
+    pub code: &'static str,
+    pub label: &'static str,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileRatingDto {
+    pub id: String,
+    pub label: String,
+    /// Solo se devuelven celdas conocidas; una celda desconocida no es un cero.
+    pub value: f32,
+    pub confidence: f32,
+    pub provenance: ProfileProvenanceDto,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileRoleDto {
+    pub role: Role,
+    pub proficiency: f32,
+    pub confidence: f32,
+    pub provenance: ProfileProvenanceDto,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileDamageDto {
+    pub physical: f32,
+    pub magic: f32,
+    pub true_damage: f32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChampionProfileContextDto {
+    pub has_draft: bool,
+    pub side: Option<Side>,
+    /// Rol usado para evaluar sinergias; `None` si no hay draft o rol resuelto.
+    pub role: Option<Role>,
+    pub picked: bool,
+    /// Compañeros evaluados, sin contar al propio campeón.
+    pub teammates: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChampionProfileDto {
+    pub key: u16,
+    pub name: String,
+    pub slug: String,
+    pub set_id: String,
+    pub set_version: String,
+    pub taxonomy_version: String,
+    pub patch: Option<String>,
+    pub roles: Vec<ProfileRoleDto>,
+    pub archetypes: Vec<ProfileRatingDto>,
+    pub traits: Vec<ProfileRatingDto>,
+    pub damage: Option<ProfileDamageDto>,
+    pub known_cell_ratio: f32,
+    pub observed_cells: usize,
+    pub inferred_cells: usize,
+    pub unknown_cells: usize,
+    pub context: ChampionProfileContextDto,
+    pub synergies: Vec<SynergyDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TeamAnalysisDto {
     pub side: Side,
     pub picks: usize,

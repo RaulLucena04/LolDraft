@@ -176,7 +176,8 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 - [x] Sinergias derivadas entre pares y lecturas de línea/equipo, con intervalos y confianza.
 - [ ] Sinergias curadas y matchups observados (requieren datos revisados).
 - [ ] Herramienta de curación y expansión por lotes de perfiles.
-- [ ] Drawer de campeón con perfil y sinergias.
+- [x] Drawer de campeón con perfil (roles, arquetipos, traits, daño, cobertura y procedencia) y
+      sinergias derivadas con los compañeros del lado.
 
 ### Fuera de alcance
 

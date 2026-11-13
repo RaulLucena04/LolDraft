@@ -63,7 +63,10 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Panel de análisis en el draft:** intervalos por arquetipo, reparto de daño, carencias confirmadas
   o posibles con sus motivos, condiciones de victoria, sinergias derivadas, lectura de líneas,
   ventajas de equipo, fortalezas y aviso de análisis parcial. No hay barras de winrate.
-- **Pendiente:** revisión experta del piloto y de 20–30 composiciones, sinergias curadas, matchups
+- **Detalle de campeón:** perfil del set activo con procedencia y confianza por celda, cobertura,
+  daño y sinergias derivadas con los compañeros de su lado. Si el campeón no está en el set, lo dice
+  y no rellena celdas.
+- **Pendiente:** revisión experta del piloto y de 20-30 composiciones, sinergias curadas, matchups
   observados, herramienta de curación y perfiles revisados.
 
 Todavía **no** incluye: recomendaciones de pick/ban, sinergias curadas ni matchups observados,

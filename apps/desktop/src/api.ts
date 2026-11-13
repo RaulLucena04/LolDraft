@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   Bootstrap,
   Champion,
+  ChampionProfileDetail,
   CommandError,
   DraftAnalysis,
   DraftView,
@@ -55,6 +56,8 @@ export const api = {
   activateProfileSet: (id: string) =>
     call<ProfileSet[]>("profiles_activate", { id }),
   analysis: () => call<DraftAnalysis>("analysis_current"),
+  championProfile: (championKey: number) =>
+    call<ChampionProfileDetail>("profile_champion", { championKey }),
 };
 
 export { toCommandError };

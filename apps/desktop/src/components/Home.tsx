@@ -369,8 +369,8 @@ export function Home({
                   </p>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
                     Disponible con el piloto inferido: arquetipos, daño,
-                    carencias y condiciones de victoria. Sinergias, matchups y
-                    revisión experta, pendientes.
+                    carencias, condiciones de victoria y sinergias derivadas.
+                    Curadas, matchups observados y revisión experta, pendientes.
                   </p>
                 </div>
               </li>

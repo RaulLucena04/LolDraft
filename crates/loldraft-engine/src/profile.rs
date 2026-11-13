@@ -43,6 +43,32 @@ impl Provenance {
         }
     }
 
+    /// Código estable para la UI y para futuros filtros por procedencia.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Provenance::Riot => "riot",
+            Provenance::Curated { .. } => "curated",
+            Provenance::Imported { .. } => "imported",
+            Provenance::Inferred { .. } => "inferred",
+        }
+    }
+
+    /// Detalle legible de la procedencia. `Riot` no necesita más contexto.
+    pub fn detail(&self) -> Option<String> {
+        match self {
+            Provenance::Riot => None,
+            Provenance::Curated { editor, review } => {
+                Some(format!("editor: {editor} · revisión: {review}"))
+            }
+            Provenance::Imported { source, dataset } => {
+                Some(format!("fuente: {source} · dataset: {dataset}"))
+            }
+            Provenance::Inferred { method, version } => {
+                Some(format!("método: {method} · versión: {version}"))
+            }
+        }
+    }
+
     fn is_complete(&self) -> bool {
         match self {
             Provenance::Riot => true,

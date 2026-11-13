@@ -166,8 +166,8 @@ export function DraftScreen({
           </StatusPill>
           <span>
             Fase 2: el draft es real y persistente. El análisis de composición
-            está disponible con el piloto inferido; sinergias, matchups y
-            revisión experta siguen pendientes.
+            está disponible con el piloto inferido; las sinergias curadas, los
+            matchups observados y la revisión experta siguen pendientes.
           </span>
           <span className="ml-auto hidden text-[10px] text-muted/70 lg:block">
             Atajos: Ctrl+Z / Ctrl+Y · / buscar · ↵ confirmar

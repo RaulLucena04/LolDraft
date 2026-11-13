@@ -157,6 +157,63 @@ export interface ProfileSet {
   createdAt: number;
 }
 
+export type ProvenanceCode = "riot" | "curated" | "imported" | "inferred";
+
+export interface ProfileProvenance {
+  code: ProvenanceCode;
+  label: string;
+  detail: string | null;
+}
+
+export interface ProfileRating {
+  id: string;
+  label: string;
+  value: number;
+  confidence: number;
+  provenance: ProfileProvenance;
+}
+
+export interface ProfileRoleRating {
+  role: Role;
+  proficiency: number;
+  confidence: number;
+  provenance: ProfileProvenance;
+}
+
+export interface ProfileDamageShares {
+  physical: number;
+  magic: number;
+  trueDamage: number;
+}
+
+export interface ChampionProfileContext {
+  hasDraft: boolean;
+  side: Side | null;
+  role: Role | null;
+  picked: boolean;
+  teammates: number;
+}
+
+export interface ChampionProfileDetail {
+  key: number;
+  name: string;
+  slug: string;
+  setId: string;
+  setVersion: string;
+  taxonomyVersion: string;
+  patch: string | null;
+  roles: ProfileRoleRating[];
+  archetypes: ProfileRating[];
+  traits: ProfileRating[];
+  damage: ProfileDamageShares | null;
+  knownCellRatio: number;
+  observedCells: number;
+  inferredCells: number;
+  unknownCells: number;
+  context: ChampionProfileContext;
+  synergies: Synergy[];
+}
+
 export type CoverageKind = "archetype" | "trait";
 
 export interface Coverage {

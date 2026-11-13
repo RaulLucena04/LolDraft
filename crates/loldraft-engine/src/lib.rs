@@ -10,10 +10,11 @@ pub mod proposals;
 pub mod taxonomy;
 
 pub use analysis::{
-    analyze_draft, analyze_team, Advantage, AnalysisError, AnalysisParams, AnalysisParamsError,
-    CcProfile, Coverage, DamageProfile, Dimension, DraftAnalysis, LaneMatchup, MatchupRuleId, Need,
-    NeedSource, NeedStatus, PickedChampion, PowerCurve, RangeProfile, Signal, Synergy, SynergyId,
-    TeamAnalysis, TeamMatchup, ThreatRuleId, WinCondition, WinConditionId, INTERACTIONS_VERSION,
+    analyze_draft, analyze_team, candidate_synergies, Advantage, AnalysisError, AnalysisParams,
+    AnalysisParamsError, CcProfile, Coverage, DamageProfile, Dimension, DraftAnalysis, LaneMatchup,
+    MatchupRuleId, Need, NeedSource, NeedStatus, PickedChampion, PowerCurve, RangeProfile, Signal,
+    Synergy, SynergyId, TeamAnalysis, TeamMatchup, ThreatRuleId, WinCondition, WinConditionId,
+    INTERACTIONS_VERSION,
 };
 pub use profile::{
     ArchetypeRating, ChampionProfile, DamageShares, ProfileError, ProfileRole, ProfileSet,

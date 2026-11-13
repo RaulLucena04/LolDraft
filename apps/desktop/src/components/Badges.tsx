@@ -65,7 +65,15 @@ export function ConfidenceBadge({
   );
 }
 
-export function ProfileBadge({ hasRoles }: { hasRoles: boolean }) {
+export function ProfileBadge({
+  hasRoles,
+  hasProfile = false,
+  inferred = false,
+}: {
+  hasRoles: boolean;
+  hasProfile?: boolean;
+  inferred?: boolean;
+}) {
   if (!hasRoles) {
     return (
       <span className="chip border-warning/40 bg-warning/10 text-warning">
@@ -73,7 +81,27 @@ export function ProfileBadge({ hasRoles }: { hasRoles: boolean }) {
       </span>
     );
   }
-  return <span className="chip">Perfil estratégico pendiente</span>;
+  if (!hasProfile) {
+    return <span className="chip">Sin perfil en el set activo</span>;
+  }
+  if (inferred) {
+    return (
+      <span
+        className="chip border-warning/40 bg-warning/10 text-warning"
+        title="Celdas propuestas automáticamente; no son datos observados ni curados"
+      >
+        Perfil inferido
+      </span>
+    );
+  }
+  return (
+    <span
+      className="chip border-success/35 bg-success/10 text-success"
+      title="Celdas con procedencia observada o curada"
+    >
+      Perfil con fuente
+    </span>
+  );
 }
 
 export function StatusPill({

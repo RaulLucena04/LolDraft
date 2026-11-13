@@ -43,6 +43,7 @@ pub fn run() {
             commands::profiles_import_proposal,
             commands::profiles_activate,
             commands::analysis_current,
+            commands::profile_champion,
             commands::draft_new,
             commands::draft_action,
             commands::draft_undo,

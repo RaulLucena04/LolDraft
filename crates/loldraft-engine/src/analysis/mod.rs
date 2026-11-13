@@ -14,7 +14,8 @@ mod win_conditions;
 mod tests;
 
 pub use interactions::{
-    Advantage, LaneMatchup, MatchupRuleId, Synergy, SynergyId, TeamMatchup, INTERACTIONS_VERSION,
+    candidate_synergies, Advantage, LaneMatchup, MatchupRuleId, Synergy, SynergyId, TeamMatchup,
+    INTERACTIONS_VERSION,
 };
 pub use needs::{Need, NeedSource, NeedStatus, ThreatRuleId};
 pub use params::{AnalysisParams, AnalysisParamsError, Dimension};

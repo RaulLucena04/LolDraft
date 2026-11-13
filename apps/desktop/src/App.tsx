@@ -3,6 +3,7 @@ import { api } from "./api";
 import type {
   Bootstrap,
   Champion,
+  ChampionProfileDetail,
   CommandError,
   DraftAnalysis,
   DraftView,
@@ -31,8 +32,13 @@ export default function App() {
   const [analysis, setAnalysis] = useState<DraftAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [championProfile, setChampionProfile] =
+    useState<ChampionProfileDetail | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
   const toastId = useRef(0);
+  const inspectSeq = useRef(0);
 
   const showToast = useCallback(
     (kind: Toast["kind"], message: string) => {
@@ -268,10 +274,38 @@ export default function App() {
       const champion = bootstrap?.champions.find(
         (item) => item.key === championKey,
       );
-      if (champion) setDrawer(champion);
+      if (!champion) return;
+      setDrawer(champion);
+      setChampionProfile(null);
+      setProfileError(null);
+      setProfileLoading(true);
+      const seq = ++inspectSeq.current;
+      void (async () => {
+        try {
+          const detail = await api.championProfile(championKey);
+          if (seq === inspectSeq.current) setChampionProfile(detail);
+        } catch (error) {
+          if (seq !== inspectSeq.current) return;
+          const commandError = error as Partial<CommandError>;
+          setProfileError(
+            commandError.message ??
+              "No se pudo cargar el perfil del campeón.",
+          );
+        } finally {
+          if (seq === inspectSeq.current) setProfileLoading(false);
+        }
+      })();
     },
     [bootstrap],
   );
+
+  const handleCloseDrawer = useCallback(() => {
+    inspectSeq.current += 1;
+    setDrawer(null);
+    setChampionProfile(null);
+    setProfileError(null);
+    setProfileLoading(false);
+  }, []);
 
   const handleChooseFromDrawer = useCallback((champion: Champion) => {
     setSelected(champion);
@@ -353,6 +387,9 @@ export default function App() {
 
       <ChampionDrawer
         champion={drawer}
+        profile={championProfile}
+        profileLoading={profileLoading}
+        profileError={profileError}
         busy={busy}
         chooseBlockedReason={
           !drawer
@@ -369,7 +406,7 @@ export default function App() {
                   ? "Este campeón ya está usado en este draft."
                   : null
         }
-        onClose={() => setDrawer(null)}
+        onClose={handleCloseDrawer}
         onChoose={handleChooseFromDrawer}
       />
 

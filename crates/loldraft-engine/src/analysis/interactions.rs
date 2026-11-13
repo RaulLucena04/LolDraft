@@ -309,8 +309,60 @@ pub(crate) fn synergies(picks: &[PickedChampion], profiles: &ProfileSet) -> Vec<
             .then_with(|| left.id.cmp(&right.id))
             .then_with(|| left.champions.cmp(&right.champions))
     });
-    // Una regla aporta una sola pareja: repetir "engage + DPS" con cada carry
-    // llenaría la lista sin añadir información distinta.
+    finish_synergies(found)
+}
+
+/// Sinergias que un candidato formaría con los picks ya presentes. El
+/// candidato no se añade al equipo: solo se evalúan las parejas posibles. Se
+/// usa en el detalle de campeón, no en el análisis agregado.
+pub fn candidate_synergies(
+    teammates: &[PickedChampion],
+    candidate: PickedChampion,
+    profiles: &ProfileSet,
+) -> Vec<Synergy> {
+    let Some(candidate_profile) = profiles.get(candidate.key) else {
+        return Vec::new();
+    };
+    let mut found = Vec::new();
+    for teammate in teammates {
+        if teammate.key == candidate.key {
+            continue;
+        }
+        let Some(teammate_profile) = profiles.get(teammate.key) else {
+            continue;
+        };
+        for rule in SYNERGY_RULES {
+            let forward = evaluate_synergy(
+                rule,
+                &candidate,
+                candidate_profile,
+                teammate,
+                teammate_profile,
+            );
+            let backward = evaluate_synergy(
+                rule,
+                teammate,
+                teammate_profile,
+                &candidate,
+                candidate_profile,
+            );
+            if let Some(synergy) = pick_stronger(forward, backward) {
+                found.push(synergy);
+            }
+        }
+    }
+    finish_synergies(found)
+}
+
+/// Deduplica y ordena: una regla aporta una sola pareja (la más fuerte), para
+/// que la lista no se llene con la misma sinergia repetida.
+fn finish_synergies(mut found: Vec<Synergy>) -> Vec<Synergy> {
+    found.sort_by(|left, right| {
+        (right.score_low + right.score_high)
+            .total_cmp(&(left.score_low + left.score_high))
+            .then_with(|| left.id.cmp(&right.id))
+            .then_with(|| left.champions.cmp(&right.champions))
+    });
     let mut seen = HashSet::new();
     found.retain(|synergy| seen.insert(synergy.id));
     found.truncate(8);
@@ -828,6 +880,53 @@ mod tests {
                 .map(|synergy| synergy.champions),
             Some([ChampionKey(1), ChampionKey(2)])
         );
+    }
+
+    #[test]
+    fn a_candidate_synergy_uses_the_existing_team() {
+        let profiles = set(vec![
+            profile(1, Role::Support, &[(ArchetypeId::Engage, Some(1.0))], &[]),
+            profile(2, Role::Mid, &[(ArchetypeId::Burst, Some(1.0))], &[]),
+            profile(3, Role::Adc, &[(ArchetypeId::Dps, Some(1.0))], &[]),
+        ]);
+        let teammate = PickedChampion::new(ChampionKey(1), Role::Support, 1.0);
+        let candidate = PickedChampion::new(ChampionKey(2), Role::Mid, 1.0);
+        let synergies = candidate_synergies(&[teammate], candidate, &profiles);
+        let synergy = synergies
+            .iter()
+            .find(|synergy| synergy.id == SynergyId::EngageBurst)
+            .expect("sinergia engage + burst");
+        assert_eq!(synergy.score_low, 1.0);
+        assert_eq!(synergy.known, 2);
+        // Las reglas con un requisito desconocido ensanchan el intervalo; no se
+        // convierten en parejas confirmadas.
+        assert!(synergies
+            .iter()
+            .filter(|synergy| synergy.id != SynergyId::EngageBurst)
+            .all(|synergy| synergy.score_low < synergy.score_high));
+    }
+
+    #[test]
+    fn a_candidate_is_not_paired_with_itself() {
+        let profiles = set(vec![profile(
+            1,
+            Role::Support,
+            &[
+                (ArchetypeId::Engage, Some(1.0)),
+                (ArchetypeId::Burst, Some(1.0)),
+            ],
+            &[],
+        )]);
+        let candidate = PickedChampion::new(ChampionKey(1), Role::Support, 1.0);
+        assert!(candidate_synergies(&[candidate], candidate, &profiles).is_empty());
+    }
+
+    #[test]
+    fn a_candidate_without_a_profile_has_no_synergies() {
+        let profiles = set(vec![profile(1, Role::Support, &[], &[])]);
+        let teammate = PickedChampion::new(ChampionKey(1), Role::Support, 1.0);
+        let candidate = PickedChampion::new(ChampionKey(2), Role::Mid, 1.0);
+        assert!(candidate_synergies(&[teammate], candidate, &profiles).is_empty());
     }
 
     #[test]

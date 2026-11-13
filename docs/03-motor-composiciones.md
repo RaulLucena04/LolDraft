@@ -323,6 +323,8 @@ Reglas de presentación:
   se llene con «engage + DPS» repetido;
 - se muestran como mucho ocho parejas por equipo;
 - el par se evalúa en ambos órdenes y se conserva la orientación con mayor puntuación;
+- el detalle de campeón evalúa un candidato contra los picks de su lado con `candidate_synergies`,
+  sin añadirlo al equipo ni inventar compañeros;
 - la puntuación es un ajuste estratégico `0..1`, nunca una probabilidad ni un winrate.
 
 ### 7.2 Sinergias curadas (pendiente)

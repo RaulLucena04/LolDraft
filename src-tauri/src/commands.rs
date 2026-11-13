@@ -1,9 +1,10 @@
 use crate::dto::{
-    AdvantageDto, AssignmentDto, BootstrapDto, ChampionDto, ChampionRefDto, CoverageDto,
-    DamageProfileDto, DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto,
-    LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileSetDto, SessionSummaryDto, SignalDto,
-    SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto, TeamViewDto, TeamsDto,
-    WinConditionDto,
+    AdvantageDto, AssignmentDto, BootstrapDto, ChampionDto, ChampionProfileContextDto,
+    ChampionProfileDto, ChampionRefDto, CoverageDto, DamageProfileDto, DataStatusDto,
+    DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto, LaneMatchupDto, NeedDto,
+    NextStepDto, PickViewDto, ProfileDamageDto, ProfileProvenanceDto, ProfileRatingDto,
+    ProfileRoleDto, ProfileSetDto, SessionSummaryDto, SignalDto, SynergyChampionDto, SynergyDto,
+    TeamAnalysisDto, TeamMatchupDto, TeamViewDto, TeamsDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
@@ -12,9 +13,10 @@ use loldraft_domain::{
     Role, Side,
 };
 use loldraft_engine::{
-    analyze_draft, Advantage, AnalysisParams, Coverage, Dimension, LaneMatchup, MatchupRuleId,
-    NeedSource, NeedStatus, PickedChampion, ProfileProposalSet, SynergyId, Taxonomy, TeamMatchup,
-    ThreatRuleId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
+    analyze_draft, candidate_synergies, Advantage, AnalysisParams, ArchetypeId, Coverage,
+    Dimension, LaneMatchup, MatchupRuleId, NeedSource, NeedStatus, PickedChampion,
+    ProfileProposalSet, Provenance, SynergyId, Taxonomy, TeamMatchup, ThreatRuleId, TraitId,
+    WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
 };
 use loldraft_sources::DdragonClient;
 use serde_json::Value;
@@ -208,6 +210,227 @@ pub fn analysis_current(state: State<'_, AppState>) -> Result<DraftAnalysisDto, 
         lane_matchups,
         matchups,
     })
+}
+
+#[tauri::command]
+pub fn profile_champion(
+    state: State<'_, AppState>,
+    champion_key: u16,
+) -> Result<ChampionProfileDto, CommandError> {
+    let key = ChampionKey(champion_key);
+    let (profile_set, set_version) = {
+        let db = lock_db(&state)?;
+        let active = db.active_profile_set()?.ok_or_else(|| {
+            CommandError::new(
+                "profiles_not_loaded",
+                "No hay un conjunto de perfiles activo. Carga y activa un conjunto para ver perfiles.",
+            )
+        })?;
+        let set = db.load_profile_set(&active.id)?;
+        (set, active.version)
+    };
+    let profile = profile_set.get(key).ok_or_else(|| {
+        CommandError::new(
+            "profile_not_available",
+            format!(
+                "El campeón #{} no tiene perfil en el conjunto activo; no se inventan celdas.",
+                key.0
+            ),
+        )
+    })?;
+    let taxonomy = loldraft_engine::taxonomy();
+
+    let mut context = ChampionProfileContextDto {
+        has_draft: false,
+        side: None,
+        role: None,
+        picked: false,
+        teammates: 0,
+    };
+    let mut synergies = Vec::new();
+    {
+        let catalog = state
+            .catalog
+            .read()
+            .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+        let guard = state
+            .active
+            .lock()
+            .map_err(|_| CommandError::internal("la sesión activa está bloqueada"))?;
+        if let Some(active) = guard.as_ref() {
+            context.has_draft = true;
+            let picked_blue = active.state().picks(Side::Blue).contains(&key);
+            let picked_red = active.state().picks(Side::Red).contains(&key);
+            let side = if picked_blue {
+                Side::Blue
+            } else if picked_red {
+                Side::Red
+            } else {
+                active.session.side()
+            };
+            context.side = Some(side);
+            context.picked = picked_blue || picked_red;
+
+            let mut teammates = analysis_picks(side, active, &catalog).0;
+            let assigned_role = teammates
+                .iter()
+                .find(|pick| pick.key == key)
+                .map(|pick| pick.role);
+            // Un campeón sin pick usa su mejor rol del perfil como referencia;
+            // la UI lo etiqueta como rol de referencia, no como asignado.
+            let role = assigned_role.or_else(|| {
+                profile
+                    .roles
+                    .iter()
+                    .max_by(|left, right| left.proficiency.total_cmp(&right.proficiency))
+                    .map(|role| role.role)
+            });
+            teammates.retain(|pick| pick.key != key);
+            context.role = role;
+            context.teammates = teammates.len();
+            if let Some(role) = role {
+                let assignment_confidence = profile
+                    .roles
+                    .iter()
+                    .find(|candidate| candidate.role == role)
+                    .map(|candidate| candidate.confidence)
+                    .unwrap_or(0.0);
+                let candidate = PickedChampion::new(key, role, assignment_confidence);
+                synergies = candidate_synergies(&teammates, candidate, &profile_set)
+                    .iter()
+                    .map(|synergy| synergy_dto(synergy, taxonomy, &catalog))
+                    .collect();
+            }
+        }
+    }
+
+    let roles: Vec<ProfileRoleDto> = Role::ALL
+        .iter()
+        .filter_map(|role| {
+            profile
+                .roles
+                .iter()
+                .find(|candidate| candidate.role == *role)
+                .map(|candidate| ProfileRoleDto {
+                    role: candidate.role,
+                    proficiency: candidate.proficiency,
+                    confidence: candidate.confidence,
+                    provenance: provenance_dto(&candidate.source),
+                })
+        })
+        .collect();
+
+    let mut archetypes: Vec<ProfileRatingDto> = profile
+        .archetypes
+        .iter()
+        .filter_map(|(id, rating)| {
+            let value = rating.intensity?;
+            Some(ProfileRatingDto {
+                id: id.as_str().to_string(),
+                label: taxonomy
+                    .archetype(*id)
+                    .map(|entry| entry.label_es.clone())
+                    .unwrap_or_else(|| id.as_str().to_string()),
+                value,
+                confidence: rating.confidence,
+                provenance: provenance_dto(&rating.source),
+            })
+        })
+        .collect();
+    archetypes.sort_by(|left, right| {
+        right
+            .value
+            .total_cmp(&left.value)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+
+    let mut traits: Vec<ProfileRatingDto> = profile
+        .traits
+        .iter()
+        .filter_map(|(id, rating)| {
+            if id.is_damage_share() {
+                return None;
+            }
+            let value = rating.value?;
+            Some(ProfileRatingDto {
+                id: id.as_str().to_string(),
+                label: taxonomy
+                    .trait_entry(*id)
+                    .map(|entry| entry.label_es.clone())
+                    .unwrap_or_else(|| id.as_str().to_string()),
+                value,
+                confidence: rating.confidence,
+                provenance: provenance_dto(&rating.source),
+            })
+        })
+        .collect();
+    traits.sort_by(|left, right| {
+        right
+            .value
+            .total_cmp(&left.value)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+
+    let damage = profile.damage_shares().map(|shares| ProfileDamageDto {
+        physical: shares.physical,
+        magic: shares.magic,
+        true_damage: shares.true_damage,
+    });
+
+    let mut observed_cells = 0;
+    let mut inferred_cells = 0;
+    for rating in profile
+        .archetypes
+        .values()
+        .filter(|rating| rating.intensity.is_some())
+    {
+        if rating.source.is_observed() {
+            observed_cells += 1;
+        } else {
+            inferred_cells += 1;
+        }
+    }
+    for rating in profile
+        .traits
+        .values()
+        .filter(|rating| rating.value.is_some())
+    {
+        if rating.source.is_observed() {
+            observed_cells += 1;
+        } else {
+            inferred_cells += 1;
+        }
+    }
+    let total_cells = ArchetypeId::ALL.len() + TraitId::ALL.len();
+    let unknown_cells = total_cells.saturating_sub(observed_cells + inferred_cells);
+
+    Ok(ChampionProfileDto {
+        key: key.0,
+        name: profile.name.clone(),
+        slug: profile.slug.clone(),
+        set_id: profile_set.id.clone(),
+        set_version,
+        taxonomy_version: profile_set.taxonomy_version.clone(),
+        patch: profile_set.patch.clone(),
+        roles,
+        archetypes,
+        traits,
+        damage,
+        known_cell_ratio: profile.known_cell_ratio(),
+        observed_cells,
+        inferred_cells,
+        unknown_cells,
+        context,
+        synergies,
+    })
+}
+
+fn provenance_dto(source: &Provenance) -> ProfileProvenanceDto {
+    ProfileProvenanceDto {
+        code: source.code(),
+        label: source.label_es(),
+        detail: source.detail(),
+    }
 }
 
 fn import_proposal(
