@@ -5,6 +5,7 @@ members = [
     "crates/loldraft-engine",
     "crates/loldraft-data",
     "crates/loldraft-sources",
+    "crates/loldraft-curation",
     "src-tauri",
 ]
 
@@ -26,6 +27,7 @@ loldraft-domain = { path = "crates/loldraft-domain" }
 loldraft-engine = { path = "crates/loldraft-engine" }
 loldraft-data = { path = "crates/loldraft-data" }
 loldraft-sources = { path = "crates/loldraft-sources" }
+loldraft-curation = { path = "crates/loldraft-curation" }
 
 [profile.dev]
 opt-level = 0

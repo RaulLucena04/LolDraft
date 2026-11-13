@@ -1,0 +1,14 @@
+[package]
+name = "loldraft-curation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "loldraft-curate"
+path = "src/main.rs"
+
+[dependencies]
+loldraft-domain.workspace = true
+loldraft-engine.workspace = true
+thiserror.workspace = true

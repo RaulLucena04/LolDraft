@@ -1906,6 +1906,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "loldraft-curation"
+version = "0.1.0"
+dependencies = [
+ "loldraft-domain",
+ "loldraft-engine",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "loldraft-data"
 version = "0.1.0"
 dependencies = [
