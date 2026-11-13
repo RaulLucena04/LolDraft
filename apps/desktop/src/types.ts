@@ -204,6 +204,50 @@ export interface AnalysisSignal {
   confidence: number;
 }
 
+export interface SynergyChampion {
+  key: number;
+  name: string;
+}
+
+export interface Synergy {
+  id: string;
+  label: string;
+  champions: SynergyChampion[];
+  scoreLow: number;
+  scoreHigh: number;
+  confidence: number;
+  evidence: string[];
+}
+
+export interface Advantage {
+  low: number;
+  high: number;
+  confidence: number;
+  known: number;
+  total: number;
+  favored: Side | null;
+}
+
+export interface LaneMatchup {
+  role: Role;
+  blue: SynergyChampion;
+  red: SynergyChampion;
+  pressure: Advantage;
+  allIn: Advantage;
+}
+
+export interface TeamMatchup {
+  id: string;
+  label: string;
+  side: Side;
+  attackLabel: string;
+  defendLabel: string;
+  advantageLow: number;
+  advantageHigh: number;
+  confidence: number;
+  favored: Side | null;
+}
+
 export interface TeamAnalysis {
   side: Side;
   picks: number;
@@ -216,15 +260,19 @@ export interface TeamAnalysis {
   damage: DamageProfile | null;
   needs: Need[];
   winConditions: WinCondition[];
+  synergies: Synergy[];
   strengths: AnalysisSignal[];
   weaknesses: AnalysisSignal[];
 }
 
 export interface DraftAnalysis {
   paramsVersion: number;
+  interactionsVersion: number;
   engineVersion: string;
   profileSetId: string;
   profileSetVersion: string;
   blue: TeamAnalysis;
   red: TeamAnalysis;
+  laneMatchups: LaneMatchup[];
+  matchups: TeamMatchup[];
 }

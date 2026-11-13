@@ -10,10 +10,10 @@ pub mod proposals;
 pub mod taxonomy;
 
 pub use analysis::{
-    analyze_draft, analyze_team, AnalysisError, AnalysisParams, AnalysisParamsError, CcProfile,
-    Coverage, DamageProfile, Dimension, DraftAnalysis, Need, NeedSource, NeedStatus,
-    PickedChampion, PowerCurve, RangeProfile, Signal, TeamAnalysis, ThreatRuleId, WinCondition,
-    WinConditionId,
+    analyze_draft, analyze_team, Advantage, AnalysisError, AnalysisParams, AnalysisParamsError,
+    CcProfile, Coverage, DamageProfile, Dimension, DraftAnalysis, LaneMatchup, MatchupRuleId, Need,
+    NeedSource, NeedStatus, PickedChampion, PowerCurve, RangeProfile, Signal, Synergy, SynergyId,
+    TeamAnalysis, TeamMatchup, ThreatRuleId, WinCondition, WinConditionId, INTERACTIONS_VERSION,
 };
 pub use profile::{
     ArchetypeRating, ChampionProfile, DamageShares, ProfileError, ProfileRole, ProfileSet,
@@ -27,7 +27,7 @@ pub use taxonomy::{
     TaxonomyError, TraitEntry, TraitId, TraitKind, TAXONOMY_VERSION,
 };
 
-pub const ENGINE_VERSION: &str = "0.4.0-phase2-pilot";
+pub const ENGINE_VERSION: &str = "0.5.0-phase2-interactions";
 
 pub fn engine_version() -> &'static str {
     ENGINE_VERSION

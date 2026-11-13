@@ -1,17 +1,19 @@
 # 03 — Motor de análisis de composiciones
 
-> Estado: implementación parcial en `loldraft-engine` (v0.4.0-phase2-pilot). Ya funcionan la agregación
-> saturante con intervalos, daño, curva, rango, CC, movilidad, waveclear, objetivos, suelos, balance
-> de daño, reglas de amenaza, condiciones de victoria, confianza y señales explicables. Sinergias y
-> matchups siguen en diseño. Los valores numéricos son parámetros iniciales documentados, no verdades
-> universales ni datos de campeones reales.
+> Estado: implementación parcial en `loldraft-engine` (v0.5.0-phase2-interactions). Ya funcionan la
+> agregación saturante con intervalos, daño, curva, rango, CC, movilidad, waveclear, objetivos,
+> suelos, balance de daño, reglas de amenaza, condiciones de victoria, confianza, señales
+> explicables, sinergias derivadas y lecturas de línea/equipo. Las sinergias curadas y los matchups
+> observados siguen pendientes. Los valores numéricos son parámetros iniciales documentados, no
+> verdades universales ni datos de campeones reales.
 >
-> Desviaciones conscientes de la v0.4: (1) las reglas de amenaza escalan la necesidad por la
+> Desviaciones conscientes de la v0.5: (1) las reglas de amenaza escalan la necesidad por la
 > cobertura actual de la herramienta en lugar de sumar una cantidad fija, para no pedir algo que ya
 > está cubierto; (2) el balance de daño solo se afirma con ≥ 60 % del peso de oro conocido; (3)
 > `range`, `mobility`, `lane_safety`, `gold_dependency` y `execution_difficulty` usan media ponderada,
 > mientras las herramientas de equipo usan suma saturante; (4) no hay estadísticas externas todavía,
-> así que la confianza no incluye `stat_confidence`.
+> así que la confianza no incluye `stat_confidence`; (5) sinergias y matchups se derivan de perfiles
+> y reglas, nunca de resultados observados.
 
 ## 1. Objetivo y límites
 
@@ -283,9 +285,49 @@ que a siege. Por defecto todos valen 1.0; la UI de configuración puede bajarlos
 
 ## 7. Sinergias
 
-### 7.1 Sinergia curada
+### 7.1 Estado implementado
 
-Aristas entre pares con `score ∈ [-1,1]`, etiquetas y nota. Ejemplos de etiquetas:
+La v0.5 implementa **solo sinergias derivadas**, es decir, reglas tipadas sobre arquetipos y traits
+del mismo equipo. No hay todavía sinergias curadas par a par ni un agregado de equipo: inventar esos
+pesos sin datos revisados produciría una puntuación con apariencia de precisión.
+
+Cada regla exige una dimensión a cada campeón del par. La satisfacción de un requisito es
+`clamp(valor × proficiency_del_rol / umbral, 0, 1)`. El resultado es la media de los dos requisitos,
+con intervalo:
+
+```text
+score_low  = media de satisfacciones conocidas (desconocido = 0)
+score_high = media de satisfacciones conocidas (desconocido = proficiency)
+confianza  = media de confianza de las celdas conocidas × celdas_conocidas / 2
+```
+
+Reglas iniciales (umbral entre paréntesis):
+
+| ID | Requisito izquierdo | Requisito derecho |
+| --- | --- | --- |
+| `engage_burst` | `engage` (0.50) | `burst` (0.50) |
+| `engage_dps` | `engage` (0.50) | `dps` (0.50) |
+| `wombo_aoe` | `wombo_combo` (0.50) | `aoe` (0.50) |
+| `peel_dps` | `peel` (0.50) | `dps` (0.50) |
+| `frontline_dps` | `frontline` (0.50) | `dps` (0.50) |
+| `poke_siege` | `poke` (0.50) | `siege` (0.50) |
+| `catch_burst` | `catch` (0.50) | `burst` (0.50) |
+| `sustain_poke` | `poke` (0.50) | `sustain` (0.50) |
+| `split_waveclear` | `splitpush` (0.50) | `waveclear` (0.50) |
+| `objective_frontline` | `objective_dps` (0.50) | `frontline` (0.50) |
+
+Reglas de presentación:
+
+- una sinergia exige al menos una celda conocida y `score_high >= 0.40`; sin evidencia no se emite;
+- cada regla aporta como máximo una pareja por equipo (la de mayor puntuación), para que la lista no
+  se llene con «engage + DPS» repetido;
+- se muestran como mucho ocho parejas por equipo;
+- el par se evalúa en ambos órdenes y se conserva la orientación con mayor puntuación;
+- la puntuación es un ajuste estratégico `0..1`, nunca una probabilidad ni un winrate.
+
+### 7.2 Sinergias curadas (pendiente)
+
+El diseño previsto mantiene aristas curadas con etiqueta, nota y fuente:
 
 - `EngageFollowup`: engage fiable + daño de área inmediato.
 - `WomboCombo`: dos o más áreas que se solapan bien.
@@ -296,100 +338,76 @@ Aristas entre pares con `score ∈ [-1,1]`, etiquetas y nota. Ejemplos de etique
 - `PickChain`: CC encadenado sobre un objetivo.
 - `ProtectHypercarry`: recursos concentrados en un escalado.
 
-### 7.2 Sinergia derivada
+Cuando existan, la sinergia final de un par combinará curada y derivada con un descuento explícito
+para la parte inferida. Hasta entonces, la UI solo muestra reglas derivadas y lo dice.
 
-Reglas sobre traits/arquetipos, con confianza menor:
+### 7.3 Sinergia de equipo (pendiente)
 
-| Patrón | Contribución |
-| --- | --- |
-| `aoe` alto + `wombo_combo` alto + `burst` alto | + wombo |
-| `engage` alto + `followup` (burst/aoe) alto | + engage followup |
-| `peel` alto + `range` alto + `dps` alto | + protect carry |
-| `frontline` alto + `dps` alto + `gold_dependency` alto | + front-to-back |
-| `poke` alto + `disengage` alto + `siege` alto | + poke siege |
-| `splitpush` alto + `mobility` alto + `duel` (trait) | + presión lateral |
-| Dos `gold_dependency` altos en el mismo reparto | − reparto de recursos |
-
-La sinergia final de un par:
-
-```text
-if curada y derivada:  s = 0.7 * curada + 0.3 * derivada
-if solo curada:        s = curada
-if solo derivada:      s = 0.6 * derivada       // descuento por inferencia
-```
-
-La confianza se propaga: una sinergia derivada nunca se muestra como un hecho observado.
-
-### 7.3 Sinergia de equipo
-
-```text
-synergy(team) = Σ_{i<j} w_i * w_j * s(i,j) / Σ_{i<j} w_i * w_j
-```
-
-con `w_i` el peso de rol (el jungle y el support suelen habilitar; el carry capitaliza). Los pesos
-iniciales son iguales salvo una ligera subida para jungle/support, y son configurables. El resultado
-se normaliza a `[0,1]` para el motor.
+El agregado `Σ w_i · w_j · s(i,j)` requiere pesos por rol revisados. No se implementa todavía para no
+inventar la importancia relativa de cada pareja.
 
 ## 8. Matchups
 
-Se distinguen tres niveles, porque un matchup de línea no explica una pelea 5v5.
+### 8.1 Lectura de línea (implementada)
 
-### 8.1 Matchup de línea
+Solo se evalúan roles con un pick en **ambos** equipos. Para cada campeón se calcula una métrica con
+media ponderada y el mismo criterio de desconocimiento que el resto del motor:
 
-Estadística por campeón, oponente, rol, parche, cola y tier. Se aplica *shrinkage* empírico:
+```text
+presión = 0.40·early_power + 0.25·range + 0.20·lane_safety + 0.15·sustain
+all-in  = 0.45·burst + 0.30·single_target + 0.25·hard_cc
+ventaja = métrica_azul − métrica_roja     // intervalo: [low_azul − high_rojo, high_azul − low_rojo]
+```
+
+La ventaja se expresa en puntos `[-1,1]`. `favored` solo se rellena si el intervalo no cruza el cero
+(margen 0.02). Es una lectura derivada de perfiles, **no** un historial de enfrentamientos: no hay
+estadísticas externas todavía y la UI lo indica.
+
+### 8.2 Matchup de equipo (implementada)
+
+Cada regla combina una herramienta ofensiva del equipo con la vulnerabilidad del rival:
+
+```text
+vulnerabilidad = 1 − cobertura_de_la_respuesta
+ventaja_low    = ataque_low × vulnerabilidad_low
+ventaja_high   = ataque_high × vulnerabilidad_high
+favored        = lado atacante solo si ventaja_low > 0.05
+```
+
+El producto evita dos errores: declarar ventaja cuando el atacante no tiene la herramienta, y
+declararla cuando el rival sí tiene la respuesta. Reglas iniciales:
+
+| ID | Herramienta atacante | Respuesta rival |
+| --- | --- | --- |
+| `poke_sustain` | `poke` | `sustain` |
+| `anti_tank_frontline` | `anti_tank` | `frontline` |
+| `catch_mobility` | `catch` | `mobility` |
+| `split_waveclear` | `splitpush` | `waveclear` |
+| `engage_disengage` | `engage` | `disengage` |
+| `dps_tank` | `dps` | `tank` |
+| `burst_peel` | `burst` | `peel` |
+| `siege_waveclear` | `siege` | `waveclear` |
+| `wombo_disengage` | `wombo_combo` | `disengage` |
+
+Filtros: ambas coberturas deben tener al menos una celda conocida; se descartan las ventajas cuyo
+límite superior no llega a 0.15; se muestran como mucho ocho, ordenadas por intervalo. No se suman
+los cinco carriles ni se publica un índice global de victoria.
+
+### 8.3 Matchups observados (pendiente)
+
+Cuando existan datos de la API oficial de Riot con muestra suficiente, el diseño previsto aplica
+*shrinkage* empírico:
 
 ```text
 wr_adj = (wins + k * prior) / (games + k)
 ```
 
 - `prior`: winrate general del campeón en ese parche/rol, o 0.5 si no existe.
-- `k`: fuerza del prior; inicial 100 para solo queue y 8 para profesional, porque las muestras pro
-  son mucho menores.
+- `k`: fuerza del prior; inicial 100 para solo queue y 8 para profesional.
 - `confidence = f(games, k)`: crece con la muestra y se muestra explícitamente.
 
-Nunca se usa un matchup con `games = 0`. Si no hay dato, se recurre al matchup por arquetipos
-(sección 8.2) con menor confianza.
-
-### 8.2 Matchup por arquetipos
-
-Reglas de interacción, no de "counter binario":
-
-| Interacción | Ventaja inicial | Racional |
-| --- | --- | --- |
-| `poke` vs `range` bajo / `mobility` baja | + poke | El rival no puede contestar a distancia |
-| `engage` vs `poke` sin `disengage` | + engage | Si el engage llega, el poke pierde |
-| `disengage` vs `engage` | + disengage | Resetear la init neutraliza la amenaza |
-| `dps` vs `frontline` sin `anti_tank` | + frontline | El frontline aguanta el daño |
-| `anti_tank` vs `tank`/`frontline` | + anti_tank | Rompe la primera línea |
-| `assassin`/`burst` vs `peel` bajo | + assassin | Mata antes de ser protegido |
-| `peel` vs `assassin` | + peel | La ventana letal se corta |
-| `splitpush` vs `waveclear`/`catch` bajos | + splitpush | Presión lateral sin respuesta |
-| `catch` vs `mobility` baja | + catch | Castiga la falta de movilidad |
-
-Cada regla devuelve una ventaja `[-1,1]`, una explicación y una confianza. Se limita el número de
-reglas activas para que el resultado sea interpretable.
-
-### 8.3 Matchup de equipo
-
-No se suman los cinco lanes. Se evalúan interacciones entre perfiles completos:
-
-```text
-team_edge = Σ_k w_k * interaction_k
-```
-
-Interacciones iniciales:
-
-- engage enemigo vs disengage/peel propio;
-- frontline enemigo vs dps/anti_tank propio;
-- poke enemigo vs engage/sustain/waveclear propio;
-- burst/assassin enemigo vs peel/frontline propio;
-- splitpush enemigo vs catch/waveclear propio;
-- early enemigo vs early/lane_safety propio;
-- scaling enemigo vs presión early propia.
-
-Los pesos `w_k` son configurables y suman 1. Cada interacción se muestra como una tarjeta con su
-ventaja, confianza y explicación. El resultado global es un **índice de ventaja estratégica**, no
-una probabilidad.
+Nunca se usará un matchup con `games = 0`. Esos datos se etiquetarán como `Imported` y no se
+mezclarán con las lecturas derivadas de esta versión.
 
 ## 9. Condiciones de victoria
 
@@ -453,11 +471,12 @@ pub struct Need {
 La UI puede mostrar `value_estimate` solo cuando `value_high - value_low ≤ 0.20`; si no, muestra el
 intervalo. Esto evita barras de progreso falsamente precisas.
 
-> En v0.4 la salida implementada se llama `TeamAnalysis` (por equipo) y `DraftAnalysis` (ambos
-> equipos). Ya incluye coberturas, daño, curva, rango, CC, movilidad, necesidades, condiciones de
-> victoria, señales y confianza. La app expone `analysis_current`, que analiza el draft activo con el
-> conjunto de perfiles activo. `synergies` y `matchups` se añadirán cuando existan las reglas de las
-> secciones 7 y 8.
+> En v0.5 la salida implementada se llama `TeamAnalysis` (por equipo) y `DraftAnalysis` (ambos
+> equipos). Incluye coberturas, daño, curva, rango, CC, movilidad, necesidades, condiciones de
+> victoria, sinergias derivadas, señales y confianza; `DraftAnalysis` añade la lectura de líneas y
+> las ventajas de equipo. La app expone `analysis_current`, que analiza el draft activo con el
+> conjunto de perfiles activo. Las sinergias curadas y los matchups observados siguen pendientes y
+> la UI no los simula.
 
 ## 11. Ejemplo sintético (fixture, no datos reales)
 
@@ -527,7 +546,9 @@ Sin calibración, los parámetros son hipótesis. El plan es:
 
 ## 13. Parámetros y versionado
 
-Todo lo numérico vive en:
+Todo lo numérico del análisis saturante vive en `AnalysisParams`. Las tablas de sinergias y matchups
+viven en `analysis::interactions` y se versionan aparte con `INTERACTIONS_VERSION`, porque cambian
+con las reglas y no con los pesos de agregación.
 
 ```rust
 pub struct AnalysisParams {
@@ -542,7 +563,7 @@ pub struct AnalysisParams {
 ```
 
 Cambiar cualquier valor exige:
-- incrementar `version`;
+- incrementar `version` o `INTERACTIONS_VERSION` según corresponda;
 - añadir/actualizar tests;
 - registrar el cambio en el historial de perfiles;
 - volver a ejecutar la suite de calibración.

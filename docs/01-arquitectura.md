@@ -55,8 +55,8 @@ LolDraft/
 │  │     ├─ analysis/
 │  │     │  ├─ composition.rs     # agregación de arquetipos y perfiles
 │  │     │  ├─ needs.rs           # carencias y demandas del rival
-│  │     │  ├─ synergy.rs         # sinergias curadas + derivadas
-│  │     │  └─ matchup.rs         # matchup de línea y de equipo
+│  │     │  ├─ win_conditions.rs  # condiciones de victoria
+│  │     │  └─ interactions.rs    # sinergias derivadas y matchups
 │  │     └─ error.rs
 │  ├─ loldraft-engine/
 │  │  └─ src/

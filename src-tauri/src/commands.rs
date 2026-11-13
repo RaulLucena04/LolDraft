@@ -1,8 +1,9 @@
 use crate::dto::{
-    AssignmentDto, BootstrapDto, ChampionDto, ChampionRefDto, CoverageDto, DamageProfileDto,
-    DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto, NeedDto,
-    NextStepDto, PickViewDto, ProfileSetDto, SessionSummaryDto, SignalDto, TeamAnalysisDto,
-    TeamViewDto, TeamsDto, WinConditionDto,
+    AdvantageDto, AssignmentDto, BootstrapDto, ChampionDto, ChampionRefDto, CoverageDto,
+    DamageProfileDto, DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto,
+    LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileSetDto, SessionSummaryDto, SignalDto,
+    SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto, TeamViewDto, TeamsDto,
+    WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
@@ -11,8 +12,9 @@ use loldraft_domain::{
     Role, Side,
 };
 use loldraft_engine::{
-    analyze_draft, AnalysisParams, Coverage, Dimension, NeedSource, NeedStatus, PickedChampion,
-    ProfileProposalSet, Taxonomy, ThreatRuleId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
+    analyze_draft, Advantage, AnalysisParams, Coverage, Dimension, LaneMatchup, MatchupRuleId,
+    NeedSource, NeedStatus, PickedChampion, ProfileProposalSet, SynergyId, Taxonomy, TeamMatchup,
+    ThreatRuleId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
 };
 use loldraft_sources::DdragonClient;
 use serde_json::Value;
@@ -179,14 +181,32 @@ pub fn analysis_current(state: State<'_, AppState>) -> Result<DraftAnalysisDto, 
     let params = AnalysisParams::default();
     let analysis = analyze_draft(&blue_picks, &red_picks, &profile_set, &params)?;
     let taxonomy = loldraft_engine::taxonomy();
+    let catalog = state
+        .catalog
+        .read()
+        .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+
+    let lane_matchups = analysis
+        .lane_matchups
+        .iter()
+        .map(|matchup| lane_matchup_dto(matchup, &catalog))
+        .collect();
+    let matchups = analysis
+        .matchups
+        .iter()
+        .map(|matchup| team_matchup_dto(matchup, taxonomy))
+        .collect();
 
     Ok(DraftAnalysisDto {
         params_version: analysis.params_version,
+        interactions_version: analysis.interactions_version,
         engine_version: analysis.engine_version,
         profile_set_id: profile_set.id.clone(),
         profile_set_version,
-        blue: team_analysis_dto(analysis.blue, blue_skipped, taxonomy),
-        red: team_analysis_dto(analysis.red, red_skipped, taxonomy),
+        blue: team_analysis_dto(analysis.blue, blue_skipped, taxonomy, &catalog),
+        red: team_analysis_dto(analysis.red, red_skipped, taxonomy, &catalog),
+        lane_matchups,
+        matchups,
     })
 }
 
@@ -255,6 +275,7 @@ fn team_analysis_dto(
     analysis: loldraft_engine::TeamAnalysis,
     skipped_without_role: usize,
     taxonomy: &Taxonomy,
+    catalog: &ChampionCatalog,
 ) -> TeamAnalysisDto {
     let mut archetypes: Vec<CoverageDto> = analysis
         .archetypes
@@ -335,6 +356,11 @@ fn team_analysis_dto(
         .iter()
         .map(|signal| signal_dto(signal, taxonomy))
         .collect();
+    let synergies = analysis
+        .synergies
+        .iter()
+        .map(|synergy| synergy_dto(synergy, taxonomy, catalog))
+        .collect();
 
     TeamAnalysisDto {
         side: analysis.side,
@@ -354,8 +380,107 @@ fn team_analysis_dto(
         }),
         needs,
         win_conditions,
+        synergies,
         strengths,
         weaknesses,
+    }
+}
+
+fn synergy_dto(
+    synergy: &loldraft_engine::Synergy,
+    taxonomy: &Taxonomy,
+    catalog: &ChampionCatalog,
+) -> SynergyDto {
+    SynergyDto {
+        id: synergy.id.as_str(),
+        label: synergy_label(synergy.id),
+        champions: synergy
+            .champions
+            .iter()
+            .map(|key| synergy_champion(*key, catalog))
+            .collect(),
+        score_low: synergy.score_low,
+        score_high: synergy.score_high,
+        confidence: synergy.confidence,
+        evidence: synergy
+            .evidence
+            .iter()
+            .map(|dimension| dimension_label(*dimension, taxonomy))
+            .collect(),
+    }
+}
+
+fn synergy_champion(key: ChampionKey, catalog: &ChampionCatalog) -> SynergyChampionDto {
+    SynergyChampionDto {
+        key: key.0,
+        name: catalog
+            .get(key)
+            .map(|champion| champion.name.clone())
+            .unwrap_or_else(|| format!("Campeón #{}", key.0)),
+    }
+}
+
+fn advantage_dto(advantage: &Advantage) -> AdvantageDto {
+    AdvantageDto {
+        low: advantage.low,
+        high: advantage.high,
+        confidence: advantage.confidence,
+        known: advantage.known,
+        total: advantage.total,
+        favored: advantage.favored,
+    }
+}
+
+fn lane_matchup_dto(matchup: &LaneMatchup, catalog: &ChampionCatalog) -> LaneMatchupDto {
+    LaneMatchupDto {
+        role: matchup.role,
+        blue: synergy_champion(matchup.blue, catalog),
+        red: synergy_champion(matchup.red, catalog),
+        pressure: advantage_dto(&matchup.pressure),
+        all_in: advantage_dto(&matchup.all_in),
+    }
+}
+
+fn team_matchup_dto(matchup: &TeamMatchup, taxonomy: &Taxonomy) -> TeamMatchupDto {
+    TeamMatchupDto {
+        id: matchup.id.as_str(),
+        label: matchup_label(matchup.id),
+        side: matchup.side,
+        attack_label: dimension_label(matchup.attack, taxonomy),
+        defend_label: dimension_label(matchup.defend, taxonomy),
+        advantage_low: matchup.advantage.low,
+        advantage_high: matchup.advantage.high,
+        confidence: matchup.advantage.confidence,
+        favored: matchup.advantage.favored,
+    }
+}
+
+fn synergy_label(id: SynergyId) -> &'static str {
+    match id {
+        SynergyId::EngageBurst => "Engage + burst",
+        SynergyId::EngageDps => "Engage + DPS",
+        SynergyId::WomboAoe => "Wombo combo + AoE",
+        SynergyId::PeelDps => "Peel + DPS",
+        SynergyId::FrontlineDps => "Frontline + DPS",
+        SynergyId::PokeSiege => "Poke + asedio",
+        SynergyId::CatchBurst => "Catch + burst",
+        SynergyId::SustainPoke => "Sustain + poke",
+        SynergyId::SplitWaveclear => "Splitpush + waveclear",
+        SynergyId::ObjectiveFrontline => "Objetivos + frontline",
+    }
+}
+
+fn matchup_label(id: MatchupRuleId) -> &'static str {
+    match id {
+        MatchupRuleId::PokeSustain => "Poke contra sustain",
+        MatchupRuleId::AntiTankFrontline => "Anti-tanque contra frontline",
+        MatchupRuleId::CatchMobility => "Catch contra baja movilidad",
+        MatchupRuleId::SplitWaveclear => "Splitpush contra waveclear bajo",
+        MatchupRuleId::EngageDisengage => "Engage contra disengage",
+        MatchupRuleId::DpsTank => "DPS contra tanque",
+        MatchupRuleId::BurstPeel => "Burst contra peel",
+        MatchupRuleId::SiegeWaveclear => "Asedio contra waveclear bajo",
+        MatchupRuleId::WomboDisengage => "Wombo contra disengage",
     }
 }
 

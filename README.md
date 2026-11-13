@@ -53,17 +53,21 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Agregación de composiciones** con intervalos de desconocimiento, daño, curva de poder, rango, CC,
   movilidad, waveclear, objetivos, necesidades por suelos/amenazas/balance, condiciones de victoria,
   confianza y señales explicables.
+- **Sinergias derivadas** entre pares del mismo equipo (engage + burst/DPS, peel + DPS, poke + asedio,
+  catch + burst, etc.) con intervalo, confianza y una pareja como máximo por regla.
+- **Lectura de líneas y ventajas de equipo** derivadas de perfiles: presión/all-in por rol compartido
+  y herramientas ofensivas frente a la respuesta rival. No son estadísticas de enfrentamientos.
 - **Piloto inferido importable:** 38 campeones, todos los roles, celdas declaradas con procedencia
   `Inferred` y confianza 0.35. Se importa y activa solo cuando el usuario lo pide desde la pantalla de
   inicio; la UI lo marca como «inferido, revisión pendiente».
 - **Panel de análisis en el draft:** intervalos por arquetipo, reparto de daño, carencias confirmadas
-  o posibles con sus motivos, condiciones de victoria, fortalezas y aviso de análisis parcial. No hay
-  barras de winrate.
-- **Pendiente:** revisión experta del piloto y de 20–30 composiciones, sinergias/matchups,
-  herramienta de curación y perfiles revisados.
+  o posibles con sus motivos, condiciones de victoria, sinergias derivadas, lectura de líneas,
+  ventajas de equipo, fortalezas y aviso de análisis parcial. No hay barras de winrate.
+- **Pendiente:** revisión experta del piloto y de 20–30 composiciones, sinergias curadas, matchups
+  observados, herramienta de curación y perfiles revisados.
 
-Todavía **no** incluye: recomendaciones de pick/ban, sinergias y matchups implementados, estadísticas
-externas, importación de drafts profesionales ni fearless draft.
+Todavía **no** incluye: recomendaciones de pick/ban, sinergias curadas ni matchups observados,
+estadísticas externas, importación de drafts profesionales ni fearless draft.
 
 ## Arranque rápido (Windows)
 

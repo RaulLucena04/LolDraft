@@ -339,6 +339,61 @@ pub struct SignalDto {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SynergyChampionDto {
+    pub key: u16,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SynergyDto {
+    pub id: &'static str,
+    pub label: &'static str,
+    pub champions: Vec<SynergyChampionDto>,
+    pub score_low: f32,
+    pub score_high: f32,
+    pub confidence: f32,
+    pub evidence: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvantageDto {
+    pub low: f32,
+    pub high: f32,
+    pub confidence: f32,
+    pub known: usize,
+    pub total: usize,
+    /// `None` cuando el intervalo cruza el cero.
+    pub favored: Option<Side>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaneMatchupDto {
+    pub role: Role,
+    pub blue: SynergyChampionDto,
+    pub red: SynergyChampionDto,
+    pub pressure: AdvantageDto,
+    pub all_in: AdvantageDto,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamMatchupDto {
+    pub id: &'static str,
+    pub label: &'static str,
+    pub side: Side,
+    pub attack_label: String,
+    pub defend_label: String,
+    pub advantage_low: f32,
+    pub advantage_high: f32,
+    pub confidence: f32,
+    pub favored: Option<Side>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TeamAnalysisDto {
     pub side: Side,
     pub picks: usize,
@@ -351,6 +406,7 @@ pub struct TeamAnalysisDto {
     pub damage: Option<DamageProfileDto>,
     pub needs: Vec<NeedDto>,
     pub win_conditions: Vec<WinConditionDto>,
+    pub synergies: Vec<SynergyDto>,
     pub strengths: Vec<SignalDto>,
     pub weaknesses: Vec<SignalDto>,
 }
@@ -359,9 +415,12 @@ pub struct TeamAnalysisDto {
 #[serde(rename_all = "camelCase")]
 pub struct DraftAnalysisDto {
     pub params_version: u32,
+    pub interactions_version: u32,
     pub engine_version: String,
     pub profile_set_id: String,
     pub profile_set_version: String,
     pub blue: TeamAnalysisDto,
     pub red: TeamAnalysisDto,
+    pub lane_matchups: Vec<LaneMatchupDto>,
+    pub matchups: Vec<TeamMatchupDto>,
 }

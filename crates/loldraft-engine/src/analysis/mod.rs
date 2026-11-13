@@ -4,6 +4,7 @@
 //! cota inferior y 1 en la superior. Nunca se convierte en un cero silencioso.
 //! Las salidas describen encaje estratégico, no probabilidad de victoria.
 
+mod interactions;
 mod needs;
 mod params;
 mod team;
@@ -12,6 +13,9 @@ mod win_conditions;
 #[cfg(test)]
 mod tests;
 
+pub use interactions::{
+    Advantage, LaneMatchup, MatchupRuleId, Synergy, SynergyId, TeamMatchup, INTERACTIONS_VERSION,
+};
 pub use needs::{Need, NeedSource, NeedStatus, ThreatRuleId};
 pub use params::{AnalysisParams, AnalysisParamsError, Dimension};
 pub use team::{analyze_draft, analyze_team, AnalysisError, PickedChampion};
@@ -152,6 +156,8 @@ pub struct TeamAnalysis {
     pub objective_dps: Coverage,
     pub needs: Vec<Need>,
     pub win_conditions: Vec<WinCondition>,
+    /// Sinergias entre dos picks del propio equipo, derivadas de reglas.
+    pub synergies: Vec<Synergy>,
     pub strengths: Vec<Signal>,
     pub weaknesses: Vec<Signal>,
     pub knowledge: f32,
@@ -170,9 +176,14 @@ impl TeamAnalysis {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DraftAnalysis {
     pub params_version: u32,
+    pub interactions_version: u32,
     pub engine_version: String,
     pub blue: TeamAnalysis,
     pub red: TeamAnalysis,
+    /// Lectura derivada de cada línea con picks en ambos lados.
+    pub lane_matchups: Vec<LaneMatchup>,
+    /// Ventajas estratégicas de ambos lados frente a la herramienta rival.
+    pub matchups: Vec<TeamMatchup>,
 }
 
 pub(crate) fn clamp_unit(value: f32) -> f32 {

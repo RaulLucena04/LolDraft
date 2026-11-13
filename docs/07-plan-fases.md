@@ -110,9 +110,10 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 > persistencia SQLite de conjuntos completos (roles, arquetipos, traits, activación única y carga
 > atómica), agregación de composiciones con intervalos, daño, curva, CC, necesidades, amenazas y
 > condiciones de victoria, un piloto de 38 campeones marcado como `Inferred` con revisión pendiente,
-> su importación/activación desde la app y un panel de análisis para ambos equipos. Aún no hay
-> perfiles revisados por un experto, sinergias/matchups, herramienta de curación ni revisión experta
-> de composiciones.
+> su importación/activación desde la app, un panel de análisis para ambos equipos y sinergias y
+> lecturas de línea/equipo derivadas de reglas. Aún no hay perfiles revisados por un experto,
+> sinergias curadas, matchups observados, herramienta de curación ni revisión experta de
+> composiciones.
 
 **Objetivo:** que el motor explique qué es una composición, qué le falta y cómo se enfrenta a otra.
 
@@ -166,12 +167,14 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 - [x] Agregación de composiciones con intervalos, daño, curva, necesidades y condiciones de victoria.
 - [x] Esquema de propuestas y piloto inferido de 38 campeones con roles, arquetipos y traits.
 - [x] Comandos Tauri para importar, activar y analizar; DTOs y errores estables.
-- [x] Panel de análisis con intervalos, daño, carencias, condiciones de victoria y etiqueta de parcial.
+- [x] Panel de análisis con intervalos, daño, carencias, condiciones de victoria, sinergias
+      derivadas, lectura de líneas y ventajas de equipo, con etiqueta de parcial.
 - [x] Etiquetado explícito del piloto como `Inferred`, con revisión pendiente y sin activación
       automática: la importación requiere una acción del usuario.
 - [x] Tests de propuestas, correspondencia con el catálogo, propiedades del motor y rendimiento.
-- [ ] Revisión experta del piloto y de 20–30 composiciones.
-- [ ] Sinergias curadas/derivadas y matchups.
+- [ ] Revisión experta del piloto y de 20-30 composiciones.
+- [x] Sinergias derivadas entre pares y lecturas de línea/equipo, con intervalos y confianza.
+- [ ] Sinergias curadas y matchups observados (requieren datos revisados).
 - [ ] Herramienta de curación y expansión por lotes de perfiles.
 - [ ] Drawer de campeón con perfil y sinergias.
 

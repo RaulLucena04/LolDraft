@@ -1,5 +1,6 @@
 //! Agregación de un equipo y orquestación del análisis de draft.
 
+use super::interactions::{self, Synergy};
 use super::needs;
 use super::params::{AnalysisParams, AnalysisParamsError, Dimension};
 use super::win_conditions;
@@ -47,7 +48,7 @@ pub fn analyze_team(
     params.validate()?;
     validate_team(side, picks)?;
     let aggregate = aggregate(side, picks, profiles, params);
-    Ok(aggregate.finalize(None, params))
+    Ok(aggregate.finalize(None, params, interactions::synergies(picks, profiles)))
 }
 
 /// Analiza ambos equipos, incluyendo needs condicionadas por el rival.
@@ -64,12 +65,23 @@ pub fn analyze_draft(
 
     let blue_aggregate = aggregate(Side::Blue, blue_picks, profiles, params);
     let red_aggregate = aggregate(Side::Red, red_picks, profiles, params);
-    let blue = blue_aggregate.finalize(Some(&red_aggregate), params);
-    let red = red_aggregate.finalize(Some(&blue_aggregate), params);
+    let blue = blue_aggregate.finalize(
+        Some(&red_aggregate),
+        params,
+        interactions::synergies(blue_picks, profiles),
+    );
+    let red = red_aggregate.finalize(
+        Some(&blue_aggregate),
+        params,
+        interactions::synergies(red_picks, profiles),
+    );
 
     Ok(DraftAnalysis {
         params_version: params.version,
+        interactions_version: interactions::INTERACTIONS_VERSION,
         engine_version: crate::engine_version().to_string(),
+        lane_matchups: interactions::lane_matchups(blue_picks, red_picks, profiles),
+        matchups: interactions::team_matchups(&blue_aggregate, &red_aggregate),
         blue,
         red,
     })
@@ -199,6 +211,7 @@ impl TeamAggregate {
         &self,
         enemy: Option<&TeamAggregate>,
         params: &AnalysisParams,
+        synergies: Vec<Synergy>,
     ) -> TeamAnalysis {
         let needs = needs::compute(self, enemy, params);
         let win_conditions = win_conditions::detect(self);
@@ -228,6 +241,7 @@ impl TeamAggregate {
             objective_dps: self.objective_dps.clone(),
             needs,
             win_conditions,
+            synergies,
             strengths,
             weaknesses,
             knowledge: self.knowledge,
