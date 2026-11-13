@@ -360,6 +360,30 @@ impl ProfileSet {
         Ok(())
     }
 
+    /// Serializa el conjunto en el mismo formato de documento que acepta
+    /// `from_json` (`champions` como lista). No reutiliza la forma de mapa
+    /// interna para que exportar e importar sean simétricos.
+    pub fn to_json(&self) -> Result<String, ProfileError> {
+        #[derive(Serialize)]
+        struct Document<'a> {
+            id: &'a str,
+            version: &'a str,
+            taxonomy_version: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            patch: Option<&'a str>,
+            champions: Vec<&'a ChampionProfile>,
+        }
+
+        let document = Document {
+            id: &self.id,
+            version: &self.version,
+            taxonomy_version: &self.taxonomy_version,
+            patch: self.patch.as_deref(),
+            champions: self.champions.values().collect(),
+        };
+        Ok(serde_json::to_string_pretty(&document)?)
+    }
+
     pub fn get(&self, key: ChampionKey) -> Option<&ChampionProfile> {
         self.champions.get(&key)
     }
@@ -730,5 +754,23 @@ mod tests {
         let json = serde_json::to_string(&set).expect("serializa");
         let parsed: ProfileSet = serde_json::from_str(&json).expect("deserializa");
         assert_eq!(parsed, set);
+
+        // El documento exportado debe poder reimportarse con `from_json`.
+        let document = set.to_json().expect("exporta");
+        let reparsed = ProfileSet::from_json(&document, taxonomy()).expect("importa documento");
+        assert_eq!(reparsed, set);
+    }
+
+    #[test]
+    fn provenance_exposes_a_stable_code_and_detail() {
+        let curated = Provenance::Curated {
+            editor: "ana".into(),
+            review: "luis".into(),
+        };
+        assert_eq!(curated.code(), "curated");
+        assert_eq!(curated.label_es(), "Curado");
+        assert!(curated.detail().expect("detalle").contains("ana"));
+        assert_eq!(Provenance::Riot.code(), "riot");
+        assert!(Provenance::Riot.detail().is_none());
     }
 }
