@@ -168,7 +168,10 @@ Comandos previstos (nombres estables desde Fase 1):
 | `draft_load` / `draft_save` / `draft_list` | — | sesiones persistidas |
 | `draft_recommend` | `sessionId` | `RecommendationSet` |
 | `draft_bans` | `sessionId` | `BanRecommendationSet` |
-| `analysis_get` | `sessionId` | `MatchupAnalysis` |
+| `analysis_current` | — (draft activo) | `DraftAnalysis` |
+| `profiles_list` | — | `ProfileSetView[]` |
+| `profiles_import_pilot` / `profiles_import_proposal` | JSON, `activate` | `ProfileSetView` |
+| `profiles_activate` | `id` | `ProfileSetView[]` |
 | `champions_list` / `champion_detail` | filtros / `championKey` | `ChampionView` |
 | `settings_get` / `settings_update` | — | `SettingsView` |
 | `data_status` | — | datasets, última actualización, licencias |

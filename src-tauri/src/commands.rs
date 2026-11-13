@@ -1,12 +1,18 @@
 use crate::dto::{
-    AssignmentDto, BootstrapDto, ChampionDto, ChampionRefDto, DataStatusDto, DraftStepViewDto,
-    DraftViewDto, FormatDto, NextStepDto, PickViewDto, SessionSummaryDto, TeamViewDto, TeamsDto,
+    AssignmentDto, BootstrapDto, ChampionDto, ChampionRefDto, CoverageDto, DamageProfileDto,
+    DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto, NeedDto,
+    NextStepDto, PickViewDto, ProfileSetDto, SessionSummaryDto, SignalDto, TeamAnalysisDto,
+    TeamViewDto, TeamsDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
 use loldraft_domain::{
     assign_roles_with_locks, ChampionCatalog, ChampionKey, DraftAction, DraftError, DraftFormat,
     Role, Side,
+};
+use loldraft_engine::{
+    analyze_draft, AnalysisParams, Coverage, Dimension, NeedSource, NeedStatus, PickedChampion,
+    ProfileProposalSet, Taxonomy, ThreatRuleId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
 };
 use loldraft_sources::DdragonClient;
 use serde_json::Value;
@@ -94,6 +100,364 @@ pub async fn data_sync_ddragon(state: State<'_, AppState>) -> Result<DataStatusD
         ));
     }
     Ok(status)
+}
+
+#[tauri::command]
+pub fn profiles_list(state: State<'_, AppState>) -> Result<Vec<ProfileSetDto>, CommandError> {
+    let db = lock_db(&state)?;
+    Ok(db
+        .list_profile_sets()?
+        .into_iter()
+        .map(ProfileSetDto::from)
+        .collect())
+}
+
+#[tauri::command]
+pub fn profiles_import_pilot(
+    state: State<'_, AppState>,
+    activate: Option<bool>,
+) -> Result<ProfileSetDto, CommandError> {
+    import_proposal(
+        &state,
+        PILOT_PROFILE_PROPOSAL_JSON,
+        activate.unwrap_or(false),
+    )
+}
+
+#[tauri::command]
+pub fn profiles_import_proposal(
+    state: State<'_, AppState>,
+    proposal_json: String,
+    activate: Option<bool>,
+) -> Result<ProfileSetDto, CommandError> {
+    import_proposal(&state, &proposal_json, activate.unwrap_or(false))
+}
+
+#[tauri::command]
+pub fn profiles_activate(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<ProfileSetDto>, CommandError> {
+    let mut db = lock_db(&state)?;
+    db.set_active_profile_set(&id)?;
+    Ok(db
+        .list_profile_sets()?
+        .into_iter()
+        .map(ProfileSetDto::from)
+        .collect())
+}
+
+#[tauri::command]
+pub fn analysis_current(state: State<'_, AppState>) -> Result<DraftAnalysisDto, CommandError> {
+    let (profile_set, profile_set_version) = {
+        let db = lock_db(&state)?;
+        let active = db.active_profile_set()?.ok_or_else(|| {
+            CommandError::new(
+                "profiles_not_loaded",
+                "No hay un conjunto de perfiles activo. Carga y activa un conjunto para analizar.",
+            )
+        })?;
+        let set = db.load_profile_set(&active.id)?;
+        (set, active.version)
+    };
+
+    let (blue_picks, blue_skipped, red_picks, red_skipped) = {
+        let catalog = state
+            .catalog
+            .read()
+            .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+        let guard = state
+            .active
+            .lock()
+            .map_err(|_| CommandError::internal("la sesión activa está bloqueada"))?;
+        let active = guard.as_ref().ok_or_else(CommandError::no_active_draft)?;
+        let (blue, blue_skipped) = analysis_picks(Side::Blue, active, &catalog);
+        let (red, red_skipped) = analysis_picks(Side::Red, active, &catalog);
+        (blue, blue_skipped, red, red_skipped)
+    };
+
+    let params = AnalysisParams::default();
+    let analysis = analyze_draft(&blue_picks, &red_picks, &profile_set, &params)?;
+    let taxonomy = loldraft_engine::taxonomy();
+
+    Ok(DraftAnalysisDto {
+        params_version: analysis.params_version,
+        engine_version: analysis.engine_version,
+        profile_set_id: profile_set.id.clone(),
+        profile_set_version,
+        blue: team_analysis_dto(analysis.blue, blue_skipped, taxonomy),
+        red: team_analysis_dto(analysis.red, red_skipped, taxonomy),
+    })
+}
+
+fn import_proposal(
+    state: &AppState,
+    json: &str,
+    activate: bool,
+) -> Result<ProfileSetDto, CommandError> {
+    let proposal = ProfileProposalSet::from_json(json)?;
+    let set = proposal.into_profile_set(loldraft_engine::taxonomy())?;
+    let id = set.id.clone();
+    let mut db = lock_db(state)?;
+    db.save_profile_set(&set)?;
+    if activate {
+        db.set_active_profile_set(&id)?;
+    }
+    db.list_profile_sets()?
+        .into_iter()
+        .find(|summary| summary.id == id)
+        .map(ProfileSetDto::from)
+        .ok_or_else(|| CommandError::internal("el conjunto importado no aparece en la base"))
+}
+
+fn analysis_picks(
+    side: Side,
+    active: &ActiveSession,
+    catalog: &ChampionCatalog,
+) -> (Vec<PickedChampion>, usize) {
+    let picks = active.state().picks(side);
+    let mut champions = Vec::with_capacity(picks.len());
+    let mut found_indices = Vec::with_capacity(picks.len());
+    for (index, key) in picks.iter().enumerate() {
+        if let Some(champion) = catalog.get(*key) {
+            champions.push(champion);
+            found_indices.push(index);
+        }
+    }
+
+    let locks: Vec<Option<Role>> = champions
+        .iter()
+        .map(|champion| active.overrides.get(&(side, champion.key)).copied())
+        .collect();
+    let assignment = assign_roles_with_locks(&champions, &locks);
+    let mut picked = Vec::with_capacity(champions.len());
+    let mut skipped = 0;
+    for (assignment_index, _pick_index) in found_indices.iter().enumerate() {
+        let Some(role) = assignment.roles[assignment_index] else {
+            skipped += 1;
+            continue;
+        };
+        let champion = champions[assignment_index];
+        let assignment_confidence = champion
+            .role_fit(role)
+            .map(|fit| fit.confidence)
+            .unwrap_or(0.5);
+        picked.push(PickedChampion::new(
+            champion.key,
+            role,
+            assignment_confidence,
+        ));
+    }
+    (picked, skipped)
+}
+
+fn team_analysis_dto(
+    analysis: loldraft_engine::TeamAnalysis,
+    skipped_without_role: usize,
+    taxonomy: &Taxonomy,
+) -> TeamAnalysisDto {
+    let mut archetypes: Vec<CoverageDto> = analysis
+        .archetypes
+        .iter()
+        .map(|(id, coverage)| {
+            coverage_dto(
+                "archetype",
+                id.as_str(),
+                taxonomy
+                    .archetype(*id)
+                    .map(|entry| entry.label_es.clone())
+                    .unwrap_or_else(|| id.as_str().to_string()),
+                coverage,
+            )
+        })
+        .collect();
+    archetypes.sort_by(|left, right| {
+        (right.value_low + right.value_high)
+            .total_cmp(&(left.value_low + left.value_high))
+            .then_with(|| left.id.cmp(&right.id))
+    });
+
+    let mut traits: Vec<CoverageDto> = analysis
+        .traits
+        .iter()
+        .map(|(id, coverage)| {
+            coverage_dto(
+                "trait",
+                id.as_str(),
+                taxonomy
+                    .trait_entry(*id)
+                    .map(|entry| entry.label_es.clone())
+                    .unwrap_or_else(|| id.as_str().to_string()),
+                coverage,
+            )
+        })
+        .collect();
+    traits.sort_by(|left, right| {
+        (right.value_low + right.value_high)
+            .total_cmp(&(left.value_low + left.value_high))
+            .then_with(|| left.id.cmp(&right.id))
+    });
+
+    let needs = analysis
+        .needs
+        .iter()
+        .map(|need| NeedDto {
+            id: need.dimension.as_str().to_string(),
+            kind: dimension_kind(need.dimension),
+            label: dimension_label(need.dimension, taxonomy),
+            amount: need.amount,
+            status: match need.status {
+                NeedStatus::Confirmed => "confirmed",
+                NeedStatus::Possible => "possible",
+            },
+            reasons: need.sources.iter().map(need_reason).collect(),
+        })
+        .collect();
+
+    let win_conditions = analysis
+        .win_conditions
+        .iter()
+        .map(|condition| WinConditionDto {
+            id: win_condition_code(condition.id),
+            label: win_condition_label(condition.id),
+            score: condition.score,
+            confirmed: condition.confirmed,
+        })
+        .collect();
+
+    let strengths = analysis
+        .strengths
+        .iter()
+        .map(|signal| signal_dto(signal, taxonomy))
+        .collect();
+    let weaknesses = analysis
+        .weaknesses
+        .iter()
+        .map(|signal| signal_dto(signal, taxonomy))
+        .collect();
+
+    TeamAnalysisDto {
+        side: analysis.side,
+        picks: analysis.picks,
+        skipped_without_role,
+        partial: analysis.partial,
+        knowledge: analysis.knowledge,
+        confidence: analysis.confidence,
+        archetypes,
+        traits,
+        damage: analysis.damage.map(|damage| DamageProfileDto {
+            physical: damage.physical,
+            magic: damage.magic,
+            true_damage: damage.true_damage,
+            known_weight_ratio: damage.known_weight_ratio,
+            confidence: damage.confidence,
+        }),
+        needs,
+        win_conditions,
+        strengths,
+        weaknesses,
+    }
+}
+
+fn coverage_dto(kind: &'static str, id: &str, label: String, coverage: &Coverage) -> CoverageDto {
+    CoverageDto {
+        id: id.to_string(),
+        kind,
+        label,
+        value_low: coverage.value_low,
+        value_high: coverage.value_high,
+        value_estimate: coverage.value_estimate,
+        confidence: coverage.confidence,
+        known: coverage.known,
+        total: coverage.total,
+    }
+}
+
+fn signal_dto(signal: &loldraft_engine::Signal, taxonomy: &Taxonomy) -> SignalDto {
+    SignalDto {
+        id: signal.dimension.as_str().to_string(),
+        kind: dimension_kind(signal.dimension),
+        label: dimension_label(signal.dimension, taxonomy),
+        value_low: signal.value_low,
+        value_high: signal.value_high,
+        confidence: signal.confidence,
+    }
+}
+
+fn dimension_kind(dimension: Dimension) -> &'static str {
+    match dimension {
+        Dimension::Archetype(_) => "archetype",
+        Dimension::Trait(_) => "trait",
+    }
+}
+
+fn dimension_label(dimension: Dimension, taxonomy: &Taxonomy) -> String {
+    match dimension {
+        Dimension::Archetype(id) => taxonomy
+            .archetype(id)
+            .map(|entry| entry.label_es.clone())
+            .unwrap_or_else(|| id.as_str().to_string()),
+        Dimension::Trait(id) => taxonomy
+            .trait_entry(id)
+            .map(|entry| entry.label_es.clone())
+            .unwrap_or_else(|| id.as_str().to_string()),
+    }
+}
+
+fn need_reason(source: &NeedSource) -> String {
+    match source {
+        NeedSource::Baseline { floor } => format!("suelo {:.0} %", floor * 100.0),
+        NeedSource::EnemyThreat { rule, .. } => {
+            format!("amenaza: {}", threat_rule_label(*rule))
+        }
+        NeedSource::DamageBalance { share, threshold } => format!(
+            "balance de daño: {:.0} % frente a {:.0} %",
+            share * 100.0,
+            threshold * 100.0
+        ),
+    }
+}
+
+fn threat_rule_label(rule: ThreatRuleId) -> &'static str {
+    match rule {
+        ThreatRuleId::EnemyEngage => "engage enemigo",
+        ThreatRuleId::EnemyEngageFrontline => "engage y frontline enemigos",
+        ThreatRuleId::EnemyPoke => "poke enemigo",
+        ThreatRuleId::EnemySiege => "asedio enemigo",
+        ThreatRuleId::EnemyFrontline => "frontline enemigo",
+        ThreatRuleId::EnemyAssassin => "assassin/burst enemigo",
+        ThreatRuleId::EnemyCatch => "catch enemigo",
+        ThreatRuleId::EnemySplitpush => "splitpush enemigo",
+        ThreatRuleId::EnemyWombo => "wombo combo enemigo",
+        ThreatRuleId::EnemyEarly => "early game enemigo",
+        ThreatRuleId::EnemyScaling => "escalado enemigo",
+    }
+}
+
+fn win_condition_code(id: WinConditionId) -> &'static str {
+    match id {
+        WinConditionId::FrontToBack => "front_to_back",
+        WinConditionId::Dive => "dive",
+        WinConditionId::PokeSiege => "poke_siege",
+        WinConditionId::Pick => "pick",
+        WinConditionId::Splitpush => "splitpush",
+        WinConditionId::Scaling => "scaling",
+        WinConditionId::EarlySnowball => "early_snowball",
+        WinConditionId::Wombo => "wombo",
+    }
+}
+
+fn win_condition_label(id: WinConditionId) -> &'static str {
+    match id {
+        WinConditionId::FrontToBack => "Front to back",
+        WinConditionId::Dive => "Dive / engage",
+        WinConditionId::PokeSiege => "Poke y asedio",
+        WinConditionId::Pick => "Pick / catch",
+        WinConditionId::Splitpush => "Splitpush",
+        WinConditionId::Scaling => "Escalado",
+        WinConditionId::EarlySnowball => "Snowball temprano",
+        WinConditionId::Wombo => "Wombo combo",
+    }
 }
 
 #[tauri::command]

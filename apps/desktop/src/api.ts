@@ -3,7 +3,9 @@ import type {
   Bootstrap,
   Champion,
   CommandError,
+  DraftAnalysis,
   DraftView,
+  ProfileSet,
   Role,
   SessionSummary,
   Side,
@@ -47,6 +49,12 @@ export const api = {
   sessions: () => call<SessionSummary[]>("draft_list"),
   load: (id: string) => call<DraftView>("draft_load", { id }),
   deleteSession: (id: string) => call<boolean>("draft_delete", { id }),
+  profiles: () => call<ProfileSet[]>("profiles_list"),
+  importPilot: (activate = true) =>
+    call<ProfileSet>("profiles_import_pilot", { activate }),
+  activateProfileSet: (id: string) =>
+    call<ProfileSet[]>("profiles_activate", { id }),
+  analysis: () => call<DraftAnalysis>("analysis_current"),
 };
 
 export { toCommandError };

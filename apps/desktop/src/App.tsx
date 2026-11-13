@@ -4,6 +4,7 @@ import type {
   Bootstrap,
   Champion,
   CommandError,
+  DraftAnalysis,
   DraftView,
   Role,
   Side,
@@ -26,6 +27,10 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [importingProfiles, setImportingProfiles] = useState(false);
+  const [analysis, setAnalysis] = useState<DraftAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [fatal, setFatal] = useState<string | null>(null);
   const toastId = useRef(0);
 
@@ -88,6 +93,8 @@ export default function App() {
         setDraft(view);
         setSelected(null);
         setDrawer(null);
+        setAnalysis(null);
+        setAnalysisError(null);
         setScreen("draft");
       }
     },
@@ -101,6 +108,8 @@ export default function App() {
         setDraft(view);
         setSelected(null);
         setDrawer(null);
+        setAnalysis(null);
+        setAnalysisError(null);
         setScreen("draft");
       }
     },
@@ -123,6 +132,8 @@ export default function App() {
         setDraft(null);
         setScreen("home");
         setSelected(null);
+        setAnalysis(null);
+        setAnalysisError(null);
       }
       const next = await run(() => api.bootstrap());
       if (next) setBootstrap(next);
@@ -136,6 +147,8 @@ export default function App() {
       const view = await run(() => api.action(championKey));
       if (!view) return false;
       setDraft(view);
+      setAnalysis(null);
+      setAnalysisError(null);
       return true;
     },
     [draft, busy, run],
@@ -146,6 +159,8 @@ export default function App() {
     if (view) {
       setDraft(view);
       setSelected(null);
+      setAnalysis(null);
+      setAnalysisError(null);
     }
   }, [run]);
 
@@ -154,13 +169,19 @@ export default function App() {
     if (view) {
       setDraft(view);
       setSelected(null);
+      setAnalysis(null);
+      setAnalysisError(null);
     }
   }, [run]);
 
   const handleSetRole = useCallback(
     async (championKey: number, role: Role | null) => {
       const view = await run(() => api.setRole(championKey, role));
-      if (view) setDraft(view);
+      if (view) {
+        setDraft(view);
+        setAnalysis(null);
+        setAnalysisError(null);
+      }
     },
     [run],
   );
@@ -201,6 +222,46 @@ export default function App() {
       setSyncing(false);
     }
   }, [showToast]);
+
+  const handleImportPilot = useCallback(async () => {
+    setImportingProfiles(true);
+    try {
+      const set = await api.importPilot(true);
+      const next = await api.bootstrap();
+      setBootstrap(next);
+      setAnalysis(null);
+      setAnalysisError(null);
+      showToast(
+        "success",
+        `Piloto inferido ${set.version} cargado y activo. Sus celdas son Inferred y quedan pendientes de revisión.`,
+      );
+    } catch (error) {
+      const commandError = error as Partial<CommandError>;
+      showToast(
+        "error",
+        commandError.message ?? "No se pudo cargar el piloto inferido.",
+      );
+    } finally {
+      setImportingProfiles(false);
+    }
+  }, [showToast]);
+
+  const handleAnalyze = useCallback(async () => {
+    setAnalyzing(true);
+    setAnalysisError(null);
+    try {
+      const next = await api.analysis();
+      setAnalysis(next);
+    } catch (error) {
+      const commandError = error as Partial<CommandError>;
+      setAnalysis(null);
+      setAnalysisError(
+        commandError.message ?? "No se pudo analizar la composición.",
+      );
+    } finally {
+      setAnalyzing(false);
+    }
+  }, []);
 
   const handleInspect = useCallback(
     (championKey: number) => {
@@ -271,16 +332,22 @@ export default function App() {
           onSetRole={(key, role) => void handleSetRole(key, role)}
           onHome={handleHome}
           onInspect={handleInspect}
+          analysis={analysis}
+          analyzing={analyzing}
+          analysisError={analysisError}
+          onAnalyze={() => void handleAnalyze()}
         />
       ) : (
         <Home
           bootstrap={bootstrap}
           busy={busy}
           syncing={syncing}
+          importingProfiles={importingProfiles}
           onNewDraft={(side) => void handleNewDraft(side)}
           onOpenSession={(id) => void handleOpenSession(id)}
           onDeleteSession={(id) => void handleDeleteSession(id)}
           onSync={() => void handleSync()}
+          onImportPilot={() => void handleImportPilot()}
         />
       )}
 

@@ -91,4 +91,30 @@ mod tests {
             .iter()
             .any(|champion| champion.slug == "Aatrox"));
     }
+
+    #[test]
+    fn pilot_proposal_matches_seed_identities_and_roles() {
+        let seed = default_seed().unwrap();
+        let proposal = loldraft_engine::ProfileProposalSet::from_json(
+            loldraft_engine::proposals::PILOT_PROFILE_PROPOSAL_JSON,
+        )
+        .unwrap();
+        for champion in &proposal.champions {
+            let seeded = seed
+                .champions
+                .iter()
+                .find(|candidate| candidate.riot_key == champion.key.0)
+                .unwrap_or_else(|| panic!("clave {} ausente del seed", champion.key));
+            assert_eq!(seeded.slug, champion.slug);
+            assert_eq!(seeded.name, champion.name);
+            for role in &champion.roles {
+                assert!(
+                    seeded.roles.iter().any(|fit| fit.role == role.role),
+                    "{} no tiene el rol {} en el catálogo",
+                    champion.name,
+                    role.role.as_str()
+                );
+            }
+        }
+    }
 }

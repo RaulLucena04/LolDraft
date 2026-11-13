@@ -10,6 +10,7 @@ interface ChampionPoolProps {
   selected: Champion | null;
   searchRef: RefObject<HTMLInputElement | null>;
   busy: boolean;
+  profileSummary: string;
   onSelect: (champion: Champion | null) => void;
   onInspect: (championKey: number) => void;
   onConfirm: () => void;
@@ -28,6 +29,7 @@ export function ChampionPool({
   selected,
   searchRef,
   busy,
+  profileSummary,
   onSelect,
   onInspect,
   onConfirm,
@@ -251,7 +253,7 @@ export function ChampionPool({
           {champions.length}
         </span>
         <span className="text-muted/70">
-          Perfiles estratégicos: pendientes (Fase 2)
+          Perfiles estratégicos: {profileSummary}
         </span>
       </div>
     </section>

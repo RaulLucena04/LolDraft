@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef } from "react";
-import type { Champion, DataStatus, DraftView, Role } from "../types";
+import type {
+  Champion,
+  DataStatus,
+  DraftAnalysis,
+  DraftView,
+  Role,
+} from "../types";
 import { KIND_LABEL, SIDE_LABEL, formatRelative } from "../lib/format";
 import { Logo } from "./Logo";
 import { SideBadge, StatusPill } from "./Badges";
 import { TeamPanel } from "./TeamPanel";
 import { Timeline } from "./Timeline";
 import { ChampionPool } from "./ChampionPool";
+import { CompositionPanel } from "./CompositionPanel";
 
 interface DraftScreenProps {
   draft: DraftView;
@@ -20,6 +27,10 @@ interface DraftScreenProps {
   onSetRole: (championKey: number, role: Role | null) => void;
   onHome: () => void;
   onInspect: (championKey: number) => void;
+  analysis: DraftAnalysis | null;
+  analyzing: boolean;
+  analysisError: string | null;
+  onAnalyze: () => void;
 }
 
 export function DraftScreen({
@@ -35,11 +46,21 @@ export function DraftScreen({
   onSetRole,
   onHome,
   onInspect,
+  analysis,
+  analyzing,
+  analysisError,
+  onAnalyze,
 }: DraftScreenProps) {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const next = draft.nextStep;
   const remaining = draft.totalActions - draft.actionCount;
+  const profilesLoaded = data.profileCount > 0;
+  const profileSetInferred =
+    data.activeProfileSet?.toLowerCase().includes("inferred") ?? false;
+  const profileSummary = profilesLoaded
+    ? `${data.profileCount} ${profileSetInferred ? "inferidos" : "cargados"}`
+    : "pendientes";
 
   const confirmSelection = useCallback(async () => {
     if (!selected || busy) return;
@@ -144,9 +165,9 @@ export function DraftScreen({
             <span aria-hidden="true">✓</span> Simulación activa
           </StatusPill>
           <span>
-            Fase 1: el draft es real y persistente. El análisis y las
-            recomendaciones llegarán cuando existan perfiles estratégicos
-            curados; aquí no se inventan puntuaciones.
+            Fase 2: el draft es real y persistente. El análisis de composición
+            está disponible con el piloto inferido; sinergias, matchups y
+            revisión experta siguen pendientes.
           </span>
           <span className="ml-auto hidden text-[10px] text-muted/70 lg:block">
             Atajos: Ctrl+Z / Ctrl+Y · / buscar · ↵ confirmar
@@ -212,6 +233,7 @@ export function DraftScreen({
               selected={selected}
               searchRef={searchRef}
               busy={busy}
+              profileSummary={profileSummary}
               onSelect={onSelect}
               onInspect={onInspect}
               onConfirm={() => void confirmSelection()}
@@ -225,6 +247,15 @@ export function DraftScreen({
             onInspect={onInspect}
           />
         </div>
+
+        <CompositionPanel
+          analysis={analysis}
+          analyzing={analyzing}
+          error={analysisError}
+          hasProfiles={profilesLoaded}
+          busy={busy}
+          onAnalyze={onAnalyze}
+        />
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           <div className="panel border-gold/20 p-4">

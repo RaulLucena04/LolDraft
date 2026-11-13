@@ -1,12 +1,12 @@
 # 03 — Motor de análisis de composiciones
 
-> Estado: implementación parcial en `loldraft-engine` (v0.3). Ya funcionan la agregación saturante con
-> intervalos, daño, curva, rango, CC, movilidad, waveclear, objetivos, suelos, balance de daño,
-> reglas de amenaza, condiciones de victoria, confianza y señales explicables. Sinergias y matchups
-> siguen en diseño. Los valores numéricos son parámetros iniciales documentados, no verdades
+> Estado: implementación parcial en `loldraft-engine` (v0.4.0-phase2-pilot). Ya funcionan la agregación
+> saturante con intervalos, daño, curva, rango, CC, movilidad, waveclear, objetivos, suelos, balance
+> de daño, reglas de amenaza, condiciones de victoria, confianza y señales explicables. Sinergias y
+> matchups siguen en diseño. Los valores numéricos son parámetros iniciales documentados, no verdades
 > universales ni datos de campeones reales.
 >
-> Desviaciones conscientes de la v0.3: (1) las reglas de amenaza escalan la necesidad por la
+> Desviaciones conscientes de la v0.4: (1) las reglas de amenaza escalan la necesidad por la
 > cobertura actual de la herramienta en lugar de sumar una cantidad fija, para no pedir algo que ya
 > está cubierto; (2) el balance de daño solo se afirma con ≥ 60 % del peso de oro conocido; (3)
 > `range`, `mobility`, `lane_safety`, `gold_dependency` y `execution_difficulty` usan media ponderada,
@@ -196,14 +196,14 @@ parche** y se acompañan de la incertidumbre.
 
 ```text
 knowledge = celdas conocidas / celdas esperadas
-stat_confidence = confianza media de las estadísticas usadas
-assignment_confidence = separación entre la mejor y la segunda asignación de roles
-overall = min(0.55*knowledge + 0.25*stat_confidence + 0.20*assignment_confidence,
-              limitado por knowledge)
+assignment_confidence = confianza media de los roles asignados
+overall = min(0.70*knowledge + 0.30*assignment_confidence, knowledge)
 ```
 
-Si `knowledge < 0.6`, la UI muestra "análisis parcial" y el motor de recomendaciones reduce el peso
-de las features que dependen de perfiles, en lugar de fingir precisión.
+La confianza nunca supera `knowledge`: una asignación de roles segura no compensa perfiles
+desconocidos. Si `knowledge < 0.6` o hay menos de cinco picks, la UI muestra «parcial» y el motor de
+recomendaciones reducirá el peso de las features que dependen de perfiles, en lugar de fingir
+precisión.
 
 ## 6. Necesidades de la composición
 
@@ -453,10 +453,11 @@ pub struct Need {
 La UI puede mostrar `value_estimate` solo cuando `value_high - value_low ≤ 0.20`; si no, muestra el
 intervalo. Esto evita barras de progreso falsamente precisas.
 
-> En v0.3 la salida implementada se llama `TeamAnalysis` (por equipo) y `DraftAnalysis` (ambos
+> En v0.4 la salida implementada se llama `TeamAnalysis` (por equipo) y `DraftAnalysis` (ambos
 > equipos). Ya incluye coberturas, daño, curva, rango, CC, movilidad, necesidades, condiciones de
-> victoria, señales y confianza. `synergies` y `matchups` se añadirán cuando existan las reglas de
-> las secciones 7 y 8.
+> victoria, señales y confianza. La app expone `analysis_current`, que analiza el draft activo con el
+> conjunto de perfiles activo. `synergies` y `matchups` se añadirán cuando existan las reglas de las
+> secciones 7 y 8.
 
 ## 11. Ejemplo sintético (fixture, no datos reales)
 

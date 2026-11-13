@@ -1,5 +1,6 @@
 use loldraft_data::DataError;
 use loldraft_domain::DraftError;
+use loldraft_engine::{AnalysisError, ProposalError};
 use loldraft_sources::SourceError;
 use serde::Serialize;
 use std::fmt::Display;
@@ -94,6 +95,24 @@ impl From<serde_json::Error> for CommandError {
         Self::new(
             "serialization_error",
             format!("No se pudo interpretar los datos guardados: {error}"),
+        )
+    }
+}
+
+impl From<ProposalError> for CommandError {
+    fn from(error: ProposalError) -> Self {
+        Self::new(
+            "profile_proposal_invalid",
+            format!("La propuesta de perfiles no es válida: {error}"),
+        )
+    }
+}
+
+impl From<AnalysisError> for CommandError {
+    fn from(error: AnalysisError) -> Self {
+        Self::new(
+            "analysis_error",
+            format!("No se pudo analizar la composición: {error}"),
         )
     }
 }

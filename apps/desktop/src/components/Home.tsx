@@ -7,20 +7,24 @@ interface HomeProps {
   bootstrap: Bootstrap;
   busy: boolean;
   syncing: boolean;
+  importingProfiles: boolean;
   onNewDraft: (side: Side) => void;
   onOpenSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onSync: () => void;
+  onImportPilot: () => void;
 }
 
 export function Home({
   bootstrap,
   busy,
   syncing,
+  importingProfiles,
   onNewDraft,
   onOpenSession,
   onDeleteSession,
   onSync,
+  onImportPilot,
 }: HomeProps) {
   const { data, sessions } = bootstrap;
   const coverage =
@@ -296,16 +300,45 @@ export function Home({
               </ul>
             )}
 
+            {data.profileCount > 0 && (
+              <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5">
+                <p className="text-[11px] font-semibold text-warning">
+                  Set activo: {data.activeProfileSet ?? "sin identificar"}
+                </p>
+                <p className="mt-1 text-[10px] leading-relaxed text-warning/90">
+                  El piloto usa celdas <strong>Inferred</strong> (confianza 0.35).
+                  No es un dato observado ni curado: está pendiente de revisión
+                  experta y se muestra siempre como inferido.
+                </p>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={onSync}
-              disabled={busy || syncing}
+              disabled={busy || syncing || importingProfiles}
               className="btn-ghost mt-4 w-full text-xs"
             >
               {syncing ? "Sincronizando…" : "Sincronizar Data Dragon"}
             </button>
+            <p className="mt-1.5 text-center text-[10px] leading-relaxed text-muted/70">
+              Actualiza identidades y conserva los roles ya importados.
+            </p>
+            <button
+              type="button"
+              onClick={onImportPilot}
+              disabled={busy || syncing || importingProfiles}
+              className="btn-gold mt-2 w-full text-xs"
+            >
+              {importingProfiles
+                ? "Cargando piloto…"
+                : data.profileCount > 0
+                  ? "Reimportar piloto inferido"
+                  : "Cargar piloto inferido"}
+            </button>
             <p className="mt-2 text-center text-[10px] leading-relaxed text-muted/70">
-              Actualiza identidades y conserva roles ya importados.
+              Importa 38 perfiles de prueba y los activa. Sirven para validar el
+              motor; no son datos definitivos.
             </p>
           </div>
 
@@ -327,15 +360,17 @@ export function Home({
                 </div>
               </li>
               <li className="flex gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line bg-surface2 text-[10px] font-bold text-muted">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-[10px] font-bold text-gold">
                   2
                 </span>
                 <div>
-                  <p className="text-xs font-bold text-muted">
+                  <p className="text-xs font-bold text-ink">
                     Análisis de composición
                   </p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted/80">
-                    Arquetipos, carencias, sinergias y condiciones de victoria.
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                    Disponible con el piloto inferido: arquetipos, daño,
+                    carencias y condiciones de victoria. Sinergias, matchups y
+                    revisión experta, pendientes.
                   </p>
                 </div>
               </li>

@@ -146,3 +146,85 @@ export interface CommandError {
   code: string;
   message: string;
 }
+
+export interface ProfileSet {
+  id: string;
+  version: string;
+  taxonomyVersion: string;
+  patch: string | null;
+  championCount: number;
+  isActive: boolean;
+  createdAt: number;
+}
+
+export type CoverageKind = "archetype" | "trait";
+
+export interface Coverage {
+  id: string;
+  kind: CoverageKind;
+  label: string;
+  valueLow: number;
+  valueHigh: number;
+  valueEstimate: number | null;
+  confidence: number;
+  known: number;
+  total: number;
+}
+
+export interface DamageProfile {
+  physical: number;
+  magic: number;
+  trueDamage: number;
+  knownWeightRatio: number;
+  confidence: number;
+}
+
+export interface Need {
+  id: string;
+  kind: CoverageKind;
+  label: string;
+  amount: number;
+  status: "confirmed" | "possible";
+  reasons: string[];
+}
+
+export interface WinCondition {
+  id: string;
+  label: string;
+  score: number;
+  confirmed: boolean;
+}
+
+export interface AnalysisSignal {
+  id: string;
+  kind: CoverageKind;
+  label: string;
+  valueLow: number;
+  valueHigh: number;
+  confidence: number;
+}
+
+export interface TeamAnalysis {
+  side: Side;
+  picks: number;
+  skippedWithoutRole: number;
+  partial: boolean;
+  knowledge: number;
+  confidence: number;
+  archetypes: Coverage[];
+  traits: Coverage[];
+  damage: DamageProfile | null;
+  needs: Need[];
+  winConditions: WinCondition[];
+  strengths: AnalysisSignal[];
+  weaknesses: AnalysisSignal[];
+}
+
+export interface DraftAnalysis {
+  paramsVersion: number;
+  engineVersion: string;
+  profileSetId: string;
+  profileSetVersion: string;
+  blue: TeamAnalysis;
+  red: TeamAnalysis;
+}

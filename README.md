@@ -5,9 +5,9 @@ Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind C
 
 > **Estado del repositorio:** Fase 1 implementada; Fase 2 en curso. El simulador estándar de 20
 > acciones funciona, persiste en SQLite y muestra los 173 campeones de Data Dragon con sus roles
-> importados. La taxonomía v1 y el esquema de perfiles con procedencia y confianza ya están
-> implementados y validados; los perfiles piloto, el análisis de composiciones y las recomendaciones
-> aún no están disponibles, y la UI lo dice explícitamente.
+> importados. La taxonomía v1, el esquema de perfiles, el motor de análisis y un piloto inferido de
+> 38 campeones ya están integrados. El piloto se etiqueta siempre como `Inferred` y queda pendiente
+> de revisión experta; las recomendaciones de pick/ban todavía no existen.
 
 ## Qué hace diferente a esta herramienta
 
@@ -38,7 +38,8 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **UI de escritorio:** inicio, estado de datos, sesiones recientes, simulador con paneles azul/rojo,
   timeline compacta de 20 turnos, selector de campeones visible en la columna central con búsqueda y
   filtros, drawer de campeón y avisos de error estables.
-- **Datos honestos:** los perfiles estratégicos aparecen como pendientes; no se muestran ceros ni
+- **Datos honestos:** los perfiles estratégicos ausentes se muestran como pendientes; las celdas
+  inferidas se etiquetan como `Inferred` y no se presentan como observadas. No se muestran ceros ni
   winrates falsos.
 
 ## Fase 2 en curso
@@ -52,7 +53,14 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Agregación de composiciones** con intervalos de desconocimiento, daño, curva de poder, rango, CC,
   movilidad, waveclear, objetivos, necesidades por suelos/amenazas/balance, condiciones de victoria,
   confianza y señales explicables.
-- **Pendiente:** perfiles piloto revisados, sinergias/matchups, UI de análisis y herramienta de curación.
+- **Piloto inferido importable:** 38 campeones, todos los roles, celdas declaradas con procedencia
+  `Inferred` y confianza 0.35. Se importa y activa solo cuando el usuario lo pide desde la pantalla de
+  inicio; la UI lo marca como «inferido, revisión pendiente».
+- **Panel de análisis en el draft:** intervalos por arquetipo, reparto de daño, carencias confirmadas
+  o posibles con sus motivos, condiciones de victoria, fortalezas y aviso de análisis parcial. No hay
+  barras de winrate.
+- **Pendiente:** revisión experta del piloto y de 20–30 composiciones, sinergias/matchups,
+  herramienta de curación y perfiles revisados.
 
 Todavía **no** incluye: recomendaciones de pick/ban, sinergias y matchups implementados, estadísticas
 externas, importación de drafts profesionales ni fearless draft.
@@ -100,7 +108,7 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 | Ruta | Responsabilidad |
 | --- | --- |
 | `crates/loldraft-domain` | Dominio puro: formato, estado del draft, historial y roles. Sin I/O. |
-| `crates/loldraft-engine` | Reservado para el análisis de composiciones y el motor de recomendaciones. |
+| `crates/loldraft-engine` | Taxonomía, perfiles, propuestas, análisis de composiciones y futuras recomendaciones. Sin I/O. |
 | `crates/loldraft-data` | SQLite, migraciones, semillas y CRUD de sesiones/ajustes. |
 | `crates/loldraft-sources` | Clientes de fuentes externas; ahora Data Dragon. |
 | `src-tauri` | Estado de aplicación, DTOs, comandos Tauri y errores estables. |
@@ -113,7 +121,8 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 
 `app_bootstrap`, `champions_list`, `data_status`, `data_sync_ddragon`, `draft_new`, `draft_action`,
 `draft_undo`, `draft_redo`, `draft_set_role`, `draft_list`, `draft_load`, `draft_delete`,
-`settings_get`, `settings_update`.
+`profiles_list`, `profiles_import_pilot`, `profiles_import_proposal`, `profiles_activate`,
+`analysis_current`, `settings_get`, `settings_update`.
 
 La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 
@@ -123,7 +132,9 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
   Riot Games, parche 16.22.1. Los retratos están empaquetados para funcionar sin conexión.
 - **Roles:** Meraki Analytics (`positions`), importados con `source: "meraki"` y confianza 0.8.
   La atribución se muestra en la UI. Los campeones sin dato quedan pendientes.
-- **Perfiles estratégicos:** aún no existen. Se curarán en la Fase 2 con fuente, confianza y versión.
+- **Perfiles estratégicos:** existe un piloto de 38 campeones con procedencia `Inferred` y confianza
+  0.35 para validar el motor. No es un dato observado ni curado y la app lo etiqueta como pendiente de
+  revisión experta. Los campeones sin perfil quedan desconocidos, no en cero.
 - **Lolalytics:** no se scrapea. Su API privada no autoriza uso de terceros; la estrategia de
   estadísticas se decidió con la API oficial de Riot y datos importados.
 

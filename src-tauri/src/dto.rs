@@ -254,3 +254,114 @@ pub fn champion_image_path(champion: &Champion) -> String {
     };
     format!("/champions/{file}")
 }
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileSetDto {
+    pub id: String,
+    pub version: String,
+    pub taxonomy_version: String,
+    pub patch: Option<String>,
+    pub champion_count: usize,
+    pub is_active: bool,
+    pub created_at: i64,
+}
+
+impl From<loldraft_data::ProfileSetSummary> for ProfileSetDto {
+    fn from(summary: loldraft_data::ProfileSetSummary) -> Self {
+        Self {
+            id: summary.id,
+            version: summary.version,
+            taxonomy_version: summary.taxonomy_version,
+            patch: summary.patch,
+            champion_count: summary.champion_count,
+            is_active: summary.is_active,
+            created_at: summary.created_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CoverageDto {
+    pub id: String,
+    pub kind: &'static str,
+    pub label: String,
+    pub value_low: f32,
+    pub value_high: f32,
+    pub value_estimate: Option<f32>,
+    pub confidence: f32,
+    pub known: usize,
+    pub total: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DamageProfileDto {
+    pub physical: f32,
+    pub magic: f32,
+    pub true_damage: f32,
+    pub known_weight_ratio: f32,
+    pub confidence: f32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NeedDto {
+    pub id: String,
+    pub kind: &'static str,
+    pub label: String,
+    pub amount: f32,
+    /// `confirmed` o `possible`.
+    pub status: &'static str,
+    pub reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WinConditionDto {
+    pub id: &'static str,
+    pub label: &'static str,
+    pub score: f32,
+    pub confirmed: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SignalDto {
+    pub id: String,
+    pub kind: &'static str,
+    pub label: String,
+    pub value_low: f32,
+    pub value_high: f32,
+    pub confidence: f32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamAnalysisDto {
+    pub side: Side,
+    pub picks: usize,
+    pub skipped_without_role: usize,
+    pub partial: bool,
+    pub knowledge: f32,
+    pub confidence: f32,
+    pub archetypes: Vec<CoverageDto>,
+    pub traits: Vec<CoverageDto>,
+    pub damage: Option<DamageProfileDto>,
+    pub needs: Vec<NeedDto>,
+    pub win_conditions: Vec<WinConditionDto>,
+    pub strengths: Vec<SignalDto>,
+    pub weaknesses: Vec<SignalDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftAnalysisDto {
+    pub params_version: u32,
+    pub engine_version: String,
+    pub profile_set_id: String,
+    pub profile_set_version: String,
+    pub blue: TeamAnalysisDto,
+    pub red: TeamAnalysisDto,
+}

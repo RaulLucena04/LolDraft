@@ -143,12 +143,13 @@ export function ChampionDrawer({
                 Perfil estratégico
               </h3>
               <span className="chip border-warning/30 text-warning">
-                Fase 2
+                Pendiente de curación
               </span>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-muted">
-              Arquetipos, rasgos de daño, fortalezas, carencias y sinergias aún no
-              están curados para este campeón. El motor no inventará esos valores.
+              El piloto actual usa celdas <strong>Inferred</strong> a nivel de
+              conjunto y no se presenta como un perfil curado. Este drawer todavía
+              no desglosa arquetipos, daño, sinergias ni matchups por campeón.
             </p>
             <ul className="mt-3 space-y-1.5 text-[11px] text-muted/80">
               <li className="flex gap-2">
@@ -157,11 +158,17 @@ export function ChampionDrawer({
               </li>
               <li className="flex gap-2">
                 <span aria-hidden="true" className="text-muted/50">2</span>
-                Curación por lotes con fuente y confianza: en curso.
+                Piloto inferido de 38 campeones para validar el motor; revisión
+                experta pendiente.
               </li>
               <li className="flex gap-2">
                 <span aria-hidden="true" className="text-muted/50">3</span>
-                Análisis con intervalos de desconocimiento.
+                Panel de análisis de equipo con intervalos, carencias y
+                condiciones de victoria.
+              </li>
+              <li className="flex gap-2">
+                <span aria-hidden="true" className="text-muted/50">4</span>
+                Sinergias y matchups: pendientes.
               </li>
             </ul>
           </section>

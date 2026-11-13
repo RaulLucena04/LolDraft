@@ -108,9 +108,11 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 > **Estado:** en curso. Implementados: taxonomía v1.0.0 (20 arquetipos, 18 traits y rúbrica de cinco
 > anclas), esquema de perfiles con procedencia, confianza y validación en `loldraft-engine`,
 > persistencia SQLite de conjuntos completos (roles, arquetipos, traits, activación única y carga
-> atómica) y agregación de composiciones con intervalos, daño, curva, CC, necesidades, amenazas y
-> condiciones de victoria. Aún no hay perfiles de campeón revisados, sinergias/matchups, UI de
-> análisis ni herramienta de curación.
+> atómica), agregación de composiciones con intervalos, daño, curva, CC, necesidades, amenazas y
+> condiciones de victoria, un piloto de 38 campeones marcado como `Inferred` con revisión pendiente,
+> su importación/activación desde la app y un panel de análisis para ambos equipos. Aún no hay
+> perfiles revisados por un experto, sinergias/matchups, herramienta de curación ni revisión experta
+> de composiciones.
 
 **Objetivo:** que el motor explique qué es una composición, qué le falta y cómo se enfrenta a otra.
 
@@ -156,6 +158,22 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 - El análisis de una composición completa tarda < 10 ms en Rust.
 - La revisión experta no encuentra errores graves de clasificación en el piloto.
 - Los perfiles tienen fuente, confianza y versión; se puede reproducir un análisis antiguo.
+
+### Estado de implementación
+
+- [x] Taxonomía v1.0.0 sincronizada en SQLite y validada.
+- [x] Perfiles con procedencia, confianza, roles versionados y carga atómica.
+- [x] Agregación de composiciones con intervalos, daño, curva, necesidades y condiciones de victoria.
+- [x] Esquema de propuestas y piloto inferido de 38 campeones con roles, arquetipos y traits.
+- [x] Comandos Tauri para importar, activar y analizar; DTOs y errores estables.
+- [x] Panel de análisis con intervalos, daño, carencias, condiciones de victoria y etiqueta de parcial.
+- [x] Etiquetado explícito del piloto como `Inferred`, con revisión pendiente y sin activación
+      automática: la importación requiere una acción del usuario.
+- [x] Tests de propuestas, correspondencia con el catálogo, propiedades del motor y rendimiento.
+- [ ] Revisión experta del piloto y de 20–30 composiciones.
+- [ ] Sinergias curadas/derivadas y matchups.
+- [ ] Herramienta de curación y expansión por lotes de perfiles.
+- [ ] Drawer de campeón con perfil y sinergias.
 
 ### Fuera de alcance
 
