@@ -29,6 +29,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [importingProfiles, setImportingProfiles] = useState(false);
+  const [importingSet, setImportingSet] = useState(false);
   const [analysis, setAnalysis] = useState<DraftAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -252,6 +253,34 @@ export default function App() {
     }
   }, [showToast]);
 
+  const handleImportSet = useCallback(
+    async (file: File) => {
+      setImportingSet(true);
+      try {
+        const text = await file.text();
+        const set = await api.importProfileSet(text, true);
+        const next = await api.bootstrap();
+        setBootstrap(next);
+        setAnalysis(null);
+        setAnalysisError(null);
+        showToast(
+          "success",
+          `Conjunto ${set.id} · ${set.version} importado y activo.`,
+        );
+      } catch (error) {
+        const commandError = error as Partial<CommandError>;
+        showToast(
+          "error",
+          commandError.message ??
+            "No se pudo importar el conjunto de perfiles.",
+        );
+      } finally {
+        setImportingSet(false);
+      }
+    },
+    [showToast],
+  );
+
   const handleAnalyze = useCallback(async () => {
     setAnalyzing(true);
     setAnalysisError(null);
@@ -377,11 +406,13 @@ export default function App() {
           busy={busy}
           syncing={syncing}
           importingProfiles={importingProfiles}
+          importingSet={importingSet}
           onNewDraft={(side) => void handleNewDraft(side)}
           onOpenSession={(id) => void handleOpenSession(id)}
           onDeleteSession={(id) => void handleDeleteSession(id)}
           onSync={() => void handleSync()}
           onImportPilot={() => void handleImportPilot()}
+          onImportSet={(file) => void handleImportSet(file)}
         />
       )}
 

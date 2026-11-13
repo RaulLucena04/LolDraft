@@ -53,6 +53,8 @@ export const api = {
   profiles: () => call<ProfileSet[]>("profiles_list"),
   importPilot: (activate = true) =>
     call<ProfileSet>("profiles_import_pilot", { activate }),
+  importProfileSet: (setJson: string, activate = true) =>
+    call<ProfileSet>("profiles_import_set", { setJson, activate }),
   activateProfileSet: (id: string) =>
     call<ProfileSet[]>("profiles_activate", { id }),
   analysis: () => call<DraftAnalysis>("analysis_current"),

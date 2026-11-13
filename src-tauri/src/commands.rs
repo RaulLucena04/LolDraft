@@ -15,8 +15,8 @@ use loldraft_domain::{
 use loldraft_engine::{
     analyze_draft, candidate_synergies, Advantage, AnalysisParams, ArchetypeId, Coverage,
     Dimension, LaneMatchup, MatchupRuleId, NeedSource, NeedStatus, PickedChampion,
-    ProfileProposalSet, Provenance, SynergyId, Taxonomy, TeamMatchup, ThreatRuleId, TraitId,
-    WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
+    ProfileProposalSet, ProfileSet, Provenance, SynergyId, Taxonomy, TeamMatchup, ThreatRuleId,
+    TraitId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
 };
 use loldraft_sources::DdragonClient;
 use serde_json::Value;
@@ -135,6 +135,16 @@ pub fn profiles_import_proposal(
     activate: Option<bool>,
 ) -> Result<ProfileSetDto, CommandError> {
     import_proposal(&state, &proposal_json, activate.unwrap_or(false))
+}
+
+#[tauri::command]
+pub fn profiles_import_set(
+    state: State<'_, AppState>,
+    set_json: String,
+    activate: Option<bool>,
+) -> Result<ProfileSetDto, CommandError> {
+    let set = ProfileSet::from_json(&set_json, loldraft_engine::taxonomy())?;
+    save_profile_set(&state, &set, activate.unwrap_or(false))
 }
 
 #[tauri::command]
@@ -440,9 +450,17 @@ fn import_proposal(
 ) -> Result<ProfileSetDto, CommandError> {
     let proposal = ProfileProposalSet::from_json(json)?;
     let set = proposal.into_profile_set(loldraft_engine::taxonomy())?;
+    save_profile_set(state, &set, activate)
+}
+
+fn save_profile_set(
+    state: &AppState,
+    set: &ProfileSet,
+    activate: bool,
+) -> Result<ProfileSetDto, CommandError> {
     let id = set.id.clone();
     let mut db = lock_db(state)?;
-    db.save_profile_set(&set)?;
+    db.save_profile_set(set)?;
     if activate {
         db.set_active_profile_set(&id)?;
     }

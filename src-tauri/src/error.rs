@@ -1,6 +1,6 @@
 use loldraft_data::DataError;
 use loldraft_domain::DraftError;
-use loldraft_engine::{AnalysisError, ProposalError};
+use loldraft_engine::{AnalysisError, ProfileError, ProposalError};
 use loldraft_sources::SourceError;
 use serde::Serialize;
 use std::fmt::Display;
@@ -104,6 +104,15 @@ impl From<ProposalError> for CommandError {
         Self::new(
             "profile_proposal_invalid",
             format!("La propuesta de perfiles no es válida: {error}"),
+        )
+    }
+}
+
+impl From<ProfileError> for CommandError {
+    fn from(error: ProfileError) -> Self {
+        Self::new(
+            "profile_set_invalid",
+            format!("El conjunto de perfiles no es válido: {error}"),
         )
     }
 }

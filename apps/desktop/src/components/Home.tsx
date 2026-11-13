@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import type { ChangeEvent } from "react";
 import type { Bootstrap, Side } from "../types";
 import { formatRelative } from "../lib/format";
 import { Logo } from "./Logo";
@@ -8,11 +10,13 @@ interface HomeProps {
   busy: boolean;
   syncing: boolean;
   importingProfiles: boolean;
+  importingSet: boolean;
   onNewDraft: (side: Side) => void;
   onOpenSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onSync: () => void;
   onImportPilot: () => void;
+  onImportSet: (file: File) => void;
 }
 
 export function Home({
@@ -20,17 +24,26 @@ export function Home({
   busy,
   syncing,
   importingProfiles,
+  importingSet,
   onNewDraft,
   onOpenSession,
   onDeleteSession,
   onSync,
   onImportPilot,
+  onImportSet,
 }: HomeProps) {
   const { data, sessions } = bootstrap;
+  const setFileInput = useRef<HTMLInputElement>(null);
   const coverage =
     data.championCount > 0
       ? Math.round((data.championsWithRoles / data.championCount) * 100)
       : 0;
+
+  const handleSetFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) onImportSet(file);
+  };
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col px-6 pb-6 pt-5">
@@ -272,7 +285,9 @@ export function Home({
                 <dt className="text-muted">Perfiles estratégicos</dt>
                 <dd className="text-right text-warning">
                   {data.profileCount > 0
-                    ? `${data.profileCount} en set ${data.activeProfileSet ?? "activo"}`
+                    ? `${data.profileCount} perfiles · ${
+                        data.activeProfileSet ?? "sin versión"
+                      }`
                     : "0 · piloto pendiente"}
                 </dd>
               </div>
@@ -303,12 +318,13 @@ export function Home({
             {data.profileCount > 0 && (
               <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5">
                 <p className="text-[11px] font-semibold text-warning">
-                  Set activo: {data.activeProfileSet ?? "sin identificar"}
+                  Conjunto activo: {data.activeProfileSet ?? "sin identificar"}
                 </p>
                 <p className="mt-1 text-[10px] leading-relaxed text-warning/90">
-                  El piloto usa celdas <strong>Inferred</strong> (confianza 0.35).
-                  No es un dato observado ni curado: está pendiente de revisión
-                  experta y se muestra siempre como inferido.
+                  El análisis usa este conjunto. Las celdas marcadas{" "}
+                  <strong>Inferred</strong> no son datos observados ni curados y
+                  se muestran siempre como inferidas; las desconocidas no se
+                  rellenan.
                 </p>
               </div>
             )}
@@ -316,7 +332,7 @@ export function Home({
             <button
               type="button"
               onClick={onSync}
-              disabled={busy || syncing || importingProfiles}
+              disabled={busy || syncing || importingProfiles || importingSet}
               className="btn-ghost mt-4 w-full text-xs"
             >
               {syncing ? "Sincronizando…" : "Sincronizar Data Dragon"}
@@ -327,7 +343,7 @@ export function Home({
             <button
               type="button"
               onClick={onImportPilot}
-              disabled={busy || syncing || importingProfiles}
+              disabled={busy || syncing || importingProfiles || importingSet}
               className="btn-gold mt-2 w-full text-xs"
             >
               {importingProfiles
@@ -339,6 +355,28 @@ export function Home({
             <p className="mt-2 text-center text-[10px] leading-relaxed text-muted/70">
               Importa 38 perfiles de prueba y los activa. Sirven para validar el
               motor; no son datos definitivos.
+            </p>
+
+            <input
+              ref={setFileInput}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleSetFile}
+            />
+            <button
+              type="button"
+              onClick={() => setFileInput.current?.click()}
+              disabled={busy || syncing || importingProfiles || importingSet}
+              className="btn-ghost mt-2 w-full text-xs"
+            >
+              {importingSet
+                ? "Importando conjunto…"
+                : "Importar conjunto revisado"}
+            </button>
+            <p className="mt-2 text-center text-[10px] leading-relaxed text-muted/70">
+              Carga un fichero exportado por <code>loldraft-curate</code> y lo
+              activa. La app no inventa celdas: cada una conserva su procedencia.
             </p>
           </div>
 
