@@ -694,6 +694,31 @@ mod tests {
     }
 
     #[test]
+    fn a_reviewed_json_document_imports_and_activates() {
+        let mut db = database_with_champion();
+        let set = sample_set("reviewed-1", "2026.11.2");
+
+        // Mismo camino que `profiles_import_set`: documento de texto validado
+        // con `from_json`, guardado y activado sin tocar otra base de datos.
+        let json = set.to_json().expect("exporta");
+        let imported =
+            ProfileSet::from_json(&json, loldraft_engine::taxonomy()).expect("importa documento");
+        db.save_profile_set(&imported).expect("guarda");
+        db.set_active_profile_set("reviewed-1").expect("activa");
+
+        let active = db.active_profile_set().unwrap().expect("conjunto activo");
+        assert_eq!(active.id, "reviewed-1");
+        assert_eq!(active.version, "2026.11.2");
+
+        let loaded = db.load_profile_set("reviewed-1").expect("carga");
+        assert_eq!(loaded, imported);
+        assert_eq!(
+            loaded.get(ChampionKey(266)).unwrap().roles[0].source,
+            curated()
+        );
+    }
+
+    #[test]
     fn saving_the_same_id_replaces_cells() {
         let mut db = database_with_champion();
         let mut set = sample_set("set-1", "2026.11.1");
