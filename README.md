@@ -66,8 +66,12 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Detalle de campeón:** perfil del set activo con procedencia y confianza por celda, cobertura,
   daño y sinergias derivadas con los compañeros de su lado. Si el campeón no está en el set, lo dice
   y no rellena celdas.
-- **Pendiente:** revisión experta del piloto y de 20-30 composiciones, sinergias curadas, matchups
-  observados, herramienta de curación y perfiles revisados.
+- **Curación por fichero:** `loldraft-curate` expande propuestas, inspecciona perfiles y convierte
+  celdas `Inferred` conocidas en `Curated` con editor, revisor y confianza. Nunca rellena celdas
+  desconocidas. Los conjuntos revisados se importan y activan desde la pantalla de inicio.
+- **Pendiente:** revisión experta del piloto y de 20-30 composiciones, sinergias curadas y matchups
+  observados. La herramienta de curación ya existe; falta el trabajo de revisión con criterio de
+  experto.
 
 Todavía **no** incluye: recomendaciones de pick/ban, sinergias curadas ni matchups observados,
 estadísticas externas, importación de drafts profesionales ni fearless draft.
@@ -118,6 +122,7 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 | `crates/loldraft-engine` | Taxonomía, perfiles, propuestas, análisis de composiciones y futuras recomendaciones. Sin I/O. |
 | `crates/loldraft-data` | SQLite, migraciones, semillas y CRUD de sesiones/ajustes. |
 | `crates/loldraft-sources` | Clientes de fuentes externas; ahora Data Dragon. |
+| `crates/loldraft-curation` | CLI de curación por fichero: propuestas, revisión, aprobación y validación. |
 | `src-tauri` | Estado de aplicación, DTOs, comandos Tauri y errores estables. |
 | `apps/desktop` | UI React + TypeScript + Tailwind. |
 | `crates/loldraft-data/seeds/champions.json` | Semilla reproducible de identidad y roles. |
@@ -128,8 +133,8 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 
 `app_bootstrap`, `champions_list`, `data_status`, `data_sync_ddragon`, `draft_new`, `draft_action`,
 `draft_undo`, `draft_redo`, `draft_set_role`, `draft_list`, `draft_load`, `draft_delete`,
-`profiles_list`, `profiles_import_pilot`, `profiles_import_proposal`, `profiles_activate`,
-`analysis_current`, `settings_get`, `settings_update`.
+`profiles_list`, `profiles_import_pilot`, `profiles_import_proposal`, `profiles_import_set`,
+`profiles_activate`, `profile_champion`, `analysis_current`, `settings_get`, `settings_update`.
 
 La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 
@@ -157,6 +162,7 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 | [06 — Interfaz](docs/06-interfaz.md) | Pantallas, layout del simulador, estados vacíos y accesibilidad |
 | [07 — Plan por fases](docs/07-plan-fases.md) | Entregables y criterios de aceptación por fase |
 | [08 — Riesgos y decisiones](docs/08-riesgos-decisiones.md) | Riesgos, mitigaciones y ADRs |
+| [09 — Curación de perfiles](docs/09-curacion-perfiles.md) | CLI, flujo de revisión, límites y honestidad |
 
 ## Principios del proyecto
 

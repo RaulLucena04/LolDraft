@@ -175,7 +175,9 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 - [ ] Revisión experta del piloto y de 20-30 composiciones.
 - [x] Sinergias derivadas entre pares y lecturas de línea/equipo, con intervalos y confianza.
 - [ ] Sinergias curadas y matchups observados (requieren datos revisados).
-- [ ] Herramienta de curación y expansión por lotes de perfiles.
+- [x] Herramienta de curación por fichero (`loldraft-curate`) e importación de conjuntos revisados
+      desde la app; la expansión por lotes queda cubierta por `from-proposals` y las selecciones
+      `--champion`.
 - [x] Drawer de campeón con perfil (roles, arquetipos, traits, daño, cobertura y procedencia) y
       sinergias derivadas con los compañeros del lado.
 
