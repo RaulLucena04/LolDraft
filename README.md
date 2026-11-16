@@ -66,9 +66,10 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Detalle de campeón:** perfil del set activo con procedencia y confianza por celda, cobertura,
   daño y sinergias derivadas con los compañeros de su lado. Si el campeón no está en el set, lo dice
   y no rellena celdas.
-- **Curación por fichero:** `loldraft-curate` expande propuestas, inspecciona perfiles y convierte
-  celdas `Inferred` conocidas en `Curated` con editor, revisor y confianza. Nunca rellena celdas
-  desconocidas. Los conjuntos revisados se importan y activan desde la pantalla de inicio.
+- **Curación por fichero:** `loldraft-curate` expande propuestas, genera partes de revisión y
+  convierte celdas `Inferred` conocidas en `Curated`. `edit` aplica valores humanos explícitos a
+  celdas y roles; ninguna heurística rellena huecos. Los conjuntos revisados se importan y activan
+  desde la pantalla de inicio.
 - **Pendiente:** revisión experta del piloto y de 20-30 composiciones, sinergias curadas y matchups
   observados. La herramienta de curación ya existe; falta el trabajo de revisión con criterio de
   experto.

@@ -8,8 +8,8 @@
 //! Nunca se rellenan celdas desconocidas. Una celda `None` sigue siendo
 //! desconocida después de aprobarla.
 
-use loldraft_domain::ChampionKey;
-use loldraft_engine::{ArchetypeId, ChampionProfile, ProfileSet, Provenance, TraitId};
+use loldraft_domain::{ChampionKey, Role};
+use loldraft_engine::{taxonomy, ArchetypeId, ChampionProfile, ProfileSet, Provenance, TraitId};
 use std::collections::BTreeSet;
 
 /// Recuento de celdas de perfil: arquetipos y traits. Los roles se cuentan
@@ -198,6 +198,200 @@ pub enum CurationError {
     EmptyField(&'static str),
     #[error("la confianza {value} no está en 0..=1")]
     InvalidConfidence { value: f32 },
+    #[error("el valor {value} no está en 0..=1")]
+    InvalidValue { value: f32 },
+    #[error("la celda `{0}` está repetida")]
+    DuplicateCell(&'static str),
+    #[error("el rol `{role}` no está declarado para el campeón {champion}")]
+    RoleNotOnProfile {
+        champion: ChampionKey,
+        role: &'static str,
+    },
+    #[error("el rol `{0}` está repetido")]
+    DuplicateRole(&'static str),
+}
+
+/// Celda de perfil editable: un arquetipo o un trait. Los roles se editan
+/// aparte porque no son una dimensión de la taxonomía.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CellTarget {
+    Archetype(ArchetypeId),
+    Trait(TraitId),
+}
+
+impl CellTarget {
+    pub fn code(self) -> &'static str {
+        match self {
+            CellTarget::Archetype(id) => id.as_str(),
+            CellTarget::Trait(id) => id.as_str(),
+        }
+    }
+
+    pub fn label_es(self) -> &'static str {
+        match self {
+            CellTarget::Archetype(id) => taxonomy()
+                .archetype(id)
+                .map(|entry| entry.label_es.as_str())
+                .unwrap_or_else(|| id.as_str()),
+            CellTarget::Trait(id) => taxonomy()
+                .trait_entry(id)
+                .map(|entry| entry.label_es.as_str())
+                .unwrap_or_else(|| id.as_str()),
+        }
+    }
+}
+
+/// Edición explícita de una celda. `Some(valor)` fija un valor conocido;
+/// `None` marca la celda como desconocida.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CellEdit {
+    pub target: CellTarget,
+    pub value: Option<f32>,
+}
+
+/// Edición explícita de la proficiencia de un rol ya declarado.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RoleEdit {
+    pub role: Role,
+    pub proficiency: f32,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct EditReport {
+    pub cells: usize,
+    pub roles: usize,
+    /// Celdas que pasaron de desconocidas a conocidas.
+    pub filled_unknown: usize,
+}
+
+/// Edita celdas y roles de un campeón con una decisión humana explícita.
+///
+/// A diferencia de [`curate_inferred_cells`], esta función **sí** puede dar
+/// valor a una celda desconocida: el valor lo aporta una persona, no una
+/// heurística. Todas las celdas tocadas pasan a `Curated` con editor y
+/// revisor. Las celdas no mencionadas no se tocan.
+pub fn apply_profile_edits(
+    set: &mut ProfileSet,
+    champion: ChampionKey,
+    cells: &[CellEdit],
+    roles: &[RoleEdit],
+    editor: &str,
+    reviewer: &str,
+    confidence: f32,
+) -> Result<EditReport, CurationError> {
+    let editor = require_name("editor", editor)?;
+    let reviewer = require_name("reviewer", reviewer)?;
+    validate_confidence(confidence)?;
+
+    let mut seen_cells = BTreeSet::new();
+    for edit in cells {
+        if !seen_cells.insert(edit.target) {
+            return Err(CurationError::DuplicateCell(edit.target.code()));
+        }
+        if let Some(value) = edit.value {
+            validate_value(value)?;
+        }
+    }
+
+    let mut seen_roles = Vec::new();
+    for edit in roles {
+        if seen_roles.contains(&edit.role) {
+            return Err(CurationError::DuplicateRole(edit.role.as_str()));
+        }
+        seen_roles.push(edit.role);
+        validate_value(edit.proficiency)?;
+    }
+
+    let profile = set
+        .get_mut(champion)
+        .ok_or(CurationError::ChampionNotInSet(champion))?;
+    let source = Provenance::Curated {
+        editor: editor.to_string(),
+        review: reviewer.to_string(),
+    };
+    let mut report = EditReport::default();
+
+    for edit in cells {
+        match edit.target {
+            CellTarget::Archetype(id) => {
+                // Una celda ausente del mapa también es desconocida: la
+                // revisión humana puede darle un valor por primera vez.
+                let rating = profile.archetypes.entry(id).or_insert_with(|| {
+                    loldraft_engine::ArchetypeRating {
+                        intensity: None,
+                        confidence: 0.0,
+                        source: source.clone(),
+                    }
+                });
+                if rating.intensity.is_none() && edit.value.is_some() {
+                    report.filled_unknown += 1;
+                }
+                rating.intensity = edit.value;
+                rating.confidence = confidence_or_zero(edit.value, confidence);
+                rating.source = source.clone();
+            }
+            CellTarget::Trait(id) => {
+                let rating =
+                    profile
+                        .traits
+                        .entry(id)
+                        .or_insert_with(|| loldraft_engine::TraitRating {
+                            value: None,
+                            confidence: 0.0,
+                            source: source.clone(),
+                        });
+                if rating.value.is_none() && edit.value.is_some() {
+                    report.filled_unknown += 1;
+                }
+                rating.value = edit.value;
+                rating.confidence = confidence_or_zero(edit.value, confidence);
+                rating.source = source.clone();
+            }
+        }
+        report.cells += 1;
+    }
+
+    for edit in roles {
+        let role = profile
+            .roles
+            .iter_mut()
+            .find(|entry| entry.role == edit.role)
+            .ok_or(CurationError::RoleNotOnProfile {
+                champion,
+                role: edit.role.as_str(),
+            })?;
+        role.proficiency = edit.proficiency;
+        role.confidence = confidence;
+        role.source = source.clone();
+        report.roles += 1;
+    }
+
+    Ok(report)
+}
+
+fn confidence_or_zero(value: Option<f32>, confidence: f32) -> f32 {
+    // La validación exige confianza 0 en celdas desconocidas.
+    if value.is_some() {
+        confidence
+    } else {
+        0.0
+    }
+}
+
+fn validate_confidence(confidence: f32) -> Result<(), CurationError> {
+    if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
+        Err(CurationError::InvalidConfidence { value: confidence })
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_value(value: f32) -> Result<(), CurationError> {
+    if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+        Err(CurationError::InvalidValue { value })
+    } else {
+        Ok(())
+    }
 }
 
 /// Convierte celdas `Inferred` en `Curated` para los campeones seleccionados.
@@ -561,6 +755,195 @@ mod tests {
         assert!(matches!(
             apply_identity(&mut profiles, Some("  "), None),
             Err(CurationError::EmptyField("id"))
+        ));
+    }
+
+    #[test]
+    fn an_explicit_edit_sets_a_curated_value_and_confidence() {
+        let mut profiles = set(vec![profile(1, &inferred())]);
+        let report = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[CellEdit {
+                target: CellTarget::Archetype(ArchetypeId::Bruiser),
+                value: Some(0.9),
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.85,
+        )
+        .expect("edición válida");
+
+        assert_eq!(report.cells, 1);
+        assert_eq!(report.filled_unknown, 0);
+        let rating =
+            &profiles.get(ChampionKey(1)).expect("campeón").archetypes[&ArchetypeId::Bruiser];
+        assert_eq!(rating.intensity, Some(0.9));
+        assert_eq!(rating.confidence, 0.85);
+        assert_eq!(
+            rating.source,
+            Provenance::Curated {
+                editor: "ana".into(),
+                review: "luis".into()
+            }
+        );
+    }
+
+    #[test]
+    fn an_explicit_edit_can_fill_a_previously_unknown_cell() {
+        let mut profiles = set(vec![profile(1, &inferred())]);
+        let report = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[CellEdit {
+                target: CellTarget::Trait(TraitId::Mobility),
+                value: Some(0.6),
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.8,
+        )
+        .expect("edición válida");
+
+        assert_eq!(report.filled_unknown, 1);
+        let rating = &profiles.get(ChampionKey(1)).expect("campeón").traits[&TraitId::Mobility];
+        assert_eq!(rating.value, Some(0.6));
+        assert_eq!(rating.confidence, 0.8);
+        assert!(rating.source.is_observed());
+    }
+
+    #[test]
+    fn clearing_a_cell_keeps_it_unknown_with_zero_confidence() {
+        let mut profiles = set(vec![profile(1, &curated())]);
+        let report = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[CellEdit {
+                target: CellTarget::Archetype(ArchetypeId::Bruiser),
+                value: None,
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.9,
+        )
+        .expect("edición válida");
+
+        assert_eq!(report.cells, 1);
+        let rating =
+            &profiles.get(ChampionKey(1)).expect("campeón").archetypes[&ArchetypeId::Bruiser];
+        assert_eq!(rating.intensity, None);
+        assert_eq!(rating.confidence, 0.0);
+        // Una celda desconocida cuenta como desconocida, no como curada.
+        assert_eq!(
+            profile_cell_counts(profiles.get(ChampionKey(1)).expect("campeón")).unknown,
+            35
+        );
+    }
+
+    #[test]
+    fn an_explicit_edit_can_change_a_role_proficiency() {
+        let mut profiles = set(vec![profile(1, &inferred())]);
+        let report = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[],
+            &[RoleEdit {
+                role: Role::Top,
+                proficiency: 0.7,
+            }],
+            "ana",
+            "luis",
+            0.9,
+        )
+        .expect("edición válida");
+
+        assert_eq!(report.roles, 1);
+        let role = &profiles.get(ChampionKey(1)).expect("campeón").roles[0];
+        assert_eq!(role.proficiency, 0.7);
+        assert_eq!(role.confidence, 0.9);
+        assert!(role.source.is_observed());
+    }
+
+    #[test]
+    fn edits_fill_absent_cells_and_reject_duplicates_and_bad_values() {
+        let mut profiles = set(vec![profile(1, &inferred())]);
+
+        // Una celda ausente del mapa también es desconocida y puede rellenarse.
+        let filled = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[CellEdit {
+                target: CellTarget::Archetype(ArchetypeId::Engage),
+                value: Some(0.5),
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.8,
+        )
+        .expect("rellena una celda ausente");
+        assert_eq!(filled.filled_unknown, 1);
+        assert_eq!(
+            profiles.get(ChampionKey(1)).expect("campeón").archetypes[&ArchetypeId::Engage]
+                .intensity,
+            Some(0.5)
+        );
+
+        let duplicate = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[
+                CellEdit {
+                    target: CellTarget::Trait(TraitId::Range),
+                    value: Some(0.5),
+                },
+                CellEdit {
+                    target: CellTarget::Trait(TraitId::Range),
+                    value: Some(0.6),
+                },
+            ],
+            &[],
+            "ana",
+            "luis",
+            0.8,
+        );
+        assert!(matches!(
+            duplicate,
+            Err(CurationError::DuplicateCell("range"))
+        ));
+
+        let bad_value = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[CellEdit {
+                target: CellTarget::Trait(TraitId::Range),
+                value: Some(1.5),
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.8,
+        );
+        assert!(matches!(bad_value, Err(CurationError::InvalidValue { .. })));
+
+        let missing_role = apply_profile_edits(
+            &mut profiles,
+            ChampionKey(1),
+            &[],
+            &[RoleEdit {
+                role: Role::Jungle,
+                proficiency: 0.5,
+            }],
+            "ana",
+            "luis",
+            0.8,
+        );
+        assert!(matches!(
+            missing_role,
+            Err(CurationError::RoleNotOnProfile { .. })
         ));
     }
 }

@@ -5,11 +5,14 @@
 //! importarla.
 
 use loldraft_curation::{
-    apply_identity, curate_inferred_cells, profile_cell_counts, profile_provenance_counts,
-    same_curator, set_cell_counts, set_provenance_counts, CurateReport, ReviewSelection,
+    apply_identity, apply_profile_edits, curate_inferred_cells, profile_cell_counts,
+    profile_provenance_counts, same_curator, set_cell_counts, set_provenance_counts, CellEdit,
+    CellTarget, CurateReport, ReviewSelection, RoleEdit,
 };
-use loldraft_domain::ChampionKey;
-use loldraft_engine::{taxonomy, ChampionProfile, ProfileProposalSet, ProfileSet, Provenance};
+use loldraft_domain::{ChampionKey, Role};
+use loldraft_engine::{
+    taxonomy, ArchetypeId, ChampionProfile, ProfileProposalSet, ProfileSet, Provenance, TraitId,
+};
 use std::collections::BTreeMap;
 use std::fmt::{self, Write as _};
 use std::path::Path;
@@ -28,6 +31,13 @@ COMANDOS
       Lista campeones, roles y cobertura de celdas.
   show <perfiles.json> <clave|slug|nombre>
       Muestra el perfil completo de un campeón.
+  worksheet <perfiles.json> [--out <salida.md>] [--champion <clave>...]
+      Genera un parte de revisión legible con todos los roles, arquetipos y
+      traits, sus valores actuales y una columna para anotar la revisión.
+  edit <perfiles.json> --champion <clave> --set <celda>=<valor> ... --editor <n> --reviewer <n> --confidence <0..1> --out <salida.json>
+      Edita explícitamente celdas y roles con decisión humana. Las celdas
+      tocadas pasan a `Curated`. Puede rellenar una celda desconocida o
+      vaciarla con `--set <celda>=unknown`.
   review <perfiles.json> --editor <n> --reviewer <n> --confidence <0..1> --out <salida.json>
       Convierte celdas `Inferred` conocidas en `Curated` y fija su confianza.
   approve <perfiles.json> --editor <n> --reviewer <n> --out <salida.json>
@@ -43,14 +53,22 @@ OPCIONES DE REVIEW/APPROVE
   --version <versión>  Nueva versión del conjunto publicado.
   --out <salida.json>  Fichero de salida (obligatorio).
 
+OPCIONES DE EDIT
+  --set <celda>=<valor>  Arquetipo o trait por su id (p. ej. engage=0.8).
+                         Repetible. Valor en 0..=1 o `unknown`.
+  --role <rol>=<valor>   Proficiencia de un rol ya declarado. Repetible.
+  --editor, --reviewer, --confidence, --out  Obligatorios, como en `review`.
+
 OTRAS OPCIONES
   --strict             `check` falla si quedan celdas inferidas.
   -h, --help           Muestra esta ayuda.
   -V, --version        Muestra la versión.
 
-La herramienta nunca inventa celdas: solo cambia la procedencia de celdas que
-ya existen. Las celdas desconocidas se quedan desconocidas. Si el editor y el
-revisor son la misma persona, se avisa: `Curated` documenta una segunda
+La herramienta nunca inventa celdas por su cuenta: `review`/`approve` solo
+cambian la procedencia de celdas que ya existen. `edit` es una decisión humana
+explícita y queda registrada como `Curated` con editor y revisor. Las celdas
+desconocidas se muestran como desconocidas; no se asumen cero. Si el editor y
+el revisor son la misma persona, se avisa: `Curated` documenta una segunda
 revisión.
 ";
 
@@ -106,6 +124,8 @@ fn run(args: &[String]) -> Result<(), CliError> {
         "from-proposals" => from_proposals(&args[1..]),
         "list" => list(&args[1..]),
         "show" => show(&args[1..]),
+        "worksheet" => worksheet(&args[1..]),
+        "edit" => edit(&args[1..]),
         "review" => curate(&args[1..], CurationMode::Review),
         "approve" => curate(&args[1..], CurationMode::Approve),
         "check" => check(&args[1..]),
@@ -453,6 +473,379 @@ fn show(args: &[String]) -> Result<(), CliError> {
     Ok(())
 }
 
+fn worksheet(args: &[String]) -> Result<(), CliError> {
+    let parsed = parse_args(args, &["out", "champion"], &[])?;
+    parsed.positionals(
+        1,
+        "worksheet <perfiles.json> [--out <salida.md>] [--champion <clave>...]",
+    )?;
+    let set = load_set(&parsed.positionals[0])?;
+    if set.is_empty() {
+        return Err(runtime("el conjunto no contiene campeones"));
+    }
+    let selection = ReviewSelection::only(parse_champion_keys(parsed.many("champion"))?);
+    let keys = selection
+        .resolve(&set)
+        .map_err(|error| runtime(error.to_string()))?;
+    let champion_count = keys.len();
+
+    let mut out = String::new();
+    writeln!(out, "# Parte de revisión — {} v{}", set.id, set.version)
+        .expect("escritura en memoria");
+    match &set.patch {
+        Some(patch) => writeln!(
+            out,
+            "\nParche {patch} · taxonomía {} · {champion_count} campeones",
+            set.taxonomy_version
+        ),
+        None => writeln!(
+            out,
+            "\nTaxonomía {} · {champion_count} campeones",
+            set.taxonomy_version
+        ),
+    }
+    .expect("escritura en memoria");
+    out.push_str(
+        "\nEste parte no modifica datos. Anota cada celda en la columna **Revisión** \
+         (`ok`, `ajustar <valor>` o `desconocido`) y aplica los cambios con \
+         `loldraft-curate edit`.\n",
+    );
+    out.push_str(
+        "\nAnclas: 0 No aporta · 0.25 Incidental · 0.5 Sólida · 0.75 Fuerte · 1 Definitoria\n",
+    );
+    out.push_str(
+        "\nLos tres shares de daño (`damage_physical`, `damage_magic`, `damage_true`) \
+         deben sumar 100 %.\n",
+    );
+
+    for key in keys {
+        if let Some(profile) = set.get(key) {
+            render_worksheet_profile(&mut out, profile);
+        }
+    }
+
+    match parsed.single("out")? {
+        Some(path) => {
+            write_text(path, &out)?;
+            println!("Parte de revisión escrito en {path}");
+            println!("  campeones: {champion_count}");
+        }
+        None => print!("{out}"),
+    }
+    Ok(())
+}
+
+fn render_worksheet_profile(out: &mut String, profile: &ChampionProfile) {
+    writeln!(
+        out,
+        "\n## {} ({}) · {}\n",
+        profile.name, profile.key, profile.slug
+    )
+    .expect("escritura en memoria");
+
+    let counts = profile_cell_counts(profile);
+    writeln!(
+        out,
+        "Celdas: {} conocidas de {} · {} observadas · {} inferidas · {} desconocidas\n",
+        counts.known(),
+        counts.total(),
+        counts.observed,
+        counts.inferred,
+        counts.unknown
+    )
+    .expect("escritura en memoria");
+
+    out.push_str("### Roles\n\n");
+    out.push_str("| Rol | id | Proficiencia | Procedencia | Revisión |\n");
+    out.push_str("| --- | --- | --- | --- | --- |\n");
+    for role in &profile.roles {
+        writeln!(
+            out,
+            "| {} | `{}` | {} | {} |  |",
+            escape_md(role.role.label_es()),
+            role.role.as_str(),
+            percent(role.proficiency),
+            escape_md(&worksheet_source(&role.source, role.confidence))
+        )
+        .expect("escritura en memoria");
+    }
+
+    out.push_str("\n### Arquetipos\n\n");
+    out.push_str("| Celda | id | Valor | Ancla | Procedencia | Revisión |\n");
+    out.push_str("| --- | --- | --- | --- | --- | --- |\n");
+    let mut archetypes: Vec<_> = ArchetypeId::ALL
+        .iter()
+        .map(|id| {
+            let cell = profile.archetypes.get(id).and_then(|rating| {
+                rating
+                    .intensity
+                    .map(|value| (value, &rating.source, rating.confidence))
+            });
+            (*id, cell)
+        })
+        .collect();
+    archetypes.sort_by(|left, right| {
+        sort_known_first(
+            left.1.map(|(value, _, _)| value),
+            right.1.map(|(value, _, _)| value),
+            left.0.as_str(),
+            right.0.as_str(),
+        )
+    });
+    for (id, cell) in archetypes {
+        let label = taxonomy()
+            .archetype(id)
+            .map(|entry| entry.label_es.as_str())
+            .unwrap_or_else(|| id.as_str());
+        let (value, anchor, source) = match cell {
+            Some((value, source, confidence)) => (
+                percent(value),
+                taxonomy()
+                    .intensity_label(Some(value))
+                    .unwrap_or("—")
+                    .to_string(),
+                worksheet_source(source, confidence),
+            ),
+            None => ("—".to_string(), "—".to_string(), "desconocido".to_string()),
+        };
+        writeln!(
+            out,
+            "| {} | `{}` | {} | {} | {} |  |",
+            escape_md(label),
+            id.as_str(),
+            value,
+            escape_md(&anchor),
+            escape_md(&source)
+        )
+        .expect("escritura en memoria");
+    }
+
+    out.push_str("\n### Traits\n\n");
+    out.push_str("| Celda | id | Valor | Procedencia | Revisión |\n");
+    out.push_str("| --- | --- | --- | --- | --- |\n");
+    let mut traits: Vec<_> = TraitId::ALL
+        .iter()
+        .map(|id| {
+            let cell = profile.traits.get(id).and_then(|rating| {
+                rating
+                    .value
+                    .map(|value| (value, &rating.source, rating.confidence))
+            });
+            (*id, cell)
+        })
+        .collect();
+    traits.sort_by(|left, right| {
+        sort_known_first(
+            left.1.map(|(value, _, _)| value),
+            right.1.map(|(value, _, _)| value),
+            left.0.as_str(),
+            right.0.as_str(),
+        )
+    });
+    for (id, cell) in traits {
+        let label = taxonomy()
+            .trait_entry(id)
+            .map(|entry| entry.label_es.as_str())
+            .unwrap_or_else(|| id.as_str());
+        let (value, source) = match cell {
+            Some((value, source, confidence)) => {
+                (percent(value), worksheet_source(source, confidence))
+            }
+            None => ("—".to_string(), "desconocido".to_string()),
+        };
+        writeln!(
+            out,
+            "| {} | `{}` | {} | {} |  |",
+            escape_md(label),
+            id.as_str(),
+            value,
+            escape_md(&source)
+        )
+        .expect("escritura en memoria");
+    }
+}
+
+fn sort_known_first(
+    left: Option<f32>,
+    right: Option<f32>,
+    left_id: &str,
+    right_id: &str,
+) -> std::cmp::Ordering {
+    match (left, right) {
+        (Some(left), Some(right)) => right.total_cmp(&left).then_with(|| left_id.cmp(right_id)),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => left_id.cmp(right_id),
+    }
+}
+
+fn edit(args: &[String]) -> Result<(), CliError> {
+    let parsed = parse_args(
+        args,
+        &[
+            "champion",
+            "set",
+            "role",
+            "editor",
+            "reviewer",
+            "confidence",
+            "id",
+            "version",
+            "out",
+        ],
+        &[],
+    )?;
+    parsed.positionals(
+        1,
+        "edit <perfiles.json> --champion <clave> --set <celda>=<valor> ... --editor <n> --reviewer <n> --confidence <0..1> --out <salida.json>",
+    )?;
+    let input = &parsed.positionals[0];
+    let out = parsed.required("out")?;
+    let editor = parsed.required("editor")?;
+    let reviewer = parsed.required("reviewer")?;
+    let confidence = parse_confidence(parsed.required("confidence")?)?;
+    let champion = parse_single_champion_key(parsed.required("champion")?)?;
+    let cells = parse_cell_edits(parsed.many("set"))?;
+    let roles = parse_role_edits(parsed.many("role"))?;
+    if cells.is_empty() && roles.is_empty() {
+        return Err(usage("no hay nada que editar: usa `--set` o `--role`"));
+    }
+
+    let mut set = load_set(input)?;
+    apply_identity(&mut set, parsed.single("id")?, parsed.single("version")?)
+        .map_err(|error| usage(error.to_string()))?;
+    let report = apply_profile_edits(
+        &mut set, champion, &cells, &roles, editor, reviewer, confidence,
+    )
+    .map_err(|error| runtime(error.to_string()))?;
+    write_set(out, &set)?;
+
+    println!("Perfil editado y escrito en {out}");
+    print_identity(&set);
+    println!("  celdas editadas: {}", report.cells);
+    println!("  roles editados: {}", report.roles);
+    if report.filled_unknown > 0 {
+        println!(
+            "  celdas desconocidas rellenadas con decisión humana: {}",
+            report.filled_unknown
+        );
+    }
+    if same_curator(editor, reviewer) {
+        println!(
+            "Aviso: el editor y el revisor coinciden; `Curated` documenta una revisión por una segunda persona."
+        );
+    }
+    Ok(())
+}
+
+fn parse_confidence(raw: &str) -> Result<f32, CliError> {
+    let value = raw
+        .parse::<f32>()
+        .map_err(|_| usage(format!("`--confidence` no es un número: {raw}")))?;
+    if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+        return Err(usage(format!(
+            "`--confidence` debe estar en 0..=1; recibido {raw}"
+        )));
+    }
+    Ok(value)
+}
+
+fn parse_single_champion_key(raw: &str) -> Result<ChampionKey, CliError> {
+    let trimmed = raw.trim();
+    if trimmed.contains(',') {
+        return Err(usage(
+            "`--champion` en `edit` admite una sola clave; ejecuta el comando una vez por campeón",
+        ));
+    }
+    let key = trimmed.parse::<u16>().map_err(|_| {
+        usage(format!(
+            "`--champion` debe ser una clave numérica: {trimmed}"
+        ))
+    })?;
+    Ok(ChampionKey(key))
+}
+
+fn parse_cell_edits(values: &[String]) -> Result<Vec<CellEdit>, CliError> {
+    let mut edits = Vec::new();
+    for raw in values {
+        let (code, raw_value) = raw.split_once('=').ok_or_else(|| {
+            usage(format!(
+                "`--set` espera `<celda>=<valor>` (p. ej. engage=0.8): {raw}"
+            ))
+        })?;
+        let code = code.trim();
+        if code.is_empty() {
+            return Err(usage("`--set` contiene una celda vacía"));
+        }
+        edits.push(CellEdit {
+            target: resolve_cell(code)?,
+            value: parse_cell_value(raw_value.trim())?,
+        });
+    }
+    Ok(edits)
+}
+
+fn resolve_cell(code: &str) -> Result<CellTarget, CliError> {
+    let archetype = ArchetypeId::from_code(code);
+    let trait_id = TraitId::from_code(code);
+    match (archetype, trait_id) {
+        (Some(id), None) => Ok(CellTarget::Archetype(id)),
+        (None, Some(id)) => Ok(CellTarget::Trait(id)),
+        (Some(_), Some(_)) => Err(usage(format!(
+            "la celda `{code}` es ambigua entre arquetipo y trait"
+        ))),
+        (None, None) => Err(usage(format!(
+            "no existe la celda `{code}`. Usa `worksheet` para ver los ids."
+        ))),
+    }
+}
+
+fn parse_cell_value(raw: &str) -> Result<Option<f32>, CliError> {
+    if raw.eq_ignore_ascii_case("unknown") || raw.eq_ignore_ascii_case("desconocido") {
+        return Ok(None);
+    }
+    let value = raw
+        .parse::<f32>()
+        .map_err(|_| usage(format!("valor de celda no válido: {raw}")))?;
+    if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+        return Err(usage(format!(
+            "el valor debe estar en 0..=1 o ser `unknown`: {raw}"
+        )));
+    }
+    Ok(Some(value))
+}
+
+fn parse_role_edits(values: &[String]) -> Result<Vec<RoleEdit>, CliError> {
+    let mut edits = Vec::new();
+    for raw in values {
+        let (code, raw_value) = raw.split_once('=').ok_or_else(|| {
+            usage(format!(
+                "`--role` espera `<rol>=<valor>` (p. ej. support=0.9): {raw}"
+            ))
+        })?;
+        let code = code.trim();
+        let role = Role::from_code(code).ok_or_else(|| {
+            usage(format!(
+                "rol desconocido `{code}`; usa top, jungle, mid, adc o support"
+            ))
+        })?;
+        let value = raw_value
+            .trim()
+            .parse::<f32>()
+            .map_err(|_| usage(format!("proficiencia no válida: {raw_value}")))?;
+        if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+            return Err(usage(format!(
+                "la proficiencia debe estar en 0..=1; recibido {raw_value}"
+            )));
+        }
+        edits.push(RoleEdit {
+            role,
+            proficiency: value,
+        });
+    }
+    Ok(edits)
+}
+
 fn curate(args: &[String], mode: CurationMode) -> Result<(), CliError> {
     let allowed: &[&str] = match mode {
         CurationMode::Review => &[
@@ -481,18 +874,7 @@ fn curate(args: &[String], mode: CurationMode) -> Result<(), CliError> {
     let editor = parsed.required("editor")?;
     let reviewer = parsed.required("reviewer")?;
     let confidence = match mode {
-        CurationMode::Review => {
-            let raw = parsed.required("confidence")?;
-            let value = raw
-                .parse::<f32>()
-                .map_err(|_| usage(format!("`--confidence` no es un número: {raw}")))?;
-            if !value.is_finite() || !(0.0..=1.0).contains(&value) {
-                return Err(usage(format!(
-                    "`--confidence` debe estar en 0..=1; recibido {raw}"
-                )));
-            }
-            Some(value)
-        }
+        CurationMode::Review => Some(parse_confidence(parsed.required("confidence")?)?),
         CurationMode::Approve => None,
     };
 
@@ -607,6 +989,10 @@ fn write_set(path: &str, set: &ProfileSet) -> Result<(), CliError> {
     let json = set
         .to_json()
         .map_err(|error| runtime(format!("no se pudo serializar el conjunto: {error}")))?;
+    write_text(path, &json)
+}
+
+fn write_text(path: &str, contents: &str) -> Result<(), CliError> {
     if let Some(parent) = Path::new(path).parent() {
         if !parent.as_os_str().is_empty() {
             std::fs::create_dir_all(parent).map_err(|error| {
@@ -617,7 +1003,7 @@ fn write_set(path: &str, set: &ProfileSet) -> Result<(), CliError> {
             })?;
         }
     }
-    std::fs::write(path, json)
+    std::fs::write(path, contents)
         .map_err(|error| runtime(format!("no se pudo escribir {path}: {error}")))
 }
 
@@ -718,6 +1104,23 @@ fn describe_source(source: &Provenance, confidence: f32) -> String {
     format!("{detail} · confianza {}", percent(confidence))
 }
 
+fn worksheet_source(source: &Provenance, confidence: f32) -> String {
+    match source {
+        Provenance::Riot => "Riot".to_string(),
+        Provenance::Curated { editor, review } => {
+            format!("curado · {editor} / {review} · {}", percent(confidence))
+        }
+        Provenance::Imported { source, dataset } => format!("importado · {source} ({dataset})"),
+        Provenance::Inferred { method, version } => {
+            format!("inferido · {method} v{version} · {}", percent(confidence))
+        }
+    }
+}
+
+fn escape_md(value: &str) -> String {
+    value.replace('|', "\\|")
+}
+
 fn percent(value: f32) -> String {
     format!("{:.0} %", value * 100.0)
 }
@@ -774,6 +1177,47 @@ mod tests {
         ));
         assert!(matches!(
             parse_champion_keys(&args(&["Nautilus"])),
+            Err(CliError::Usage(_))
+        ));
+    }
+
+    #[test]
+    fn cell_edits_parse_values_and_unknown() {
+        let edits = parse_cell_edits(&args(&["engage=0.8", "mobility=unknown"]))
+            .expect("ediciones válidas");
+        assert_eq!(edits.len(), 2);
+        assert_eq!(edits[0].target, CellTarget::Archetype(ArchetypeId::Engage));
+        assert_eq!(edits[0].value, Some(0.8));
+        assert_eq!(edits[1].target, CellTarget::Trait(TraitId::Mobility));
+        assert_eq!(edits[1].value, None);
+    }
+
+    #[test]
+    fn cell_edits_reject_unknown_ids_bad_values_and_missing_equals() {
+        assert!(matches!(
+            parse_cell_edits(&args(&["nope=0.5"])),
+            Err(CliError::Usage(_))
+        ));
+        assert!(matches!(
+            parse_cell_edits(&args(&["engage=2"])),
+            Err(CliError::Usage(_))
+        ));
+        assert!(matches!(
+            parse_cell_edits(&args(&["engage"])),
+            Err(CliError::Usage(_))
+        ));
+    }
+
+    #[test]
+    fn role_edits_parse_known_roles_only() {
+        let edits = parse_role_edits(&args(&["support=0.9"])).expect("rol válido");
+        assert_eq!(edits[0].role, Role::Support);
+        assert!(matches!(
+            parse_role_edits(&args(&["adc=1.5"])),
+            Err(CliError::Usage(_))
+        ));
+        assert!(matches!(
+            parse_role_edits(&args(&["carry=0.5"])),
             Err(CliError::Usage(_))
         ));
     }
