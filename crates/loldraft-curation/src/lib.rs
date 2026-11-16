@@ -151,6 +151,11 @@ impl ReviewSelection {
         self.champions.is_empty() || self.champions.contains(&key)
     }
 
+    /// Claves seleccionadas, en orden. Vacío significa "todas".
+    pub fn keys(&self) -> impl Iterator<Item = ChampionKey> + '_ {
+        self.champions.iter().copied()
+    }
+
     /// Devuelve las claves a tocar en orden y falla si se pidió un campeón que
     /// no está en el conjunto: un typo no debe pasar como una revisión vacía.
     pub fn resolve(&self, set: &ProfileSet) -> Result<Vec<ChampionKey>, CurationError> {
@@ -392,6 +397,214 @@ fn validate_value(value: f32) -> Result<(), CurationError> {
     } else {
         Ok(())
     }
+}
+
+/// Estado de un rol dentro de un conjunto.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RoleState {
+    pub proficiency: f32,
+    pub confidence: f32,
+    pub source: Provenance,
+}
+
+/// Cambio de un rol entre dos conjuntos.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RoleChange {
+    pub role: Role,
+    pub before: Option<RoleState>,
+    pub after: Option<RoleState>,
+}
+
+/// Cambio de una celda entre dos conjuntos.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CellChange {
+    pub target: CellTarget,
+    pub before: Option<f32>,
+    pub after: Option<f32>,
+    pub before_source: Option<Provenance>,
+    pub after_source: Option<Provenance>,
+    pub before_confidence: f32,
+    pub after_confidence: f32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ChampionChange {
+    pub champion: ChampionKey,
+    pub name: String,
+    pub roles: Vec<RoleChange>,
+    pub cells: Vec<CellChange>,
+}
+
+/// Diferencias entre dos conjuntos, limitadas a los campeones seleccionados.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SetDiff {
+    pub champions: Vec<ChampionChange>,
+    pub added: Vec<(ChampionKey, String)>,
+    pub removed: Vec<(ChampionKey, String)>,
+}
+
+impl SetDiff {
+    pub fn cells(&self) -> usize {
+        self.champions.iter().map(|change| change.cells.len()).sum()
+    }
+
+    pub fn roles(&self) -> usize {
+        self.champions.iter().map(|change| change.roles.len()).sum()
+    }
+
+    /// Celdas que pasaron de desconocidas a conocidas.
+    pub fn filled(&self) -> usize {
+        self.champions
+            .iter()
+            .flat_map(|change| &change.cells)
+            .filter(|cell| cell.before.is_none() && cell.after.is_some())
+            .count()
+    }
+
+    /// Celdas que pasaron de conocidas a desconocidas.
+    pub fn cleared(&self) -> usize {
+        self.champions
+            .iter()
+            .flat_map(|change| &change.cells)
+            .filter(|cell| cell.before.is_some() && cell.after.is_none())
+            .count()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.champions.is_empty() && self.added.is_empty() && self.removed.is_empty()
+    }
+}
+
+/// Compara dos conjuntos. Una diferencia incluye valor, confianza y procedencia:
+/// dos celdas con el mismo número pero distinta fuente también cuentan.
+pub fn diff_profile_sets(
+    before: &ProfileSet,
+    after: &ProfileSet,
+    selection: &ReviewSelection,
+) -> SetDiff {
+    let mut keys: BTreeSet<ChampionKey> = before.champions.keys().copied().collect();
+    keys.extend(after.champions.keys().copied());
+
+    let mut diff = SetDiff::default();
+    for key in keys {
+        if !selection.contains(key) {
+            continue;
+        }
+        match (before.get(key), after.get(key)) {
+            (Some(before_profile), Some(after_profile)) => {
+                let roles = diff_roles(before_profile, after_profile);
+                let cells = diff_cells(before_profile, after_profile);
+                if !roles.is_empty() || !cells.is_empty() {
+                    diff.champions.push(ChampionChange {
+                        champion: key,
+                        name: after_profile.name.clone(),
+                        roles,
+                        cells,
+                    });
+                }
+            }
+            (None, Some(after_profile)) => diff.added.push((key, after_profile.name.clone())),
+            (Some(before_profile), None) => diff.removed.push((key, before_profile.name.clone())),
+            (None, None) => {}
+        }
+    }
+    diff
+}
+
+fn diff_roles(before: &ChampionProfile, after: &ChampionProfile) -> Vec<RoleChange> {
+    let mut changes = Vec::new();
+    for role in Role::ALL {
+        let before_state = role_state(before, role);
+        let after_state = role_state(after, role);
+        if before_state != after_state {
+            changes.push(RoleChange {
+                role,
+                before: before_state,
+                after: after_state,
+            });
+        }
+    }
+    changes
+}
+
+fn role_state(profile: &ChampionProfile, role: Role) -> Option<RoleState> {
+    profile
+        .roles
+        .iter()
+        .find(|entry| entry.role == role)
+        .map(|entry| RoleState {
+            proficiency: entry.proficiency,
+            confidence: entry.confidence,
+            source: entry.source.clone(),
+        })
+}
+
+fn diff_cells(before: &ChampionProfile, after: &ChampionProfile) -> Vec<CellChange> {
+    let mut changes = Vec::new();
+    for id in ArchetypeId::ALL {
+        let target = CellTarget::Archetype(id);
+        push_cell_change(
+            &mut changes,
+            target,
+            cell_state(before, target),
+            cell_state(after, target),
+        );
+    }
+    for id in TraitId::ALL {
+        let target = CellTarget::Trait(id);
+        push_cell_change(
+            &mut changes,
+            target,
+            cell_state(before, target),
+            cell_state(after, target),
+        );
+    }
+    changes
+}
+
+/// Estado conocido de una celda: valor, confianza y procedencia. Una celda
+/// desconocida no tiene estado, aunque su mapa tenga una entrada con `None`.
+fn cell_state(profile: &ChampionProfile, target: CellTarget) -> Option<(f32, f32, Provenance)> {
+    match target {
+        CellTarget::Archetype(id) => profile.archetypes.get(&id).and_then(|rating| {
+            rating
+                .intensity
+                .map(|value| (value, rating.confidence, rating.source.clone()))
+        }),
+        CellTarget::Trait(id) => profile.traits.get(&id).and_then(|rating| {
+            rating
+                .value
+                .map(|value| (value, rating.confidence, rating.source.clone()))
+        }),
+    }
+}
+
+fn push_cell_change(
+    changes: &mut Vec<CellChange>,
+    target: CellTarget,
+    before: Option<(f32, f32, Provenance)>,
+    after: Option<(f32, f32, Provenance)>,
+) {
+    if before == after {
+        return;
+    }
+    let (before_value, before_confidence, before_source) = match before {
+        Some((value, confidence, source)) => (Some(value), confidence, Some(source)),
+        None => (None, 0.0, None),
+    };
+    let (after_value, after_confidence, after_source) = match after {
+        Some((value, confidence, source)) => (Some(value), confidence, Some(source)),
+        None => (None, 0.0, None),
+    };
+    changes.push(CellChange {
+        target,
+        before: before_value,
+        after: after_value,
+        before_source,
+        after_source,
+        before_confidence,
+        after_confidence,
+    });
 }
 
 /// Convierte celdas `Inferred` en `Curated` para los campeones seleccionados.
@@ -865,6 +1078,104 @@ mod tests {
         assert_eq!(role.proficiency, 0.7);
         assert_eq!(role.confidence, 0.9);
         assert!(role.source.is_observed());
+    }
+
+    #[test]
+    fn diff_reports_value_and_provenance_changes() {
+        let before = set(vec![profile(1, &inferred())]);
+        let mut after = before.clone();
+        apply_profile_edits(
+            &mut after,
+            ChampionKey(1),
+            &[CellEdit {
+                target: CellTarget::Archetype(ArchetypeId::Bruiser),
+                value: Some(0.9),
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.8,
+        )
+        .expect("edición válida");
+
+        let diff = diff_profile_sets(&before, &after, &ReviewSelection::all());
+        assert_eq!(diff.champions.len(), 1);
+        assert_eq!(diff.cells(), 1);
+        assert_eq!(diff.filled(), 0);
+        assert_eq!(diff.cleared(), 0);
+
+        let change = &diff.champions[0].cells[0];
+        assert_eq!(change.target, CellTarget::Archetype(ArchetypeId::Bruiser));
+        assert_eq!(change.before, Some(0.8));
+        assert_eq!(change.after, Some(0.9));
+        assert!(matches!(
+            change.before_source,
+            Some(Provenance::Inferred { .. })
+        ));
+        assert!(matches!(
+            change.after_source,
+            Some(Provenance::Curated { .. })
+        ));
+        assert_eq!(change.after_confidence, 0.8);
+    }
+
+    #[test]
+    fn diff_reports_filled_cleared_cells_and_respects_selection() {
+        let before = set(vec![profile(1, &inferred()), profile(2, &inferred())]);
+        let mut after = before.clone();
+        apply_profile_edits(
+            &mut after,
+            ChampionKey(1),
+            &[CellEdit {
+                target: CellTarget::Trait(TraitId::Mobility),
+                value: Some(0.4),
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.7,
+        )
+        .expect("rellena");
+        apply_profile_edits(
+            &mut after,
+            ChampionKey(2),
+            &[CellEdit {
+                target: CellTarget::Archetype(ArchetypeId::Bruiser),
+                value: None,
+            }],
+            &[],
+            "ana",
+            "luis",
+            0.7,
+        )
+        .expect("vacía");
+
+        let diff = diff_profile_sets(&before, &after, &ReviewSelection::all());
+        assert_eq!(diff.champions.len(), 2);
+        assert_eq!(diff.cells(), 2);
+        assert_eq!(diff.filled(), 1);
+        assert_eq!(diff.cleared(), 1);
+
+        let filtered = diff_profile_sets(&before, &after, &ReviewSelection::only([ChampionKey(1)]));
+        assert_eq!(filtered.champions.len(), 1);
+        assert_eq!(filtered.cells(), 1);
+        assert_eq!(filtered.filled(), 1);
+        assert_eq!(filtered.cleared(), 0);
+    }
+
+    #[test]
+    fn diff_reports_added_and_removed_champions() {
+        let before = set(vec![profile(1, &inferred())]);
+        let after = set(vec![profile(2, &inferred())]);
+        let diff = diff_profile_sets(&before, &after, &ReviewSelection::all());
+
+        assert_eq!(diff.added, vec![(ChampionKey(2), "Campeón 2".to_string())]);
+        assert_eq!(
+            diff.removed,
+            vec![(ChampionKey(1), "Campeón 1".to_string())]
+        );
+        assert!(diff.champions.is_empty());
+        assert!(!diff.is_empty());
     }
 
     #[test]

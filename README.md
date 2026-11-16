@@ -68,8 +68,8 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
   y no rellena celdas.
 - **Curación por fichero:** `loldraft-curate` expande propuestas, genera partes de revisión y
   convierte celdas `Inferred` conocidas en `Curated`. `edit` aplica valores humanos explícitos a
-  celdas y roles; ninguna heurística rellena huecos. Los conjuntos revisados se importan y activan
-  desde la pantalla de inicio.
+  celdas y roles; ninguna heurística rellena huecos. `diff` audita los cambios entre dos conjuntos
+  antes de importarlos. Los conjuntos revisados se importan y activan desde la pantalla de inicio.
 - **Pendiente:** revisión experta del piloto y de 20-30 composiciones, sinergias curadas y matchups
   observados. La herramienta de curación ya existe; falta el trabajo de revisión con criterio de
   experto.

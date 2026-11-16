@@ -54,7 +54,11 @@ cargo run -p loldraft-curation --bin loldraft-curate -- `
   --id pilot-2026-11-reviewed --version 2026.11.2 `
   --out work/pilot-reviewed.json
 
-# 5. Comprobar el resultado. `--strict` falla si aún quedan celdas inferidas.
+# 5. Auditar los cambios respecto al conjunto original antes de importar.
+cargo run -p loldraft-curation --bin loldraft-curate -- `
+  diff work/pilot-inferred.json work/pilot-reviewed.json
+
+# 6. Comprobar el resultado. `--strict` falla si aún quedan celdas inferidas.
 cargo run -p loldraft-curation --bin loldraft-curate -- check work/pilot-reviewed.json --strict
 ```
 
@@ -75,6 +79,7 @@ conjunto solo si se pide.
 | `review <perfiles.json> --editor <n> --reviewer <n> --confidence <0..1> --out <salida.json>` | Convierte celdas `Inferred` conocidas en `Curated` y fija su confianza. |
 | `approve <perfiles.json> --editor <n> --reviewer <n> --out <salida.json>` | Igual que `review`, pero conserva la confianza existente. |
 | `check <perfiles.json> [--strict]` | Valida el conjunto y resume procedencia y cobertura. |
+| `diff <antes.json> <despues.json> [--champion <clave>...]` | Compara dos conjuntos: cambios de valor, procedencia y confianza, celdas rellenadas o vaciadas y campeones añadidos o eliminados. No escribe nada. |
 
 Opciones de `review` y `approve`:
 
@@ -92,10 +97,21 @@ Opciones de `edit`:
 - `--editor`, `--reviewer`, `--confidence`, `--out`: obligatorios, como en `review`.
 - `--id` y `--version`: opcionales, igual que en `review`.
 
+Opciones de `diff`:
+
+- `--champion <clave>`: limita la comparación a esos campeones. Se puede repetir o separar por
+  comas. Una clave que no exista en ninguno de los dos conjuntos es un error, no una comparación
+  vacía.
+
+`diff` agrupa las celdas cuyo valor no cambió pero sí su procedencia o confianza, para que una
+revisión completa no oculte los cambios reales entre cientos de conversiones `Inferred` → `Curated`.
+Los cambios de valor, las celdas rellenadas o vaciadas y los roles se listan uno a uno.
+
 ## Qué no hace
 
 - No propone valores por sí sola: `edit` exige que una persona indique el valor y la confianza.
 - No importa un parte de revisión rellenado: hay que aplicar las decisiones con `edit`.
 - No genera propuestas nuevas ni analiza kits.
+- `diff` no escribe ficheros ni modifica conjuntos: solo compara y muestra.
 - No escribe en SQLite: la importación pasa por la app y por `profiles_import_set`.
 - No convierte un conjunto incompleto en completo: la cobertura desconocida se mantiene visible.

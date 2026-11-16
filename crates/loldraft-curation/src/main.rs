@@ -5,9 +5,10 @@
 //! importarla.
 
 use loldraft_curation::{
-    apply_identity, apply_profile_edits, curate_inferred_cells, profile_cell_counts,
-    profile_provenance_counts, same_curator, set_cell_counts, set_provenance_counts, CellEdit,
-    CellTarget, CurateReport, ReviewSelection, RoleEdit,
+    apply_identity, apply_profile_edits, curate_inferred_cells, diff_profile_sets,
+    profile_cell_counts, profile_provenance_counts, same_curator, set_cell_counts,
+    set_provenance_counts, CellChange, CellEdit, CellTarget, CurateReport, ReviewSelection,
+    RoleEdit, RoleState, SetDiff,
 };
 use loldraft_domain::{ChampionKey, Role};
 use loldraft_engine::{
@@ -45,6 +46,9 @@ COMANDOS
       confianza. No rellena celdas desconocidas.
   check <perfiles.json> [--strict]
       Valida el conjunto y resume su cobertura y procedencia.
+  diff <antes.json> <despues.json> [--champion <clave>...]
+      Compara dos conjuntos y lista cambios de valor, procedencia y
+      confianza, además de campeones añadidos o eliminados.
 
 OPCIONES DE REVIEW/APPROVE
   --champion <clave>   Limita la revisión a esos campeones. Repetible o con
@@ -52,6 +56,10 @@ OPCIONES DE REVIEW/APPROVE
   --id <id>            Nuevo id del conjunto publicado.
   --version <versión>  Nueva versión del conjunto publicado.
   --out <salida.json>  Fichero de salida (obligatorio).
+
+OPCIONES DE DIFF
+  --champion <clave>   Limita la comparación a esos campeones. Repetible o
+                       con varias claves separadas por comas.
 
 OPCIONES DE EDIT
   --set <celda>=<valor>  Arquetipo o trait por su id (p. ej. engage=0.8).
@@ -129,6 +137,7 @@ fn run(args: &[String]) -> Result<(), CliError> {
         "review" => curate(&args[1..], CurationMode::Review),
         "approve" => curate(&args[1..], CurationMode::Approve),
         "check" => check(&args[1..]),
+        "diff" => diff(&args[1..]),
         other => Err(usage(format!(
             "comando desconocido `{other}`. Usa `loldraft-curate --help`."
         ))),
@@ -971,6 +980,196 @@ fn check(args: &[String]) -> Result<(), CliError> {
     }
     println!("Conjunto válido.");
     Ok(())
+}
+
+fn diff(args: &[String]) -> Result<(), CliError> {
+    let parsed = parse_args(args, &["champion"], &[])?;
+    parsed.positionals(
+        2,
+        "diff <antes.json> <despues.json> [--champion <clave>...]",
+    )?;
+    let before = load_set(&parsed.positionals[0])?;
+    let after = load_set(&parsed.positionals[1])?;
+    let selection = ReviewSelection::only(parse_champion_keys(parsed.many("champion"))?);
+    if !selection.is_all() {
+        for key in selection.keys() {
+            if before.get(key).is_none() && after.get(key).is_none() {
+                return Err(runtime(format!(
+                    "el campeón {key} no está en ninguno de los dos conjuntos"
+                )));
+            }
+        }
+    }
+
+    let changes = diff_profile_sets(&before, &after, &selection);
+    println!(
+        "Diferencias: {} v{} → {} v{}",
+        before.id, before.version, after.id, after.version
+    );
+    if !selection.is_all() {
+        let keys = selection
+            .keys()
+            .map(|key| key.to_string())
+            .collect::<Vec<_>>();
+        println!("  selección: {}", keys.join(", "));
+    }
+    if changes.is_empty() {
+        println!("Sin diferencias en la selección.");
+        return Ok(());
+    }
+
+    print_diff_summary(&changes);
+    print!("{}", render_diff(&changes));
+    Ok(())
+}
+
+fn print_diff_summary(changes: &SetDiff) {
+    let cells = changes.cells();
+    let value_cells = changes
+        .champions
+        .iter()
+        .flat_map(|champion| &champion.cells)
+        .filter(|cell| cell.before != cell.after)
+        .count();
+    println!("  campeones con cambios: {}", changes.champions.len());
+    println!(
+        "  celdas: {cells} (valor {value_cells} · solo procedencia/confianza {})",
+        cells - value_cells
+    );
+    println!(
+        "  rellenadas: {} · vaciadas: {}",
+        changes.filled(),
+        changes.cleared()
+    );
+    println!("  roles: {}", changes.roles());
+    println!(
+        "  campeones añadidos: {} · eliminados: {}",
+        changes.added.len(),
+        changes.removed.len()
+    );
+}
+
+fn render_diff(changes: &SetDiff) -> String {
+    let mut out = String::new();
+    for champion in &changes.champions {
+        writeln!(out, "\n## {} ({})", champion.name, champion.champion)
+            .expect("escritura en memoria");
+        if !champion.roles.is_empty() {
+            out.push_str("  roles\n");
+            for role in &champion.roles {
+                writeln!(
+                    out,
+                    "    {}: {} → {}",
+                    role.role.label_es(),
+                    role_state_text(role.before.as_ref()),
+                    role_state_text(role.after.as_ref())
+                )
+                .expect("escritura en memoria");
+            }
+        }
+
+        let mut value_changes: Vec<&CellChange> = Vec::new();
+        let mut transitions: BTreeMap<String, usize> = BTreeMap::new();
+        for cell in &champion.cells {
+            if cell.before != cell.after {
+                value_changes.push(cell);
+            } else {
+                *transitions.entry(provenance_transition(cell)).or_default() += 1;
+            }
+        }
+        if !value_changes.is_empty() {
+            out.push_str("  celdas\n");
+            for cell in value_changes {
+                writeln!(
+                    out,
+                    "    {} (`{}`): {} → {}",
+                    cell.target.label_es(),
+                    cell.target.code(),
+                    cell_state_text(
+                        cell.before,
+                        cell.before_source.as_ref(),
+                        cell.before_confidence
+                    ),
+                    cell_state_text(
+                        cell.after,
+                        cell.after_source.as_ref(),
+                        cell.after_confidence
+                    )
+                )
+                .expect("escritura en memoria");
+            }
+        }
+        if !transitions.is_empty() {
+            out.push_str("  procedencia/confianza\n");
+            for (transition, count) in transitions {
+                writeln!(out, "    {transition} · {count} celdas").expect("escritura en memoria");
+            }
+        }
+    }
+
+    if !changes.added.is_empty() {
+        out.push_str("\nAñadidos\n");
+        for (key, name) in &changes.added {
+            writeln!(out, "  {:>4}  {}", key.0, name).expect("escritura en memoria");
+        }
+    }
+    if !changes.removed.is_empty() {
+        out.push_str("\nEliminados\n");
+        for (key, name) in &changes.removed {
+            writeln!(out, "  {:>4}  {}", key.0, name).expect("escritura en memoria");
+        }
+    }
+    out
+}
+
+fn cell_state_text(value: Option<f32>, source: Option<&Provenance>, confidence: f32) -> String {
+    match (value, source) {
+        (Some(value), Some(source)) => {
+            format!(
+                "{} · {}",
+                percent(value),
+                worksheet_source(source, confidence)
+            )
+        }
+        (Some(value), None) => percent(value),
+        (None, _) => "desconocido".to_string(),
+    }
+}
+
+fn role_state_text(state: Option<&RoleState>) -> String {
+    match state {
+        Some(state) => format!(
+            "{} · {}",
+            percent(state.proficiency),
+            worksheet_source(&state.source, state.confidence)
+        ),
+        None => "sin rol".to_string(),
+    }
+}
+
+fn provenance_transition(cell: &CellChange) -> String {
+    let before = match cell.before_source.as_ref() {
+        Some(source) => format!(
+            "{} {}",
+            source_kind(source),
+            percent(cell.before_confidence)
+        ),
+        None => "desconocido".to_string(),
+    };
+    let after = match cell.after_source.as_ref() {
+        Some(source) => format!("{} {}", source_kind(source), percent(cell.after_confidence)),
+        None => "desconocido".to_string(),
+    };
+    format!("{before} → {after}")
+}
+
+fn source_kind(source: &Provenance) -> &'static str {
+    match source {
+        Provenance::Riot => "Riot",
+        Provenance::Curated { .. } => "curado",
+        Provenance::Imported { .. } => "importado",
+        Provenance::Inferred { .. } => "inferido",
+    }
 }
 
 fn read_text(path: &str) -> Result<String, CliError> {
