@@ -111,9 +111,10 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 > atómica), agregación de composiciones con intervalos, daño, curva, CC, necesidades, amenazas y
 > condiciones de victoria, un piloto de 38 campeones marcado como `Inferred` con revisión pendiente,
 > su importación/activación desde la app, un panel de análisis para ambos equipos y sinergias y
-> lecturas de línea/equipo derivadas de reglas. Aún no hay perfiles revisados por un experto,
-> sinergias curadas, matchups observados, herramienta de curación ni revisión experta de
-> composiciones.
+> lecturas de línea/equipo derivadas de reglas, y una CLI de curación (`worksheet`, `edit`, `review`,
+> `approve`, `diff`, `check`) cuyos conjuntos revisados se importan desde la app. Sigue pendiente la
+> revisión experta real del piloto y de 20–30 composiciones, además de las sinergias curadas y los
+> matchups observados que dependen de ella.
 
 **Objetivo:** que el motor explique qué es una composición, qué le falta y cómo se enfrenta a otra.
 
@@ -188,6 +189,14 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 ---
 
 ## Fase 3 — Motor de recomendaciones
+
+> **Estado:** en curso. Implementados: features `need`, `answer`, `synergy`, `counter`, `flex`,
+> `balance` y `safety` con renormalización de pesos cuando falta una señal, pesos por fase, riesgos,
+> penalización por confianza, diversificación por rol y arquetipo, baneos desde la perspectiva del
+> rival, explicaciones con parámetros y la invariante `contribuciones + riesgos = puntuación`.
+> La UI muestra picks y baneos, el desglose, los motivos, las carencias cubiertas y los datos que
+> faltan. `power` sigue ausente porque no hay estadísticas observadas; tampoco hay reasignación
+> completa de roles al evaluar (se respetan las asignaciones existentes) ni filtros de alternativas.
 
 **Objetivo:** recomendar picks y baneos explicables, contextualizados y no dominados por winrate.
 
