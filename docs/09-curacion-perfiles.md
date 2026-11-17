@@ -107,6 +107,25 @@ Opciones de `diff`:
 revisión completa no oculte los cambios reales entre cientos de conversiones `Inferred` → `Curated`.
 Los cambios de valor, las celdas rellenadas o vaciadas y los roles se listan uno a uno.
 
+## Estado del piloto
+
+El conjunto `pilot-2026-11-inferred` (38 campeones, parche 16.22, taxonomía 1.0.0) está validado pero
+**sin revisar**: 833 celdas conocidas, todas `Inferred`, y 611 desconocidas, con una cobertura media
+del 58 %. El parte completo ronda las 1900 líneas, así que conviene revisarlo por bloques:
+
+```powershell
+# Parte completo: índice de todos los campeones.
+cargo run -p loldraft-curation --bin loldraft-curate -- `
+  worksheet work/pilot-inferred.json --out work/pilot-worksheet.md
+
+# Un bloque de dos o tres campeones por sesión de revisión.
+cargo run -p loldraft-curation --bin loldraft-curate -- `
+  worksheet work/pilot-inferred.json --champion 111,266 --out work/pilot-111-266.md
+```
+
+Mientras no exista una revisión humana real, la app debe seguir mostrando el conjunto como inferido:
+ni el análisis ni las recomendaciones lo presentan como curado.
+
 ## Qué no hace
 
 - No propone valores por sí sola: `edit` exige que una persona indique el valor y la confianza.
