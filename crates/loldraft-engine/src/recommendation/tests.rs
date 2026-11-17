@@ -722,3 +722,41 @@ fn sensitivity_to_twenty_percent_weight_change_keeps_top_one() {
     let shifted_b = score(&features_b, &weights, &[], 1.0, &params).expect("b");
     assert!(shifted_a.score > shifted_b.score);
 }
+
+#[test]
+fn a_full_recommendation_list_is_fast_enough() {
+    // Cuarenta campeones y un draft a medias: el peor caso razonable del piloto.
+    let bases = fixture_set().champions.into_values().collect::<Vec<_>>();
+    let mut profiles = Vec::new();
+    for copy in 0..5u16 {
+        for base in &bases {
+            let mut profile = base.clone();
+            profile.key = ChampionKey(100 + copy * 10 + base.key.0);
+            profiles.push(profile);
+        }
+    }
+    let profiles = set(profiles);
+    let format = DraftFormat::standard();
+    let analysis = AnalysisParams::default();
+    let params = RecommendationParams::default();
+    let blue = [pick(1, Role::Top), pick(2, Role::Mid)];
+    let red = [pick(3, Role::Adc), pick(4, Role::Support)];
+    let used = ["1", "2", "3", "4"]
+        .iter()
+        .map(|key| ChampionKey(key.parse().expect("clave")))
+        .collect::<Vec<_>>();
+    let req = request(
+        &format, 17, &blue, &red, &used, &profiles, &analysis, &params,
+    );
+
+    recommend(&req).expect("calentamiento");
+    let started = std::time::Instant::now();
+    for _ in 0..10 {
+        recommend(&req).expect("recommendation");
+    }
+    let average = started.elapsed() / 10;
+    assert!(
+        average < std::time::Duration::from_millis(100),
+        "las recomendaciones tardaron {average:?} de media"
+    );
+}
