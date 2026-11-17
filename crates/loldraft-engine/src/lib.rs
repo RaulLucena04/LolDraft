@@ -7,6 +7,7 @@
 pub mod analysis;
 pub mod profile;
 pub mod proposals;
+pub mod recommendation;
 pub mod taxonomy;
 
 pub use analysis::{
@@ -23,12 +24,18 @@ pub use profile::{
 pub use proposals::{
     ChampionProposal, ProfileProposalSet, ProposalError, ProposalRole, PILOT_PROFILE_PROPOSAL_JSON,
 };
+pub use recommendation::{
+    recommend, BanContribution, BanFeatureId, BanRecommendation, BanWeights, Contribution,
+    DraftPhase, FeatureId, FeatureWeights, NoDataReason, PickWeightPhase, Reason, Recommendation,
+    RecommendationError, RecommendationParams, RecommendationParamsError, RecommendationRequest,
+    RecommendationSet, RiskContribution, RiskId,
+};
 pub use taxonomy::{
     taxonomy, ArchetypeCategory, ArchetypeEntry, ArchetypeId, RubricAnchor, Taxonomy,
     TaxonomyError, TraitEntry, TraitId, TraitKind, TAXONOMY_VERSION,
 };
 
-pub const ENGINE_VERSION: &str = "0.5.0-phase2-interactions";
+pub const ENGINE_VERSION: &str = "0.6.0-phase3-recommendations";
 
 pub fn engine_version() -> &'static str {
     ENGINE_VERSION
