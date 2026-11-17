@@ -7,6 +7,7 @@ import type {
   CommandError,
   DraftAnalysis,
   DraftView,
+  RecommendationSet,
   Role,
   Side,
 } from "./types";
@@ -33,6 +34,14 @@ export default function App() {
   const [analysis, setAnalysis] = useState<DraftAnalysis | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [recommendationData, setRecommendationData] = useState<{
+    key: string;
+    set: RecommendationSet;
+  } | null>(null);
+  const [recommendationError, setRecommendationError] = useState<string | null>(
+    null,
+  );
+  const [recommending, setRecommending] = useState(false);
   const [championProfile, setChampionProfile] =
     useState<ChampionProfileDetail | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -40,6 +49,7 @@ export default function App() {
   const [fatal, setFatal] = useState<string | null>(null);
   const toastId = useRef(0);
   const inspectSeq = useRef(0);
+  const recommendationSeq = useRef(0);
 
   const showToast = useCallback(
     (kind: Toast["kind"], message: string) => {
@@ -341,6 +351,63 @@ export default function App() {
     setDrawer(null);
   }, []);
 
+  const hasProfiles = (bootstrap?.data.profileCount ?? 0) > 0;
+  const activeProfileSet = bootstrap?.data.activeProfileSet ?? "";
+  const assignmentKey = draft
+    ? [...draft.teams.blue.picks, ...draft.teams.red.picks]
+        .map(
+          (pick) =>
+            `${pick.champion.key}:${pick.role ?? "-"}:${pick.roleSource}`,
+        )
+        .join("|")
+    : "";
+  const recommendationKey = draft
+    ? `${draft.id}:${draft.actionCount}:${activeProfileSet}:${assignmentKey}`
+    : null;
+  const recommendations =
+    recommendationData && recommendationData.key === recommendationKey
+      ? recommendationData.set
+      : null;
+
+  const handleRecommendations = useCallback(async () => {
+    if (!recommendationKey) return;
+    const seq = ++recommendationSeq.current;
+    setRecommending(true);
+    setRecommendationError(null);
+    try {
+      const next = await api.recommendations();
+      if (seq !== recommendationSeq.current) return;
+      setRecommendationData({ key: recommendationKey, set: next });
+    } catch (error) {
+      if (seq !== recommendationSeq.current) return;
+      const commandError = error as Partial<CommandError>;
+      setRecommendationData(null);
+      setRecommendationError(
+        commandError.message ?? "No se pudieron calcular las recomendaciones.",
+      );
+    } finally {
+      if (seq === recommendationSeq.current) setRecommending(false);
+    }
+  }, [recommendationKey]);
+
+  useEffect(() => {
+    if (
+      screen !== "draft" ||
+      !recommendationKey ||
+      !hasProfiles ||
+      draft?.isComplete
+    ) {
+      return;
+    }
+    void handleRecommendations();
+  }, [
+    screen,
+    recommendationKey,
+    hasProfiles,
+    draft?.isComplete,
+    handleRecommendations,
+  ]);
+
   if (fatal) {
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
@@ -399,6 +466,10 @@ export default function App() {
           analyzing={analyzing}
           analysisError={analysisError}
           onAnalyze={() => void handleAnalyze()}
+          recommendations={draft.isComplete ? null : recommendations}
+          recommending={recommending}
+          recommendationError={recommendationError}
+          onRefreshRecommendations={() => void handleRecommendations()}
         />
       ) : (
         <Home

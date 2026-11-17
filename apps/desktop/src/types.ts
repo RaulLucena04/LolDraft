@@ -333,3 +333,112 @@ export interface DraftAnalysis {
   laneMatchups: LaneMatchup[];
   matchups: TeamMatchup[];
 }
+
+export type RecommendationPhase =
+  | "early_ban"
+  | "early_pick"
+  | "late_ban"
+  | "late_pick";
+
+export type RecommendationFeature =
+  | "need"
+  | "answer"
+  | "synergy"
+  | "counter"
+  | "power"
+  | "flex"
+  | "balance"
+  | "safety";
+
+export type BanFeature =
+  | "opp_need"
+  | "opp_synergy"
+  | "opp_power"
+  | "opp_flex"
+  | "own_threat"
+  | "own_pick_value";
+
+export type RecommendationRisk =
+  | "redundant_damage"
+  | "resource_conflict"
+  | "no_frontline"
+  | "scaling_conflict"
+  | "unknown_profile"
+  | "role_ambiguous";
+
+export type NoDataReason =
+  | "no_profiles"
+  | "no_available_champions"
+  | "no_viable_candidate";
+
+export interface Contribution {
+  feature: RecommendationFeature;
+  value: number;
+  weight: number;
+  contribution: number;
+}
+
+export interface RiskContribution {
+  kind: RecommendationRisk;
+  amount: number;
+  contribution: number;
+}
+
+export interface RecommendationReason {
+  code: string;
+  params: Record<string, unknown>;
+}
+
+export interface Recommendation {
+  champion: ChampionRef;
+  role: Role;
+  score: number;
+  scoreFraction: number;
+  rankingScore: number;
+  confidence: number;
+  limitedData: boolean;
+  contributions: Contribution[];
+  risks: RiskContribution[];
+  reasons: RecommendationReason[];
+  missing: RecommendationFeature[];
+  viableRoles: number;
+}
+
+export interface BanContribution {
+  feature: BanFeature;
+  value: number;
+  weight: number;
+  contribution: number;
+}
+
+export interface BanRecommendation {
+  champion: ChampionRef;
+  score: number;
+  scoreFraction: number;
+  rankingScore: number;
+  confidence: number;
+  limitedData: boolean;
+  contributions: BanContribution[];
+  risks: RiskContribution[];
+  reasons: RecommendationReason[];
+  missing: BanFeature[];
+  ownPickValue: number;
+}
+
+export interface RecommendationSet {
+  phase: RecommendationPhase;
+  side: Side;
+  actionKind: ActionKind;
+  actionNumber: number | null;
+  engineVersion: string;
+  profileSetId: string;
+  profileSetVersion: string;
+  paramsVersion: number;
+  candidatesConsidered: number;
+  picks: Recommendation[];
+  bans: BanRecommendation[];
+  noData: NoDataReason | null;
+  limitedData: boolean;
+  missingFeatures: RecommendationFeature[];
+  missingBanFeatures: BanFeature[];
+}

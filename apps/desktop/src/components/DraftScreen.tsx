@@ -4,6 +4,7 @@ import type {
   DataStatus,
   DraftAnalysis,
   DraftView,
+  RecommendationSet,
   Role,
 } from "../types";
 import { KIND_LABEL, SIDE_LABEL, formatRelative } from "../lib/format";
@@ -13,6 +14,7 @@ import { TeamPanel } from "./TeamPanel";
 import { Timeline } from "./Timeline";
 import { ChampionPool } from "./ChampionPool";
 import { CompositionPanel } from "./CompositionPanel";
+import { RecommendationsPanel } from "./RecommendationsPanel";
 
 interface DraftScreenProps {
   draft: DraftView;
@@ -31,6 +33,10 @@ interface DraftScreenProps {
   analyzing: boolean;
   analysisError: string | null;
   onAnalyze: () => void;
+  recommendations: RecommendationSet | null;
+  recommending: boolean;
+  recommendationError: string | null;
+  onRefreshRecommendations: () => void;
 }
 
 export function DraftScreen({
@@ -50,6 +56,10 @@ export function DraftScreen({
   analyzing,
   analysisError,
   onAnalyze,
+  recommendations,
+  recommending,
+  recommendationError,
+  onRefreshRecommendations,
 }: DraftScreenProps) {
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -257,36 +267,28 @@ export function DraftScreen({
           onAnalyze={onAnalyze}
         />
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <div className="panel border-gold/20 p-4">
-            <div className="flex items-center justify-between">
-              <p className="eyebrow text-gold">Recomendaciones</p>
-              <span className="chip border-gold/30 text-gold">Fase 3</span>
-            </div>
-            <p className="mt-2 text-sm font-bold text-ink">
-              Prioridad: composición, no winrate
-            </p>
-            <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
-              El motor puntuará necesidades, sinergias, counters, flexibilidad y
-              contexto del draft. Cada recomendación explicará el porqué y su
-              confianza.
-            </p>
-            <ul className="mt-3 space-y-1.5 text-[11px] text-muted/80">
-              <li className="flex gap-2">
-                <span aria-hidden="true" className="text-gold/70">
-                  →
-                </span>
-                Sin barras de winrate como argumento principal.
-              </li>
-              <li className="flex gap-2">
-                <span aria-hidden="true" className="text-gold/70">
-                  →
-                </span>
-                Sin recomendaciones si faltan perfiles.
-              </li>
-            </ul>
-          </div>
+        <RecommendationsPanel
+          recommendations={recommendations}
+          recommending={recommending}
+          error={recommendationError}
+          hasProfiles={profilesLoaded}
+          draftComplete={draft.isComplete}
+          onInspect={onInspect}
+        />
 
+        {recommendationError && !recommending && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onRefreshRecommendations}
+              className="btn-ghost text-[11px]"
+            >
+              Reintentar recomendaciones
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="panel p-4">
             <div className="flex items-center justify-between">
               <p className="eyebrow">Cobertura de roles</p>

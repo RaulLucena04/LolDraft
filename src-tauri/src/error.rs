@@ -1,6 +1,6 @@
 use loldraft_data::DataError;
 use loldraft_domain::DraftError;
-use loldraft_engine::{AnalysisError, ProfileError, ProposalError};
+use loldraft_engine::{AnalysisError, ProfileError, ProposalError, RecommendationError};
 use loldraft_sources::SourceError;
 use serde::Serialize;
 use std::fmt::Display;
@@ -122,6 +122,15 @@ impl From<AnalysisError> for CommandError {
         Self::new(
             "analysis_error",
             format!("No se pudo analizar la composición: {error}"),
+        )
+    }
+}
+
+impl From<RecommendationError> for CommandError {
+    fn from(error: RecommendationError) -> Self {
+        Self::new(
+            "recommendation_error",
+            format!("No se pudieron calcular las recomendaciones: {error}"),
         )
     }
 }

@@ -495,3 +495,124 @@ pub struct DraftAnalysisDto {
     pub lane_matchups: Vec<LaneMatchupDto>,
     pub matchups: Vec<TeamMatchupDto>,
 }
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContributionDto {
+    pub feature: &'static str,
+    pub value: f32,
+    pub weight: f32,
+    pub contribution: f32,
+}
+
+impl From<&loldraft_engine::Contribution> for ContributionDto {
+    fn from(contribution: &loldraft_engine::Contribution) -> Self {
+        Self {
+            feature: contribution.feature.as_str(),
+            value: contribution.value,
+            weight: contribution.weight,
+            contribution: contribution.contribution,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RiskContributionDto {
+    pub kind: &'static str,
+    pub amount: f32,
+    pub contribution: f32,
+}
+
+impl From<&loldraft_engine::RiskContribution> for RiskContributionDto {
+    fn from(risk: &loldraft_engine::RiskContribution) -> Self {
+        Self {
+            kind: risk.kind.as_str(),
+            amount: risk.amount,
+            contribution: risk.contribution,
+        }
+    }
+}
+
+/// Motivo tipado: `code` estable y parámetros serializados. La UI traduce el
+/// código; el motor no envía frases libres.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReasonDto {
+    pub code: String,
+    pub params: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendationDto {
+    pub champion: ChampionRefDto,
+    pub role: Role,
+    pub score: u8,
+    pub score_fraction: f32,
+    pub ranking_score: f32,
+    pub confidence: f32,
+    pub limited_data: bool,
+    pub contributions: Vec<ContributionDto>,
+    pub risks: Vec<RiskContributionDto>,
+    pub reasons: Vec<ReasonDto>,
+    pub missing: Vec<&'static str>,
+    pub viable_roles: u8,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BanContributionDto {
+    pub feature: &'static str,
+    pub value: f32,
+    pub weight: f32,
+    pub contribution: f32,
+}
+
+impl From<&loldraft_engine::BanContribution> for BanContributionDto {
+    fn from(contribution: &loldraft_engine::BanContribution) -> Self {
+        Self {
+            feature: contribution.feature.as_str(),
+            value: contribution.value,
+            weight: contribution.weight,
+            contribution: contribution.contribution,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BanRecommendationDto {
+    pub champion: ChampionRefDto,
+    pub score: u8,
+    pub score_fraction: f32,
+    pub ranking_score: f32,
+    pub confidence: f32,
+    pub limited_data: bool,
+    pub contributions: Vec<BanContributionDto>,
+    pub risks: Vec<RiskContributionDto>,
+    pub reasons: Vec<ReasonDto>,
+    pub missing: Vec<&'static str>,
+    pub own_pick_value: f32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendationSetDto {
+    pub phase: &'static str,
+    pub side: Side,
+    pub action_kind: ActionKind,
+    /// Número de la acción recomendada, 1..20. `None` si el draft terminó.
+    pub action_number: Option<usize>,
+    pub engine_version: String,
+    pub profile_set_id: String,
+    pub profile_set_version: String,
+    pub params_version: u32,
+    pub candidates_considered: usize,
+    pub picks: Vec<RecommendationDto>,
+    pub bans: Vec<BanRecommendationDto>,
+    pub no_data: Option<&'static str>,
+    pub limited_data: bool,
+    pub missing_features: Vec<&'static str>,
+    pub missing_ban_features: Vec<&'static str>,
+}

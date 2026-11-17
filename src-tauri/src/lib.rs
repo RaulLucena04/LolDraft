@@ -44,6 +44,7 @@ pub fn run() {
             commands::profiles_import_set,
             commands::profiles_activate,
             commands::analysis_current,
+            commands::recommendations_current,
             commands::profile_champion,
             commands::draft_new,
             commands::draft_action,

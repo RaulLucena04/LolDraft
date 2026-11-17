@@ -1,10 +1,12 @@
 use crate::dto::{
-    AdvantageDto, AssignmentDto, BootstrapDto, ChampionDto, ChampionProfileContextDto,
-    ChampionProfileDto, ChampionRefDto, CoverageDto, DamageProfileDto, DataStatusDto,
-    DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto, LaneMatchupDto, NeedDto,
-    NextStepDto, PickViewDto, ProfileDamageDto, ProfileProvenanceDto, ProfileRatingDto,
-    ProfileRoleDto, ProfileSetDto, SessionSummaryDto, SignalDto, SynergyChampionDto, SynergyDto,
-    TeamAnalysisDto, TeamMatchupDto, TeamViewDto, TeamsDto, WinConditionDto,
+    AdvantageDto, AssignmentDto, BanContributionDto, BanRecommendationDto, BootstrapDto,
+    ChampionDto, ChampionProfileContextDto, ChampionProfileDto, ChampionRefDto, ContributionDto,
+    CoverageDto, DamageProfileDto, DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto,
+    FormatDto, LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileDamageDto,
+    ProfileProvenanceDto, ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto,
+    RecommendationDto, RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto,
+    SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto, TeamViewDto, TeamsDto,
+    WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
@@ -13,13 +15,14 @@ use loldraft_domain::{
     Role, Side,
 };
 use loldraft_engine::{
-    analyze_draft, candidate_synergies, Advantage, AnalysisParams, ArchetypeId, Coverage,
-    Dimension, LaneMatchup, MatchupRuleId, NeedSource, NeedStatus, PickedChampion,
-    ProfileProposalSet, ProfileSet, Provenance, SynergyId, Taxonomy, TeamMatchup, ThreatRuleId,
-    TraitId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
+    analyze_draft, candidate_synergies, recommend, Advantage, AnalysisParams, ArchetypeId,
+    BanRecommendation, Coverage, Dimension, LaneMatchup, MatchupRuleId, NeedSource, NeedStatus,
+    PickedChampion, ProfileProposalSet, ProfileSet, Provenance, Reason, Recommendation,
+    RecommendationParams, RecommendationRequest, RecommendationSet, SynergyId, Taxonomy,
+    TeamMatchup, ThreatRuleId, TraitId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
 };
 use loldraft_sources::DdragonClient;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::sync::MutexGuard;
 use tauri::State;
 
@@ -220,6 +223,77 @@ pub fn analysis_current(state: State<'_, AppState>) -> Result<DraftAnalysisDto, 
         lane_matchups,
         matchups,
     })
+}
+
+#[tauri::command]
+pub fn recommendations_current(
+    state: State<'_, AppState>,
+) -> Result<RecommendationSetDto, CommandError> {
+    let (profile_set, profile_set_version) = {
+        let db = lock_db(&state)?;
+        let active = db.active_profile_set()?.ok_or_else(|| {
+            CommandError::new(
+                "profiles_not_loaded",
+                "No hay un conjunto de perfiles activo. Carga y activa un conjunto para recomendar.",
+            )
+        })?;
+        let set = db.load_profile_set(&active.id)?;
+        (set, active.version)
+    };
+
+    let (format, action_index, action_number, blue_picks, red_picks, used) = {
+        let catalog = state
+            .catalog
+            .read()
+            .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+        let guard = state
+            .active
+            .lock()
+            .map_err(|_| CommandError::internal("la sesión activa está bloqueada"))?;
+        let active = guard.as_ref().ok_or_else(CommandError::no_active_draft)?;
+        let draft = active.state();
+        if draft.is_complete() {
+            return Err(CommandError::new(
+                "draft_complete",
+                "El draft ya está completo; no quedan acciones que recomendar.",
+            ));
+        }
+        let (blue, _) = analysis_picks(Side::Blue, active, &catalog);
+        let (red, _) = analysis_picks(Side::Red, active, &catalog);
+        (
+            draft.format.clone(),
+            draft.current_step_index(),
+            draft.next_step_number(),
+            blue,
+            red,
+            draft.used_champions(),
+        )
+    };
+
+    let analysis_params = AnalysisParams::default();
+    let params = RecommendationParams::default();
+    let output = recommend(&RecommendationRequest {
+        format: &format,
+        action_index,
+        blue_picks: &blue_picks,
+        red_picks: &red_picks,
+        used: &used,
+        profiles: &profile_set,
+        analysis_params: &analysis_params,
+        params: &params,
+    })?;
+
+    let catalog = state
+        .catalog
+        .read()
+        .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+    Ok(recommendation_set_dto(
+        output,
+        action_number,
+        profile_set_version,
+        loldraft_engine::taxonomy(),
+        &catalog,
+    ))
 }
 
 #[tauri::command]
@@ -824,6 +898,240 @@ fn win_condition_label(id: WinConditionId) -> &'static str {
         WinConditionId::EarlySnowball => "Snowball temprano",
         WinConditionId::Wombo => "Wombo combo",
     }
+}
+
+fn recommendation_set_dto(
+    output: RecommendationSet,
+    action_number: Option<usize>,
+    profile_set_version: String,
+    taxonomy: &Taxonomy,
+    catalog: &ChampionCatalog,
+) -> RecommendationSetDto {
+    RecommendationSetDto {
+        phase: output.phase.as_str(),
+        side: output.side,
+        action_kind: output.action_kind,
+        action_number,
+        engine_version: output.engine_version,
+        profile_set_id: output.profile_set_id,
+        profile_set_version,
+        params_version: output.params_version,
+        candidates_considered: output.candidates_considered,
+        picks: output
+            .picks
+            .iter()
+            .map(|pick| recommendation_dto(pick, taxonomy, catalog))
+            .collect(),
+        bans: output
+            .bans
+            .iter()
+            .map(|ban| ban_recommendation_dto(ban, taxonomy, catalog))
+            .collect(),
+        no_data: output.no_data.map(|reason| reason.as_str()),
+        limited_data: output.limited_data,
+        missing_features: output
+            .missing_features
+            .iter()
+            .map(|feature| feature.as_str())
+            .collect(),
+        missing_ban_features: output
+            .missing_ban_features
+            .iter()
+            .map(|feature| feature.as_str())
+            .collect(),
+    }
+}
+
+fn recommendation_dto(
+    pick: &Recommendation,
+    taxonomy: &Taxonomy,
+    catalog: &ChampionCatalog,
+) -> RecommendationDto {
+    RecommendationDto {
+        champion: champion_ref(pick.champion, catalog),
+        role: pick.role,
+        score: pick.score,
+        score_fraction: pick.score_fraction,
+        ranking_score: pick.ranking_score,
+        confidence: pick.confidence,
+        limited_data: pick.limited_data,
+        contributions: pick
+            .contributions
+            .iter()
+            .map(ContributionDto::from)
+            .collect(),
+        risks: pick.risks.iter().map(RiskContributionDto::from).collect(),
+        reasons: pick
+            .reasons
+            .iter()
+            .map(|reason| reason_dto(reason, taxonomy, catalog))
+            .collect(),
+        missing: pick
+            .missing
+            .iter()
+            .map(|feature| feature.as_str())
+            .collect(),
+        viable_roles: pick.viable_roles,
+    }
+}
+
+fn ban_recommendation_dto(
+    ban: &BanRecommendation,
+    taxonomy: &Taxonomy,
+    catalog: &ChampionCatalog,
+) -> BanRecommendationDto {
+    BanRecommendationDto {
+        champion: champion_ref(ban.champion, catalog),
+        score: ban.score,
+        score_fraction: ban.score_fraction,
+        ranking_score: ban.ranking_score,
+        confidence: ban.confidence,
+        limited_data: ban.limited_data,
+        contributions: ban
+            .contributions
+            .iter()
+            .map(BanContributionDto::from)
+            .collect(),
+        risks: ban.risks.iter().map(RiskContributionDto::from).collect(),
+        reasons: ban
+            .reasons
+            .iter()
+            .map(|reason| reason_dto(reason, taxonomy, catalog))
+            .collect(),
+        missing: ban.missing.iter().map(|feature| feature.as_str()).collect(),
+        own_pick_value: ban.own_pick_value,
+    }
+}
+
+fn reason_dto(reason: &Reason, taxonomy: &Taxonomy, catalog: &ChampionCatalog) -> ReasonDto {
+    let (code, params) = match reason {
+        Reason::FillsGap {
+            dimension,
+            before,
+            after,
+            need,
+        } => (
+            "fills_gap",
+            json!({
+                "kind": dimension_kind(*dimension),
+                "dimension": dimension.as_str(),
+                "label": dimension_label(*dimension, taxonomy),
+                "before": before,
+                "after": after,
+                "need": need,
+            }),
+        ),
+        Reason::AnswersThreat {
+            dimension,
+            before,
+            after,
+        } => (
+            "answers_threat",
+            json!({
+                "kind": dimension_kind(*dimension),
+                "dimension": dimension.as_str(),
+                "label": dimension_label(*dimension, taxonomy),
+                "before": before,
+                "after": after,
+            }),
+        ),
+        Reason::Synergy {
+            id,
+            champion,
+            score_low,
+            score_high,
+        } => (
+            "synergy",
+            json!({
+                "id": id.as_str(),
+                "label": synergy_label(*id),
+                "champion": champion.0,
+                "championName": champion_name(*champion, catalog),
+                "scoreLow": score_low,
+                "scoreHigh": score_high,
+            }),
+        ),
+        Reason::CountersLane {
+            champion,
+            role,
+            edge_low,
+            edge_high,
+        } => (
+            "counters_lane",
+            json!({
+                "champion": champion.0,
+                "championName": champion_name(*champion, catalog),
+                "role": role.as_str(),
+                "roleLabel": role.label_es(),
+                "edgeLow": edge_low,
+                "edgeHigh": edge_high,
+            }),
+        ),
+        Reason::FlexValue { roles } => ("flex_value", json!({ "roles": roles })),
+        Reason::DamageBalance {
+            kind,
+            before,
+            after,
+        } => (
+            "damage_balance",
+            json!({
+                "kind": kind.as_str(),
+                "label": trait_label(*kind, taxonomy),
+                "before": before,
+                "after": after,
+            }),
+        ),
+        Reason::RedundantDamage { kind, share } => (
+            "redundant_damage",
+            json!({
+                "kind": kind.as_str(),
+                "label": trait_label(*kind, taxonomy),
+                "share": share,
+            }),
+        ),
+        Reason::ResourceConflict { allies } => ("resource_conflict", json!({ "allies": allies })),
+        Reason::NoFrontline => ("no_frontline", json!({})),
+        Reason::ScalingConflict => ("scaling_conflict", json!({})),
+        Reason::UnknownProfile { knowledge } => {
+            ("unknown_profile", json!({ "knowledge": knowledge }))
+        }
+        Reason::RoleAmbiguous { roles } => ("role_ambiguous", json!({ "roles": roles })),
+    };
+    ReasonDto {
+        code: code.to_string(),
+        params,
+    }
+}
+
+fn champion_name(key: ChampionKey, catalog: &ChampionCatalog) -> String {
+    catalog
+        .get(key)
+        .map(|champion| champion.name.clone())
+        .unwrap_or_else(|| format!("#{}", key.0))
+}
+
+fn trait_label(id: TraitId, taxonomy: &Taxonomy) -> String {
+    taxonomy
+        .trait_entry(id)
+        .map(|entry| entry.label_es.clone())
+        .unwrap_or_else(|| id.as_str().to_string())
+}
+
+/// Referencia de catálogo. Si el perfil existe para un campeón que aún no está
+/// en el catálogo local, se muestra el identificador sin inventar nombre ni
+/// imagen.
+fn champion_ref(key: ChampionKey, catalog: &ChampionCatalog) -> ChampionRefDto {
+    catalog
+        .get(key)
+        .map(ChampionRefDto::from)
+        .unwrap_or_else(|| ChampionRefDto {
+            key: key.0,
+            slug: String::new(),
+            name: format!("#{}", key.0),
+            title: "Sin identidad en el catálogo local".to_string(),
+            image: String::new(),
+            image_path: String::new(),
+        })
 }
 
 #[tauri::command]

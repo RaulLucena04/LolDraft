@@ -7,6 +7,7 @@ import type {
   DraftAnalysis,
   DraftView,
   ProfileSet,
+  RecommendationSet,
   Role,
   SessionSummary,
   Side,
@@ -58,6 +59,7 @@ export const api = {
   activateProfileSet: (id: string) =>
     call<ProfileSet[]>("profiles_activate", { id }),
   analysis: () => call<DraftAnalysis>("analysis_current"),
+  recommendations: () => call<RecommendationSet>("recommendations_current"),
   championProfile: (championKey: number) =>
     call<ChampionProfileDetail>("profile_champion", { championKey }),
 };
