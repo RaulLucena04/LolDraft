@@ -73,6 +73,10 @@ heurística el rol que se está evaluando.
 
 Sin rol fijo se evalúan todos los roles libres del equipo aliado.
 
+Nota: si un aliado ya bloqueado solo puede ocupar el rol reservado, el análisis
+lo deja sin rol y no lo cuenta en la composición, igual que en el simulador
+competitivo. No se le inventa una posición para que encaje.
+
 ## 4. Importación desde el cliente (experimental)
 
 `loldraft-sources::lcu` lee el cliente por su API local no documentada:

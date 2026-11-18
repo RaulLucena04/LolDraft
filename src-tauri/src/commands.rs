@@ -400,7 +400,7 @@ pub async fn lcu_champ_select(state: State<'_, AppState>) -> Result<SoloqImportD
         .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
 
     let mut unknown: Vec<u16> = Vec::new();
-    let mut known = |keys: Vec<ChampionKey>| -> Vec<u16> {
+    let known = |keys: Vec<ChampionKey>, unknown: &mut Vec<u16>| -> Vec<u16> {
         let mut out = Vec::with_capacity(keys.len());
         for key in keys {
             if catalog.get(key).is_some() {
@@ -412,10 +412,9 @@ pub async fn lcu_champ_select(state: State<'_, AppState>) -> Result<SoloqImportD
         out
     };
 
-    let bans = known(session.bans);
-    let ally_picks = known(session.ally_picks);
-    let enemy_picks = known(session.enemy_picks);
-    drop(known);
+    let bans = known(session.bans, &mut unknown);
+    let ally_picks = known(session.ally_picks, &mut unknown);
+    let enemy_picks = known(session.enemy_picks, &mut unknown);
 
     Ok(SoloqImportDto {
         side: session.side,
