@@ -148,3 +148,17 @@ impl From<loldraft_sources::LcuError> for CommandError {
         Self::new(code, error.to_string())
     }
 }
+
+impl From<crate::updates::UpdateError> for CommandError {
+    fn from(error: crate::updates::UpdateError) -> Self {
+        use crate::updates::UpdateError;
+        let code = match &error {
+            UpdateError::MissingManifest(_) => "update_not_found",
+            UpdateError::MissingInstaller(_) => "update_installer_missing",
+            UpdateError::InvalidVersion(_) => "update_invalid_version",
+            UpdateError::Invalid(_) | UpdateError::OutsideChannel(_) => "update_invalid",
+            UpdateError::Io(_) => "update_unreachable",
+        };
+        Self::new(code, error.to_string())
+    }
+}

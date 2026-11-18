@@ -649,3 +649,34 @@ pub struct SoloqImportDto {
     /// Campeones del cliente que no existen en el catálogo local.
     pub unknown_champions: Vec<u16>,
 }
+
+/// Resultado de consultar el canal de actualizaciones.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCheckDto {
+    pub current_version: String,
+    pub latest_version: String,
+    pub available: bool,
+    /// `local` (carpeta) o `url`.
+    pub channel: &'static str,
+    /// Carpeta o URL configurada, tal cual.
+    pub source: String,
+    /// Ruta o URL del `latest.json` leído.
+    pub manifest: String,
+    pub notes: Option<String>,
+    /// Instalador resuelto, solo cuando hay una versión más nueva.
+    pub installer: Option<String>,
+}
+
+/// Resultado de lanzar una actualización.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateInstallDto {
+    /// `installer` si se ejecutó el instalador; `browser` si solo se abrió la
+    /// descarga porque el canal es HTTP.
+    pub action: &'static str,
+    pub version: String,
+    /// Instalador local o URL abierta.
+    pub target: String,
+    pub message: String,
+}

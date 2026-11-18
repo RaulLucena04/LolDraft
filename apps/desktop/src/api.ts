@@ -13,6 +13,8 @@ import type {
   Side,
   SoloqDraftInput,
   SoloqImport,
+  UpdateCheck,
+  UpdateInstall,
 } from "./types";
 
 function toCommandError(error: unknown): CommandError {
@@ -67,6 +69,12 @@ export const api = {
   lcuChampSelect: () => call<SoloqImport>("lcu_champ_select"),
   championProfile: (championKey: number) =>
     call<ChampionProfileDetail>("profile_champion", { championKey }),
+  settingGet: (key: string) => call<unknown | null>("settings_get", { key }),
+  settingUpdate: (key: string, value: unknown) =>
+    call<void>("settings_update", { key, value }),
+  updateCheck: () => call<UpdateCheck>("update_check"),
+  updateInstall: (version: string) =>
+    call<UpdateInstall>("update_install", { version }),
 };
 
 export { toCommandError };

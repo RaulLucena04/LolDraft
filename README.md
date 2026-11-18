@@ -98,6 +98,19 @@ npm run app:dev
 npm run app:build
 ```
 
+El instalador NSIS queda en `target/release/bundle/nsis/LolDraft_<versión>_x64-setup.exe`
+(instalación por usuario, sin administrador). Para publicar esa versión en el
+canal local que lee el botón **Buscar actualizaciones** de la app:
+
+```powershell
+npm run release                       # sube el parche y publica
+npm run release -- --version 0.2.0    # versión explícita
+```
+
+El canal es `%APPDATA%\com.loldraft.desktop\updates` (`latest.json` + instalador).
+Detalles, formato del manifiesto y límites en
+[11 — Instalación y actualizaciones](docs/11-instalacion-actualizaciones.md).
+
 Si `cargo` no está en el `PATH` del shell:
 
 ```powershell
@@ -135,7 +148,9 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 `app_bootstrap`, `champions_list`, `data_status`, `data_sync_ddragon`, `draft_new`, `draft_action`,
 `draft_undo`, `draft_redo`, `draft_set_role`, `draft_list`, `draft_load`, `draft_delete`,
 `profiles_list`, `profiles_import_pilot`, `profiles_import_proposal`, `profiles_import_set`,
-`profiles_activate`, `profile_champion`, `analysis_current`, `settings_get`, `settings_update`.
+`profiles_activate`, `profile_champion`, `analysis_current`, `recommendations_current`,
+`soloq_recommend`, `lcu_champ_select`, `settings_get`, `settings_update`, `update_check`,
+`update_install`.
 
 La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 
@@ -164,6 +179,8 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 | [07 — Plan por fases](docs/07-plan-fases.md) | Entregables y criterios de aceptación por fase |
 | [08 — Riesgos y decisiones](docs/08-riesgos-decisiones.md) | Riesgos, mitigaciones y ADRs |
 | [09 — Curación de perfiles](docs/09-curacion-perfiles.md) | CLI, flujo de revisión, límites y honestidad |
+| [10 — Modo SoloQ](docs/10-modo-soloq.md) | Draft manual, mejor pick por turno e importación del cliente |
+| [11 — Instalación y actualizaciones](docs/11-instalacion-actualizaciones.md) | Instalador NSIS, canal `latest.json`, botón de actualizar y límites |
 
 ## Principios del proyecto
 

@@ -467,3 +467,28 @@ export interface SoloqImport {
   timerPhase: string | null;
   unknownChampions: number[];
 }
+
+/** Resultado de consultar el canal de actualizaciones. */
+export interface UpdateCheck {
+  currentVersion: string;
+  latestVersion: string;
+  available: boolean;
+  /** `local` (carpeta) o `url`. */
+  channel: "local" | "url";
+  /** Carpeta o URL configurada, tal cual. */
+  source: string;
+  /** Ruta o URL del `latest.json` leído. */
+  manifest: string;
+  notes: string | null;
+  /** Instalador resuelto, solo cuando hay una versión más nueva. */
+  installer: string | null;
+}
+
+/** Resultado de lanzar una actualización. */
+export interface UpdateInstall {
+  /** `installer` si se ejecutó el instalador; `browser` si el canal es HTTP. */
+  action: "installer" | "browser";
+  version: string;
+  target: string;
+  message: string;
+}

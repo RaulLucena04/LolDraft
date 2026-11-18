@@ -2,6 +2,7 @@ mod commands;
 mod dto;
 mod error;
 mod state;
+mod updates;
 
 use loldraft_data::Database;
 use state::AppState;
@@ -58,6 +59,8 @@ pub fn run() {
             commands::draft_delete,
             commands::settings_get,
             commands::settings_update,
+            commands::update_check,
+            commands::update_install,
         ])
         .run(tauri::generate_context!())
         .expect("error while running LolDraft");

@@ -4,6 +4,7 @@ import type { Bootstrap, Side } from "../types";
 import { formatRelative } from "../lib/format";
 import { Logo } from "./Logo";
 import { SideBadge, StatusPill } from "./Badges";
+import { UpdatesCard } from "./UpdatesCard";
 
 interface HomeProps {
   bootstrap: Bootstrap;
@@ -401,6 +402,8 @@ export function Home({
               activa. La app no inventa celdas: cada una conserva su procedencia.
             </p>
           </div>
+
+          <UpdatesCard currentVersion={bootstrap.appVersion} />
 
           <div className="panel p-5">
             <p className="eyebrow">Hoja de ruta</p>

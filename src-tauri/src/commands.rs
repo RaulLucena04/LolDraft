@@ -6,10 +6,11 @@ use crate::dto::{
     ProfileProvenanceDto, ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto,
     RecommendationDto, RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto,
     SoloqDraftInput, SoloqImportDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto,
-    TeamMatchupDto, TeamViewDto, TeamsDto, WinConditionDto,
+    TeamMatchupDto, TeamViewDto, TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
+use crate::updates::{self, Installer};
 use loldraft_domain::{
     assign_roles_avoiding, assign_roles_with_locks, ChampionCatalog, ChampionKey, DraftAction,
     DraftError, DraftFormat, Role, Side,
@@ -25,7 +26,7 @@ use loldraft_sources::DdragonClient;
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 use std::sync::MutexGuard;
-use tauri::State;
+use tauri::{Manager, State};
 
 const CODE_NOTHING_TO_UNDO: &str = "nothing_to_undo";
 const CODE_NOTHING_TO_REDO: &str = "nothing_to_redo";
@@ -1518,6 +1519,129 @@ pub fn settings_update(
     let db = lock_db(&state)?;
     db.set_setting(&key, &serde_json::to_string(&value)?)?;
     Ok(())
+}
+
+const UPDATE_SOURCE_KEY: &str = "updates.source";
+
+/// Canal configurado: vacío o ausente usa la carpeta de datos de la app.
+fn update_target(
+    app: &tauri::AppHandle,
+    state: &AppState,
+) -> Result<updates::UpdateTarget, CommandError> {
+    let configured = {
+        let db = lock_db(state)?;
+        db.get_setting(UPDATE_SOURCE_KEY)?.and_then(|raw| {
+            match serde_json::from_str::<Value>(&raw).unwrap_or(Value::String(raw)) {
+                Value::String(text) if !text.trim().is_empty() => Some(text),
+                _ => None,
+            }
+        })
+    };
+    Ok(updates::resolve_target(
+        configured.as_deref(),
+        &app_data_dir(app)?,
+    ))
+}
+
+fn app_data_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, CommandError> {
+    app.path().app_data_dir().map_err(|error| {
+        CommandError::internal(format!(
+            "no se pudo resolver el directorio de datos: {error}"
+        ))
+    })
+}
+
+/// Consulta el canal y dice si hay una versión más nueva. No instala nada.
+#[tauri::command]
+pub async fn update_check(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<UpdateCheckDto, CommandError> {
+    let target = update_target(&app, &state)?;
+    let manifest = updates::load(&target).await?;
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let available = updates::is_newer(&manifest.version, &current_version)?;
+    let installer = if available {
+        Some(updates::installer_for(&target, &manifest)?.describe())
+    } else {
+        None
+    };
+
+    Ok(UpdateCheckDto {
+        current_version,
+        latest_version: manifest.version,
+        available,
+        channel: target.channel(),
+        source: target.describe(),
+        manifest: target.manifest_location(),
+        notes: manifest.notes,
+        installer,
+    })
+}
+
+/// Ejecuta el instalador del canal local o abre su descarga si el canal es HTTP.
+///
+/// Nunca descarga ni ejecuta un binario de internet por su cuenta: en HTTP se
+/// abre el navegador y decide el usuario.
+#[tauri::command]
+pub async fn update_install(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    version: String,
+) -> Result<UpdateInstallDto, CommandError> {
+    let target = update_target(&app, &state)?;
+    let manifest = updates::load(&target).await?;
+
+    if manifest.version.trim() != version.trim() {
+        return Err(CommandError::new(
+            "update_changed",
+            "El canal ha cambiado desde la comprobación. Vuelve a buscar actualizaciones.",
+        ));
+    }
+    if !updates::is_newer(&manifest.version, env!("CARGO_PKG_VERSION"))? {
+        return Err(CommandError::new(
+            "update_not_newer",
+            "La versión del canal ya no es más nueva que la instalada.",
+        ));
+    }
+
+    let installer = updates::installer_for(&target, &manifest)?;
+    match installer {
+        Installer::Local(path) => {
+            std::process::Command::new(&path).spawn().map_err(|error| {
+                CommandError::new(
+                    "update_install_failed",
+                    format!("No se pudo abrir el instalador {}: {error}", path.display()),
+                )
+            })?;
+            Ok(UpdateInstallDto {
+                action: "installer",
+                version: manifest.version,
+                target: path.display().to_string(),
+                message: "Se ha abierto el instalador. Sigue sus pasos; si LolDraft sigue abierto, te pedirá cerrarlo.".to_string(),
+            })
+        }
+        Installer::Url(url) => {
+            // `explorer` abre la URL con el navegador predeterminado sin pasar
+            // por un shell que interprete `&` u otros caracteres de la URL.
+            std::process::Command::new("explorer")
+                .arg(&url)
+                .spawn()
+                .map_err(|error| {
+                    CommandError::new(
+                        "update_launch_failed",
+                        format!("No se pudo abrir el navegador para descargar la actualización: {error}"),
+                    )
+                })?;
+            Ok(UpdateInstallDto {
+                action: "browser",
+                version: manifest.version,
+                target: url,
+                message: "Se ha abierto la descarga en el navegador. Ejecuta el instalador cuando termine."
+                    .to_string(),
+            })
+        }
+    }
 }
 
 /// Conjunto de perfiles activo y su versión, con el error que espera la UI.
