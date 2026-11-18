@@ -56,6 +56,7 @@ Espaciado en múltiplos de 4. Radios de 8–12 px. Sombras sutiles, sin glassmor
 Inicio
 ├─ Nuevo draft ──────────────► Simulador
 ├─ Continuar draft ──────────► Simulador (sesión guardada)
+├─ Draft de SoloQ ───────────► Modo SoloQ (draft manual + mejor pick)
 ├─ Análisis de composición ──► Laboratorio de análisis
 ├─ Estadísticas ─────────────► Explorador de datos
 ├─ Configuración ────────────► Ajustes
@@ -124,6 +125,28 @@ Comportamiento:
   "Carencias", "Condiciones de victoria", "Matchups". No se muestran números sin contexto.
 - **Detalle de campeón:** drawer lateral al hacer clic en un retrato; no abandona el simulador.
   Incluye arquetipos, traits, roles, estadísticas (con `n`, parche y fuente) y sinergias.
+
+#### 3.2.1 Modo SoloQ
+
+Pantalla aparte del simulador competitivo, pensada para responder a una sola
+pregunta: qué pick encaja mejor en el turno propio de una partida de ranked.
+
+```text
+Tu situación ........ lado · turno de pick (1-5) · rol opcional
+Draft ............... 5 huecos aliados (el propio se marca aparte),
+                      5 rivales y 10 baneos opcionales
+Acción .............. "Ver mejor pick"
+Resultado ........... tarjeta del mejor pick + panel de recomendaciones
+Importar ............ "Importar del cliente" (solo lectura, experimental)
+```
+
+- Cada hueco abre un buscador de campeones filtrado a los disponibles; no se
+  pueden repetir campeones.
+- Al cambiar cualquier dato se descarta el resultado anterior: nunca se muestra
+  una recomendación calculada sobre otro estado.
+- Si el cliente no está abierto, el error se explica y la entrada manual sigue
+  disponible.
+- Detalle del contrato y límites en [`10-modo-soloq.md`](./10-modo-soloq.md).
 
 ### 3.3 Laboratorio de análisis
 
