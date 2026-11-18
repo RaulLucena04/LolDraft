@@ -24,6 +24,10 @@ Requisitos en el equipo de destino: Windows 10/11 x64 y WebView2 Runtime
 (Windows 11 lo incluye). El instalador NSIS es **por usuario**: instala en
 `%LOCALAPPDATA%\LolDraft`, no pide administrador y deja un desinstalador.
 
+El instalador **no está firmado**. Si se copia a otro equipo, Windows puede
+mostrar SmartScreen o pedir confirmación; es esperado y coherente con el modelo
+de canal local sin firma descrito abajo.
+
 ## 2. Publicar una actualización
 
 ```powershell

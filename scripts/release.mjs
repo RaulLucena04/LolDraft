@@ -108,12 +108,13 @@ async function writeLockVersion(path, version) {
 }
 
 function runNpm() {
-  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-  const result = spawnSync(npm, ["run", "app:build"], {
-    cwd: ROOT,
-    stdio: "inherit",
-    shell: process.platform === "win32",
-  });
+  const result =
+    process.platform === "win32"
+      ? spawnSync("cmd.exe", ["/C", "npm", "run", "app:build"], {
+          cwd: ROOT,
+          stdio: "inherit",
+        })
+      : spawnSync("npm", ["run", "app:build"], { cwd: ROOT, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`La compilación falló con código ${result.status}`);
