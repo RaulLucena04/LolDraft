@@ -134,3 +134,17 @@ impl From<RecommendationError> for CommandError {
         )
     }
 }
+
+impl From<loldraft_sources::LcuError> for CommandError {
+    fn from(error: loldraft_sources::LcuError) -> Self {
+        use loldraft_sources::LcuError;
+        let code = match error {
+            LcuError::NotRunning | LcuError::InvalidLockfile(_) => "lcu_not_running",
+            LcuError::NotInChampSelect => "lcu_not_in_champ_select",
+            LcuError::NoPickAction => "lcu_no_pick_action",
+            LcuError::Transport(_) | LcuError::Http(_) => "lcu_unreachable",
+            LcuError::InvalidSession(_) => "lcu_invalid_session",
+        };
+        Self::new(code, error.to_string())
+    }
+}

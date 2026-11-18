@@ -5,14 +5,14 @@ use crate::dto::{
     FormatDto, LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileDamageDto,
     ProfileProvenanceDto, ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto,
     RecommendationDto, RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto,
-    SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto, TeamViewDto, TeamsDto,
-    WinConditionDto,
+    SoloqDraftInput, SoloqImportDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto,
+    TeamMatchupDto, TeamViewDto, TeamsDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
 use loldraft_domain::{
-    assign_roles_with_locks, ChampionCatalog, ChampionKey, DraftAction, DraftError, DraftFormat,
-    Role, Side,
+    assign_roles_avoiding, assign_roles_with_locks, ChampionCatalog, ChampionKey, DraftAction,
+    DraftError, DraftFormat, Role, Side,
 };
 use loldraft_engine::{
     analyze_draft, candidate_synergies, recommend, Advantage, AnalysisParams, ArchetypeId,
@@ -23,6 +23,7 @@ use loldraft_engine::{
 };
 use loldraft_sources::DdragonClient;
 use serde_json::{json, Value};
+use std::collections::{HashMap, HashSet};
 use std::sync::MutexGuard;
 use tauri::State;
 
@@ -166,17 +167,7 @@ pub fn profiles_activate(
 
 #[tauri::command]
 pub fn analysis_current(state: State<'_, AppState>) -> Result<DraftAnalysisDto, CommandError> {
-    let (profile_set, profile_set_version) = {
-        let db = lock_db(&state)?;
-        let active = db.active_profile_set()?.ok_or_else(|| {
-            CommandError::new(
-                "profiles_not_loaded",
-                "No hay un conjunto de perfiles activo. Carga y activa un conjunto para analizar.",
-            )
-        })?;
-        let set = db.load_profile_set(&active.id)?;
-        (set, active.version)
-    };
+    let (profile_set, profile_set_version) = active_profile_set(&state)?;
 
     let (blue_picks, blue_skipped, red_picks, red_skipped) = {
         let catalog = state
@@ -229,17 +220,7 @@ pub fn analysis_current(state: State<'_, AppState>) -> Result<DraftAnalysisDto, 
 pub fn recommendations_current(
     state: State<'_, AppState>,
 ) -> Result<RecommendationSetDto, CommandError> {
-    let (profile_set, profile_set_version) = {
-        let db = lock_db(&state)?;
-        let active = db.active_profile_set()?.ok_or_else(|| {
-            CommandError::new(
-                "profiles_not_loaded",
-                "No hay un conjunto de perfiles activo. Carga y activa un conjunto para recomendar.",
-            )
-        })?;
-        let set = db.load_profile_set(&active.id)?;
-        (set, active.version)
-    };
+    let (profile_set, profile_set_version) = active_profile_set(&state)?;
 
     let (format, action_index, action_number, blue_picks, red_picks, used) = {
         let catalog = state
@@ -281,6 +262,7 @@ pub fn recommendations_current(
         profiles: &profile_set,
         analysis_params: &analysis_params,
         params: &params,
+        fixed_role: None,
     })?;
 
     let catalog = state
@@ -294,6 +276,157 @@ pub fn recommendations_current(
         loldraft_engine::taxonomy(),
         &catalog,
     ))
+}
+
+/// Recomendación para un draft de SoloQ introducido a mano.
+///
+/// No lee ni escribe la sesión persistida: recibe el estado que el jugador ve
+/// en el cliente y evalúa solo el pick indicado con el formato de ranked.
+#[tauri::command]
+pub fn soloq_recommend(
+    state: State<'_, AppState>,
+    draft: SoloqDraftInput,
+) -> Result<RecommendationSetDto, CommandError> {
+    if !(1..=5).contains(&draft.slot) {
+        return Err(CommandError::new(
+            "soloq_invalid_slot",
+            "La posición de pick debe estar entre 1 y 5.",
+        ));
+    }
+
+    let format = DraftFormat::soloq();
+    let action_index = format
+        .pick_action_index(draft.side, draft.slot as usize)
+        .ok_or_else(|| {
+            CommandError::new(
+                "soloq_invalid_slot",
+                "Esa posición de pick no existe en el formato de SoloQ.",
+            )
+        })?;
+
+    validate_unique_champions(&draft)?;
+    let (profile_set, profile_set_version) = active_profile_set(&state)?;
+
+    let catalog = state
+        .catalog
+        .read()
+        .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+
+    let keys =
+        |values: &[u16]| -> Vec<ChampionKey> { values.iter().copied().map(ChampionKey).collect() };
+    let bans = keys(&draft.bans);
+    let ally_keys = keys(&draft.ally_picks);
+    let enemy_keys = keys(&draft.enemy_picks);
+
+    for key in bans.iter().chain(ally_keys.iter()).chain(enemy_keys.iter()) {
+        if catalog.get(*key).is_none() {
+            return Err(CommandError::new(
+                "soloq_unknown_champion",
+                format!(
+                    "El campeón #{} no existe en el catálogo local. Actualiza los datos para usarlo.",
+                    key.0
+                ),
+            ));
+        }
+    }
+
+    let overrides: HashMap<(Side, ChampionKey), Role> = HashMap::new();
+    let reserved: Vec<Role> = draft.role.into_iter().collect();
+    let (ally_picks, _) = picks_from_keys(&ally_keys, &catalog, &overrides, draft.side, &reserved);
+    let (enemy_picks, _) = picks_from_keys(
+        &enemy_keys,
+        &catalog,
+        &overrides,
+        draft.side.opposite(),
+        &[],
+    );
+
+    let (blue_picks, red_picks) = match draft.side {
+        Side::Blue => (ally_picks, enemy_picks),
+        Side::Red => (enemy_picks, ally_picks),
+    };
+
+    let mut used: Vec<ChampionKey> =
+        Vec::with_capacity(bans.len() + ally_keys.len() + enemy_keys.len());
+    used.extend(bans);
+    used.extend(ally_keys);
+    used.extend(enemy_keys);
+    used.sort_by_key(|key| key.0);
+    used.dedup();
+
+    let analysis_params = AnalysisParams::default();
+    let params = RecommendationParams::default();
+    let output = recommend(&RecommendationRequest {
+        format: &format,
+        action_index,
+        blue_picks: &blue_picks,
+        red_picks: &red_picks,
+        used: &used,
+        profiles: &profile_set,
+        analysis_params: &analysis_params,
+        params: &params,
+        fixed_role: draft.role,
+    })?;
+
+    Ok(recommendation_set_dto(
+        output,
+        None,
+        profile_set_version,
+        loldraft_engine::taxonomy(),
+        &catalog,
+    ))
+}
+
+/// Lee la selección de campeones del cliente de League of Legends.
+///
+/// Solo lectura: no modifica el draft del cliente ni envía acciones. Está
+/// marcada como experimental porque depende de la API local no documentada.
+#[tauri::command]
+pub async fn lcu_champ_select(state: State<'_, AppState>) -> Result<SoloqImportDto, CommandError> {
+    let path = loldraft_sources::find_lockfile()?;
+    let text = std::fs::read_to_string(&path).map_err(|error| {
+        CommandError::new(
+            "lcu_unreachable",
+            format!("No se pudo leer el lockfile del cliente: {error}"),
+        )
+    })?;
+    let credentials = loldraft_sources::parse_lockfile(&text)?;
+    let client = loldraft_sources::LcuClient::new(credentials)?;
+    let session = client.champ_select().await?;
+
+    let catalog = state
+        .catalog
+        .read()
+        .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+
+    let mut unknown: Vec<u16> = Vec::new();
+    let mut known = |keys: Vec<ChampionKey>| -> Vec<u16> {
+        let mut out = Vec::with_capacity(keys.len());
+        for key in keys {
+            if catalog.get(key).is_some() {
+                out.push(key.0);
+            } else if !unknown.contains(&key.0) {
+                unknown.push(key.0);
+            }
+        }
+        out
+    };
+
+    let bans = known(session.bans);
+    let ally_picks = known(session.ally_picks);
+    let enemy_picks = known(session.enemy_picks);
+    drop(known);
+
+    Ok(SoloqImportDto {
+        side: session.side,
+        slot: session.slot,
+        role: session.role,
+        bans,
+        ally_picks,
+        enemy_picks,
+        timer_phase: session.timer_phase,
+        unknown_champions: unknown,
+    })
 }
 
 #[tauri::command]
@@ -550,29 +683,46 @@ fn analysis_picks(
     active: &ActiveSession,
     catalog: &ChampionCatalog,
 ) -> (Vec<PickedChampion>, usize) {
-    let picks = active.state().picks(side);
-    let mut champions = Vec::with_capacity(picks.len());
-    let mut found_indices = Vec::with_capacity(picks.len());
-    for (index, key) in picks.iter().enumerate() {
+    picks_from_keys(
+        &active.state().picks(side),
+        catalog,
+        &active.overrides,
+        side,
+        &[],
+    )
+}
+
+/// Asigna roles a una lista de campeones ya bloqueados.
+///
+/// `reserved` deja libres esos roles, para evaluar un pick propio pendiente sin
+/// que los aliados lo ocupen por heurística. Los campeones sin rol viable se
+/// omiten y se cuentan como `skipped`: nunca se les inventa un rol.
+fn picks_from_keys(
+    keys: &[ChampionKey],
+    catalog: &ChampionCatalog,
+    overrides: &HashMap<(Side, ChampionKey), Role>,
+    side: Side,
+    reserved: &[Role],
+) -> (Vec<PickedChampion>, usize) {
+    let mut champions = Vec::with_capacity(keys.len());
+    for key in keys {
         if let Some(champion) = catalog.get(*key) {
             champions.push(champion);
-            found_indices.push(index);
         }
     }
 
     let locks: Vec<Option<Role>> = champions
         .iter()
-        .map(|champion| active.overrides.get(&(side, champion.key)).copied())
+        .map(|champion| overrides.get(&(side, champion.key)).copied())
         .collect();
-    let assignment = assign_roles_with_locks(&champions, &locks);
+    let assignment = assign_roles_avoiding(&champions, &locks, reserved);
     let mut picked = Vec::with_capacity(champions.len());
     let mut skipped = 0;
-    for (assignment_index, _pick_index) in found_indices.iter().enumerate() {
-        let Some(role) = assignment.roles[assignment_index] else {
+    for (index, champion) in champions.iter().enumerate() {
+        let Some(role) = assignment.roles[index] else {
             skipped += 1;
             continue;
         };
-        let champion = champions[assignment_index];
         let assignment_confidence = champion
             .role_fit(role)
             .map(|fit| fit.confidence)
@@ -1368,6 +1518,42 @@ pub fn settings_update(
     }
     let db = lock_db(&state)?;
     db.set_setting(&key, &serde_json::to_string(&value)?)?;
+    Ok(())
+}
+
+/// Conjunto de perfiles activo y su versión, con el error que espera la UI.
+fn active_profile_set(state: &AppState) -> Result<(ProfileSet, String), CommandError> {
+    let db = lock_db(state)?;
+    let active = db.active_profile_set()?.ok_or_else(|| {
+        CommandError::new(
+            "profiles_not_loaded",
+            "No hay un conjunto de perfiles activo. Carga y activa un conjunto para analizar y recomendar.",
+        )
+    })?;
+    let set = db.load_profile_set(&active.id)?;
+    Ok((set, active.version))
+}
+
+/// Rechaza el mismo campeón dos veces: el motor no puede evaluar un estado
+/// imposible y preferimos decirlo antes que devolver una recomendación dudosa.
+fn validate_unique_champions(draft: &SoloqDraftInput) -> Result<(), CommandError> {
+    let mut seen = HashSet::new();
+    for key in draft
+        .bans
+        .iter()
+        .chain(draft.ally_picks.iter())
+        .chain(draft.enemy_picks.iter())
+    {
+        if !seen.insert(*key) {
+            return Err(CommandError::new(
+                "soloq_duplicate_champion",
+                format!(
+                    "El campeón #{} aparece más de una vez en el draft; revisa los picks y baneos.",
+                    key
+                ),
+            ));
+        }
+    }
     Ok(())
 }
 

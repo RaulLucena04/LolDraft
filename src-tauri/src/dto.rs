@@ -1,5 +1,5 @@
 use loldraft_domain::{ActionKind, Champion, DraftFormat, Role, Side};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -615,4 +615,37 @@ pub struct RecommendationSetDto {
     pub limited_data: bool,
     pub missing_features: Vec<&'static str>,
     pub missing_ban_features: Vec<&'static str>,
+}
+
+/// Estado manual de un draft de SoloQ: lo que el jugador ve en el cliente.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SoloqDraftInput {
+    pub side: Side,
+    /// Posición de pick dentro del equipo propio (1..=5).
+    pub slot: u8,
+    /// Rol reservado para este pick. `None` deja que el motor elija entre los libres.
+    pub role: Option<Role>,
+    #[serde(default)]
+    pub bans: Vec<u16>,
+    /// Picks aliados ya bloqueados, sin incluir el propio.
+    #[serde(default)]
+    pub ally_picks: Vec<u16>,
+    #[serde(default)]
+    pub enemy_picks: Vec<u16>,
+}
+
+/// Draft leído del cliente de League of Legends.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SoloqImportDto {
+    pub side: Side,
+    pub slot: u8,
+    pub role: Option<Role>,
+    pub bans: Vec<u16>,
+    pub ally_picks: Vec<u16>,
+    pub enemy_picks: Vec<u16>,
+    pub timer_phase: Option<String>,
+    /// Campeones del cliente que no existen en el catálogo local.
+    pub unknown_champions: Vec<u16>,
 }
