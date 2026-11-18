@@ -1,14 +1,18 @@
-// Compila el instalador y lo publica en el canal local de actualizaciones.
+// Compila el instalador y lo publica en el canal de actualizaciones.
 // Uso:
 //   npm run release                 sube la versión de parche (0.1.0 -> 0.1.1)
 //   npm run release -- --version 0.2.0
 //   npm run release -- --no-bump    recompila sin cambiar la versión
 //   npm run release -- --skip-build publica el último bundle ya compilado
 //   npm run release -- --out "D:\\updates"   publica en otra carpeta
+//   npm run release -- --github     además crea la release de GitHub con
+//                                   `gh` (requiere `gh auth login`)
+//   npm run release -- --github --repo usuario/otro-repo
 //
-// El canal es `%APPDATA%\<identifier>\updates` por defecto: la misma carpeta
-// que lee la app cuando no se configura `updates.source`. No hay firma ni
-// servidor: el `sha256` se publica solo para verificación manual.
+// El canal local es `%APPDATA%\<identifier>\updates`, donde publica el script.
+// La app ya no lo lee por defecto: sin origen configurado consulta la última
+// release de GitHub. El canal local sirve para probar antes de publicar.
+// No hay firma: el `sha256` se publica solo para verificación manual.
 
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
@@ -22,13 +26,23 @@ const DESKTOP_PACKAGE = join(ROOT, "apps", "desktop", "package.json");
 const PACKAGE_LOCK = join(ROOT, "package-lock.json");
 const TAURI_CONF = join(ROOT, "src-tauri", "tauri.conf.json");
 const WORKSPACE_CARGO = join(ROOT, "Cargo.toml");
+/** Repositorio del canal público por defecto (mismo que `DEFAULT_CHANNEL`). */
+const DEFAULT_REPO = "RaulLucena04/LolDraft";
 const BUNDLE_DIRS = [
   join(ROOT, "target", "release", "bundle", "nsis"),
   join(ROOT, "src-tauri", "target", "release", "bundle", "nsis"),
 ];
 
 function parseArgs(argv) {
-  const options = { bump: true, build: true, version: null, notes: null, out: null };
+  const options = {
+    bump: true,
+    build: true,
+    github: false,
+    repo: null,
+    version: null,
+    notes: null,
+    out: null,
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--version") {
@@ -41,13 +55,18 @@ function parseArgs(argv) {
     } else if (arg === "--out") {
       options.out = argv[++index];
       if (!options.out) throw new Error("--out necesita una carpeta");
+    } else if (arg === "--repo") {
+      options.repo = argv[++index];
+      if (!options.repo) throw new Error("--repo necesita owner/nombre");
     } else if (arg === "--no-bump") {
       options.bump = false;
     } else if (arg === "--skip-build") {
       options.build = false;
+    } else if (arg === "--github") {
+      options.github = true;
     } else if (arg === "--help" || arg === "-h") {
       console.log(
-        "Uso: npm run release -- [--version X.Y.Z] [--no-bump] [--skip-build] [--notes TEXTO] [--out CARPETA]",
+        "Uso: npm run release -- [--version X.Y.Z] [--no-bump] [--skip-build] [--notes TEXTO] [--out CARPETA] [--github] [--repo OWNER/NOMBRE]",
       );
       process.exit(0);
     } else {
@@ -156,6 +175,83 @@ async function sha256(path) {
   return hash.digest("hex");
 }
 
+/** Ejecuta `gh` capturando la salida; con `inherit` deja ver su progreso. */
+function gh(args, { inherit = false } = {}) {
+  const command = process.platform === "win32" ? "gh.exe" : "gh";
+  const result = spawnSync(command, args, {
+    cwd: ROOT,
+    encoding: "utf8",
+    stdio: inherit ? "inherit" : "pipe",
+  });
+  if (result.error) {
+    if (result.error.code === "ENOENT") {
+      throw new Error("No encuentro `gh` en el PATH. Instala GitHub CLI: https://cli.github.com/");
+    }
+    throw result.error;
+  }
+  return result;
+}
+
+function detectRepo() {
+  const view = gh(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]);
+  const name = view.stdout?.trim();
+  if (view.status !== 0 || !name) {
+    throw new Error("No pude detectar el repositorio. Indícalo con --repo owner/nombre.");
+  }
+  return name;
+}
+
+/**
+ * Crea (o actualiza) la release de GitHub con el instalador y `latest.json`.
+ * `releases/latest/download/<asset>` sirve ambos por nombre, que es justo el
+ * canal que consulta la app.
+ */
+async function publishToGithub({ version, installer, manifestPath, notes, repo }) {
+  if (gh(["auth", "status"]).status !== 0) {
+    throw new Error(
+      "GitHub CLI no tiene sesión. Ejecuta `gh auth login` (o define GH_TOKEN) y reintenta.",
+    );
+  }
+
+  const target = repo ?? detectRepo();
+  const tag = `v${version}`;
+  const assets = [installer, manifestPath];
+  const exists = gh(["release", "view", tag, "--repo", target]).status === 0;
+
+  if (exists) {
+    console.log(`\nLa release ${tag} ya existe: subo los assets y actualizo las notas.`);
+    const upload = gh(["release", "upload", tag, ...assets, "--repo", target, "--clobber"], {
+      inherit: true,
+    });
+    if (upload.status !== 0) throw new Error(`gh release upload falló (${upload.status})`);
+    const edit = gh(
+      ["release", "edit", tag, "--repo", target, "--notes", notes, "--latest"],
+      { inherit: true },
+    );
+    if (edit.status !== 0) throw new Error(`gh release edit falló (${edit.status})`);
+  } else {
+    const create = gh(
+      [
+        "release",
+        "create",
+        tag,
+        ...assets,
+        "--repo",
+        target,
+        "--title",
+        `LolDraft ${version}`,
+        "--notes",
+        notes,
+        "--latest",
+      ],
+      { inherit: true },
+    );
+    if (create.status !== 0) throw new Error(`gh release create falló (${create.status})`);
+  }
+
+  return target;
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const rootPackage = await readJson(ROOT_PACKAGE);
@@ -200,19 +296,47 @@ async function main() {
   const manifest = {
     version,
     installer: installerName,
-    notes: options.notes ?? `Compilación local de LolDraft ${version}.`,
+    notes: options.notes ?? `Versión ${version} de LolDraft.`,
     sha256: await sha256(published),
     generated_at: new Date().toISOString(),
   };
   const manifestPath = join(outDir, "latest.json");
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 
-  console.log("\nCanal actualizado:");
+  console.log("\nCanal local actualizado:");
   console.log(`  versión    ${version}`);
   console.log(`  instalador ${published}`);
   console.log(`  sha256     ${manifest.sha256}`);
   console.log(`  manifiesto ${manifestPath}`);
-  console.log("\nAbre LolDraft → Inicio → Actualizaciones → Buscar actualizaciones.");
+
+  let publishedRepo = null;
+  if (options.github) {
+    console.log("\nPublicando en GitHub Releases…");
+    publishedRepo = await publishToGithub({
+      version,
+      installer: published,
+      manifestPath,
+      notes: manifest.notes,
+      repo: options.repo,
+    });
+  }
+
+  if (publishedRepo) {
+    const channel = `https://github.com/${publishedRepo}/releases/latest/download`;
+    console.log(`  release    https://github.com/${publishedRepo}/releases/tag/v${version}`);
+    console.log(`  canal      ${channel}`);
+    if (publishedRepo.toLowerCase() !== DEFAULT_REPO.toLowerCase()) {
+      console.log(
+        `\nAviso: el canal por defecto de la app es ${DEFAULT_REPO}. ` +
+          "Indica esta URL en Origen o cambia DEFAULT_CHANNEL en src-tauri/src/updates.rs.",
+      );
+    }
+    console.log("\nLa app consulta ese canal sin configurar nada. Abre LolDraft → Inicio →");
+    console.log("Actualizaciones → Buscar actualizaciones.");
+  } else {
+    console.log("\nCanal solo local: la app consulta GitHub por defecto. Para probar esta");
+    console.log("compilación, pon la carpeta de arriba en Origen, o publica con --github.");
+  }
 }
 
 main().catch((error) => {

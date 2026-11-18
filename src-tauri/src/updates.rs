@@ -1,16 +1,20 @@
 //! Comprobación de actualizaciones de la aplicación.
 //!
-//! El canal es un `latest.json` publicado junto al instalador, en una carpeta
-//! local (por defecto `%APPDATA%\com.loldraft.desktop\updates`) o en una URL
-//! HTTP. No hay servidor propio ni firma de actualizaciones: si el canal es
-//! HTTP, la app abre la descarga en el navegador y es el usuario quien ejecuta
-//! el instalador. Nunca descarga y ejecuta un binario de internet por su cuenta.
+//! El canal es un `latest.json` publicado junto al instalador: por defecto la
+//! última release de GitHub, o una carpeta local o URL que configure el usuario.
+//! No hay firma de actualizaciones: si el canal es HTTP, la app abre la descarga
+//! en el navegador y es el usuario quien ejecuta el instalador. Nunca descarga y
+//! ejecuta un binario de internet por su cuenta.
 
 use serde::{Deserialize, Serialize};
 use std::path::{Component, Path, PathBuf};
 use std::time::Duration;
 
 pub const MANIFEST_FILE: &str = "latest.json";
+/// Canal público por defecto: los assets de la última release de GitHub.
+/// `releases/latest/download/<nombre>` sirve cada asset por su nombre.
+pub const DEFAULT_CHANNEL: &str =
+    "https://github.com/RaulLucena04/LolDraft/releases/latest/download";
 /// Un manifiesto es un JSON pequeño; cualquier cosa mayor es sospechosa.
 const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 
@@ -74,25 +78,21 @@ pub enum UpdateError {
     MissingInstaller(String),
 }
 
-/// Carpeta por defecto del canal local.
-pub fn default_folder(app_data: &Path) -> PathBuf {
-    app_data.join("updates")
-}
-
 pub fn is_http(source: &str) -> bool {
     let lower = source.to_ascii_lowercase();
     lower.starts_with("http://") || lower.starts_with("https://")
 }
 
-/// Resuelve el canal configurado. Sin origen explícito se usa la carpeta local
-/// dentro de los datos de la app, que es donde publica `npm run release`.
-pub fn resolve_target(configured: Option<&str>, app_data: &Path) -> UpdateTarget {
+/// Resuelve el canal configurado. Sin origen explícito se usa el canal público
+/// de GitHub; una ruta local sirve para probar una compilación antes de
+/// publicarla.
+pub fn resolve_target(configured: Option<&str>) -> UpdateTarget {
     match configured.map(str::trim).filter(|value| !value.is_empty()) {
         Some(source) if is_http(source) => {
             UpdateTarget::Http(source.trim_end_matches('/').to_string())
         }
         Some(source) => UpdateTarget::Local(PathBuf::from(source)),
-        None => UpdateTarget::Local(default_folder(app_data)),
+        None => UpdateTarget::Http(DEFAULT_CHANNEL.to_string()),
     }
 }
 
@@ -289,21 +289,22 @@ mod tests {
     }
 
     #[test]
-    fn resolves_the_local_folder_by_default() {
-        let target = resolve_target(None, Path::new("C:/data"));
+    fn defaults_to_the_public_github_channel() {
+        let target = resolve_target(None);
+        assert_eq!(target, UpdateTarget::Http(DEFAULT_CHANNEL.to_string()));
+        assert_eq!(target.channel(), "url");
         assert_eq!(
-            target,
-            UpdateTarget::Local(PathBuf::from("C:/data").join("updates"))
+            target.manifest_location(),
+            "https://github.com/RaulLucena04/LolDraft/releases/latest/download/latest.json"
         );
-        assert_eq!(target.channel(), "local");
 
-        let blank = resolve_target(Some("   "), Path::new("C:/data"));
+        let blank = resolve_target(Some("   "));
         assert_eq!(blank, target);
     }
 
     #[test]
     fn resolves_http_and_folder_sources() {
-        let url = resolve_target(Some("https://example.test/updates/"), Path::new("C:/data"));
+        let url = resolve_target(Some("https://example.test/updates/"));
         assert_eq!(
             url,
             UpdateTarget::Http("https://example.test/updates".to_string())
@@ -313,7 +314,7 @@ mod tests {
             "https://example.test/updates/latest.json"
         );
 
-        let folder = resolve_target(Some(r"D:\updates"), Path::new("C:/data"));
+        let folder = resolve_target(Some(r"D:\updates"));
         assert_eq!(folder, UpdateTarget::Local(PathBuf::from(r"D:\updates")));
         assert_eq!(folder.channel(), "local");
     }

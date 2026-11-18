@@ -69,8 +69,9 @@ Inicio
 - Acción principal: **Nuevo draft**.
 - Sesiones recientes con formato, lado, progreso y fecha.
 - Aviso si faltan datos o hay una actualización disponible.
-- Tarjeta de actualizaciones: versión instalada, origen del canal (carpeta local o
-  URL), "Buscar actualizaciones" y, si hay una más nueva, "Instalar". Detalle en
+- Tarjeta de actualizaciones: versión instalada, origen del canal (por defecto la última
+  release de GitHub; también carpeta local o URL), "Buscar actualizaciones" y, si hay una más
+  nueva, "Instalar" (canal local) o "Descargar" (HTTP). Detalle en
   [`11-instalacion-actualizaciones.md`](./11-instalacion-actualizaciones.md).
 - Sin tarjetas de estadísticas inventadas. Si no hay datos, se explica qué falta y cómo obtenerlos.
 

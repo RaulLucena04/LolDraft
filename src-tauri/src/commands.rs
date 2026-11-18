@@ -26,7 +26,7 @@ use loldraft_sources::DdragonClient;
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 use std::sync::MutexGuard;
-use tauri::{Manager, State};
+use tauri::State;
 
 const CODE_NOTHING_TO_UNDO: &str = "nothing_to_undo";
 const CODE_NOTHING_TO_REDO: &str = "nothing_to_redo";
@@ -1523,11 +1523,8 @@ pub fn settings_update(
 
 const UPDATE_SOURCE_KEY: &str = "updates.source";
 
-/// Canal configurado: vacío o ausente usa la carpeta de datos de la app.
-fn update_target(
-    app: &tauri::AppHandle,
-    state: &AppState,
-) -> Result<updates::UpdateTarget, CommandError> {
+/// Canal configurado: vacío o ausente usa el canal público de GitHub.
+fn update_target(state: &AppState) -> Result<updates::UpdateTarget, CommandError> {
     let configured = {
         let db = lock_db(state)?;
         db.get_setting(UPDATE_SOURCE_KEY)?.and_then(|raw| {
@@ -1537,27 +1534,13 @@ fn update_target(
             }
         })
     };
-    Ok(updates::resolve_target(
-        configured.as_deref(),
-        &app_data_dir(app)?,
-    ))
-}
-
-fn app_data_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, CommandError> {
-    app.path().app_data_dir().map_err(|error| {
-        CommandError::internal(format!(
-            "no se pudo resolver el directorio de datos: {error}"
-        ))
-    })
+    Ok(updates::resolve_target(configured.as_deref()))
 }
 
 /// Consulta el canal y dice si hay una versión más nueva. No instala nada.
 #[tauri::command]
-pub async fn update_check(
-    app: tauri::AppHandle,
-    state: State<'_, AppState>,
-) -> Result<UpdateCheckDto, CommandError> {
-    let target = update_target(&app, &state)?;
+pub async fn update_check(state: State<'_, AppState>) -> Result<UpdateCheckDto, CommandError> {
+    let target = update_target(&state)?;
     let manifest = updates::load(&target).await?;
     let current_version = env!("CARGO_PKG_VERSION").to_string();
     let available = updates::is_newer(&manifest.version, &current_version)?;
@@ -1585,11 +1568,10 @@ pub async fn update_check(
 /// abre el navegador y decide el usuario.
 #[tauri::command]
 pub async fn update_install(
-    app: tauri::AppHandle,
     state: State<'_, AppState>,
     version: String,
 ) -> Result<UpdateInstallDto, CommandError> {
-    let target = update_target(&app, &state)?;
+    let target = update_target(&state)?;
     let manifest = updates::load(&target).await?;
 
     if manifest.version.trim() != version.trim() {

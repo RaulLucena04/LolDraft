@@ -70,9 +70,12 @@ export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
 
   const install = useCallback(async () => {
     if (!result?.available) return;
+    const opensBrowser = result.channel === "url";
     if (
       !window.confirm(
-        `Se abrirá el instalador de la versión ${result.latestVersion}. Si LolDraft sigue abierto, el instalador pedirá cerrarlo. ¿Continuar?`,
+        opensBrowser
+          ? `Se abrirá en el navegador la descarga de LolDraft ${result.latestVersion}. Ejecuta el instalador cuando termine. ¿Continuar?`
+          : `Se abrirá el instalador de la versión ${result.latestVersion}. Si LolDraft sigue abierto, el instalador pedirá cerrarlo. ¿Continuar?`,
       )
     ) {
       return;
@@ -111,16 +114,16 @@ export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
       </div>
 
       <p className="mt-2 text-xs leading-relaxed text-muted">
-        Comprueba el canal de actualizaciones y abre el instalador de la versión
-        nueva. El canal es una carpeta local o una URL con un{" "}
-        <code className="text-ink">latest.json</code> y su instalador.
+        Comprueba el canal público de LolDraft o la carpeta o URL que indiques.
+        El canal es un <code className="text-ink">latest.json</code> junto a su
+        instalador.
       </p>
 
       <label
         htmlFor="updates-source"
         className="mt-3 block text-[10px] font-semibold uppercase tracking-wider text-muted"
       >
-        Origen (vacío = carpeta de la app)
+        Origen (vacío = releases de GitHub)
       </label>
       <input
         id="updates-source"
@@ -199,9 +202,8 @@ export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
       )}
 
       <p className="mt-2 text-[10px] leading-relaxed text-muted/70">
-        Sin firma ni servidor propio: el canal solo indica qué instalador
-        ejecutar. Si el origen es HTTP, la app abre el navegador y nunca ejecuta
-        la descarga por su cuenta.
+        Sin firma: el canal solo indica qué instalador ejecutar. Si el origen es
+        HTTP, la app abre el navegador y nunca ejecuta la descarga por su cuenta.
       </p>
     </div>
   );

@@ -99,16 +99,27 @@ npm run app:build
 ```
 
 El instalador NSIS queda en `target/release/bundle/nsis/LolDraft_<versión>_x64-setup.exe`
-(instalación por usuario, sin administrador). Para publicar esa versión en el
-canal local que lee el botón **Buscar actualizaciones** de la app:
+(instalación por usuario, sin administrador). Ese `.exe` es lo que se comparte con
+otra persona: se instala y crea accesos directos; no hace falta nada más.
+
+La app incluye un botón **Buscar actualizaciones** en Inicio. Por defecto consulta
+la última release pública de GitHub
+(`https://github.com/RaulLucena04/LolDraft/releases/latest/download`), así que
+para publicar una versión nueva:
 
 ```powershell
-npm run release                       # sube el parche y publica
-npm run release -- --version 0.2.0    # versión explícita
+npm run release -- --github           # sube el parche, compila y publica en GitHub
+npm run release -- --version 0.2.0 --github
 ```
 
-El canal es `%APPDATA%\com.loldraft.desktop\updates` (`latest.json` + instalador).
-Detalles, formato del manifiesto y límites en
+Sin `--github`, el script solo deja el instalador y `latest.json` en
+`%APPDATA%\com.loldraft.desktop\updates`, útil para probar el botón antes de
+publicar (indica esa carpeta en **Origen**). `--github` requiere
+[GitHub CLI](https://cli.github.com/) con sesión (`gh auth login`) y un
+repositorio público.
+
+El instalador **no está firmado**, así que SmartScreen puede pedir confirmación
+en otro equipo. Detalles, formato del manifiesto, publicación y límites en
 [11 — Instalación y actualizaciones](docs/11-instalacion-actualizaciones.md).
 
 Si `cargo` no está en el `PATH` del shell:
@@ -200,3 +211,13 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 LolDraft no está afiliado ni respaldado por Riot Games. League of Legends y todos los activos
 asociados son propiedad de Riot Games, Inc. Los datos de terceros conservan su licencia y atribución
 (ver [05 — Fuentes de datos](docs/05-fuentes-datos.md)).
+
+## Licencia
+
+El código se publica bajo licencia doble **MIT OR Apache-2.0**:
+
+- [LICENSE-MIT](LICENSE-MIT)
+- [LICENSE-APACHE](LICENSE-APACHE)
+
+Puedes elegir la que prefieras. Los retratos, nombres y demás contenido de Riot Games **no** quedan
+cubiertos por esa licencia y siguen siendo propiedad de Riot Games, Inc.
