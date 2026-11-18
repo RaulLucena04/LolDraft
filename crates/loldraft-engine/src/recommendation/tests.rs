@@ -236,6 +236,7 @@ fn request<'a>(
         profiles,
         analysis_params,
         params,
+        fixed_role: None,
     }
 }
 
@@ -721,6 +722,64 @@ fn sensitivity_to_twenty_percent_weight_change_keeps_top_one() {
     let shifted_a = score(&features_a, &weights, &[], 1.0, &params).expect("a");
     let shifted_b = score(&features_b, &weights, &[], 1.0, &params).expect("b");
     assert!(shifted_a.score > shifted_b.score);
+}
+
+#[test]
+fn soloq_and_standard_map_to_the_same_phase_language() {
+    let soloq = DraftFormat::soloq();
+    assert_eq!(DraftPhase::of(&soloq, 0), Some(DraftPhase::EarlyBan));
+    assert_eq!(DraftPhase::of(&soloq, 9), Some(DraftPhase::EarlyBan));
+    assert_eq!(DraftPhase::of(&soloq, 10), Some(DraftPhase::EarlyPick));
+    assert_eq!(DraftPhase::of(&soloq, 15), Some(DraftPhase::EarlyPick));
+    assert_eq!(DraftPhase::of(&soloq, 16), Some(DraftPhase::LatePick));
+    assert_eq!(DraftPhase::of(&soloq, 19), Some(DraftPhase::LatePick));
+
+    let standard = DraftFormat::standard();
+    assert_eq!(DraftPhase::of(&standard, 0), Some(DraftPhase::EarlyBan));
+    assert_eq!(DraftPhase::of(&standard, 11), Some(DraftPhase::EarlyPick));
+    assert_eq!(DraftPhase::of(&standard, 12), Some(DraftPhase::LateBan));
+    assert_eq!(DraftPhase::of(&standard, 16), Some(DraftPhase::LatePick));
+
+    // El mismo pick global usa la misma tabla de pesos en ambos formatos.
+    assert_eq!(PickWeightPhase::of(&soloq, 10), PickWeightPhase::Early);
+    assert_eq!(PickWeightPhase::of(&standard, 6), PickWeightPhase::Early);
+    assert_eq!(PickWeightPhase::of(&soloq, 12), PickWeightPhase::Mid);
+    assert_eq!(PickWeightPhase::of(&standard, 8), PickWeightPhase::Mid);
+    assert_eq!(PickWeightPhase::of(&soloq, 17), PickWeightPhase::Late);
+    assert_eq!(PickWeightPhase::of(&standard, 16), PickWeightPhase::Late);
+}
+
+#[test]
+fn a_fixed_role_only_recommends_champions_viable_there() {
+    let format = DraftFormat::soloq();
+    let profiles = fixture_set();
+    let analysis = AnalysisParams::default();
+    let params = RecommendationParams::default();
+    let empty: [PickedChampion; 0] = [];
+    let used: [ChampionKey; 0] = [];
+    let output = recommend(&RecommendationRequest {
+        format: &format,
+        action_index: 10,
+        blue_picks: &empty,
+        red_picks: &empty,
+        used: &used,
+        profiles: &profiles,
+        analysis_params: &analysis,
+        params: &params,
+        fixed_role: Some(Role::Jungle),
+    })
+    .expect("recommendation");
+
+    assert!(!output.picks.is_empty());
+    for pick in &output.picks {
+        assert_eq!(pick.role, Role::Jungle);
+        assert_eq!(pick.viable_roles, 1);
+        let profile = profiles.get(pick.champion).expect("perfil");
+        assert!(profile
+            .roles
+            .iter()
+            .any(|fit| fit.role == Role::Jungle && fit.proficiency >= params.min_role_proficiency));
+    }
 }
 
 #[test]

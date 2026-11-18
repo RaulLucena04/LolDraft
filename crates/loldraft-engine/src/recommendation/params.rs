@@ -7,6 +7,9 @@
 use loldraft_domain::{ActionKind, DraftFormat};
 use serde::{Deserialize, Serialize};
 
+/// Picks globales que separan el pick temprano del tardío.
+const EARLY_PICK_LIMIT: usize = 6;
+
 /// Fase del draft para leer el contexto. La fase de pesos de pick se decide
 /// aparte porque la tabla distingue pick temprano, medio y tardío.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,14 +22,21 @@ pub enum DraftPhase {
 }
 
 impl DraftPhase {
+    /// La fase se deduce de la estructura del formato, no de índices fijos:
+    /// un baneo es temprano si aún no hubo picks, y un pick es tardío cuando ya
+    /// se revelaron los seis primeros picks globales. Así el mismo motor sirve
+    /// para el competitivo (dos fases de baneo) y para SoloQ (una sola).
     pub fn of(format: &DraftFormat, action_index: usize) -> Option<Self> {
         let step = format.step(action_index)?;
-        Some(match (step.kind, action_index) {
-            (ActionKind::Ban, 0..=5) => Self::EarlyBan,
-            (ActionKind::Pick, 6..=11) => Self::EarlyPick,
-            (ActionKind::Ban, 12..=15) => Self::LateBan,
-            (ActionKind::Pick, _) => Self::LatePick,
-            (ActionKind::Ban, _) => return None,
+        let picks_before = format.steps[..action_index]
+            .iter()
+            .filter(|step| step.kind == ActionKind::Pick)
+            .count();
+        Some(match step.kind {
+            ActionKind::Ban if picks_before == 0 => Self::EarlyBan,
+            ActionKind::Ban => Self::LateBan,
+            ActionKind::Pick if picks_before < EARLY_PICK_LIMIT => Self::EarlyPick,
+            ActionKind::Pick => Self::LatePick,
         })
     }
 
@@ -53,12 +63,17 @@ pub enum PickWeightPhase {
 }
 
 impl PickWeightPhase {
-    /// Primeros dos picks globales (acciones 7 y 8): blind pick. Del tercero al
-    /// sexto: pick medio. Los cuatro últimos: respuesta.
-    pub fn of(action_index: usize) -> Self {
-        match action_index {
-            6..=7 => Self::Early,
-            8..=11 => Self::Mid,
+    /// Primeros dos picks globales: blind pick. Del tercero al sexto: pick
+    /// medio. Los cuatro últimos: respuesta. Se cuenta sobre el formato para
+    /// que SoloQ y competitivo compartan tabla de pesos.
+    pub fn of(format: &DraftFormat, action_index: usize) -> Self {
+        let picks_before = format.steps[..action_index.min(format.steps.len())]
+            .iter()
+            .filter(|step| step.kind == ActionKind::Pick)
+            .count();
+        match picks_before {
+            0..=1 => Self::Early,
+            2..=5 => Self::Mid,
             _ => Self::Late,
         }
     }

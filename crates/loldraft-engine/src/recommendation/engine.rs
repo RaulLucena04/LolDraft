@@ -29,6 +29,9 @@ pub struct RecommendationRequest<'a> {
     pub profiles: &'a ProfileSet,
     pub analysis_params: &'a AnalysisParams,
     pub params: &'a RecommendationParams,
+    /// Rol reservado para el pick que se va a hacer (SoloQ con posición
+    /// conocida). Si es `None`, se evalúan todos los roles libres.
+    pub fixed_role: Option<Role>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -153,7 +156,7 @@ fn evaluate_picks(
     let enemy_revealed = enemy_picks.len();
     let our_carries = resource_carries(our_picks, request.profiles);
     let weights = pick_weights(
-        PickWeightPhase::of(request.action_index),
+        PickWeightPhase::of(request.format, request.action_index),
         request.action_index,
         enemy_revealed,
         our_carries,
@@ -165,15 +168,27 @@ fn evaluate_picks(
         let Some(profile) = request.profiles.get(*key) else {
             continue;
         };
-        let roles: Vec<Role> = profile
-            .roles
-            .iter()
-            .filter(|role| {
-                role.proficiency >= request.params.min_role_proficiency
-                    && !occupied.contains(&role.role)
-            })
-            .map(|role| role.role)
-            .collect();
+        let roles: Vec<Role> = match request.fixed_role {
+            Some(role) => {
+                let viable = profile.roles.iter().any(|fit| {
+                    fit.role == role && fit.proficiency >= request.params.min_role_proficiency
+                });
+                if viable {
+                    vec![role]
+                } else {
+                    Vec::new()
+                }
+            }
+            None => profile
+                .roles
+                .iter()
+                .filter(|role| {
+                    role.proficiency >= request.params.min_role_proficiency
+                        && !occupied.contains(&role.role)
+                })
+                .map(|role| role.role)
+                .collect(),
+        };
         if roles.is_empty() {
             continue;
         }

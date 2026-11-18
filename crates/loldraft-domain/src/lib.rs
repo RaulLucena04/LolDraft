@@ -10,8 +10,8 @@ pub mod ids;
 
 pub use champion::{Champion, ChampionCatalog, ChampionIdentity, RoleFit};
 pub use draft::{
-    assign_roles, assign_roles_with_locks, DraftFormat, DraftSession, DraftState, DraftStep,
-    RoleAssignment,
+    assign_roles, assign_roles_avoiding, assign_roles_with_locks, DraftFormat, DraftSession,
+    DraftState, DraftStep, RoleAssignment,
 };
 pub use error::{AssignmentError, DraftError};
 pub use ids::{ActionKind, ChampionKey, DraftAction, Role, Side};

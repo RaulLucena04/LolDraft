@@ -27,6 +27,21 @@ pub fn assign_roles(champions: &[&Champion]) -> RoleAssignment {
 /// compiten por el mismo rol, el segundo queda sin asignar en lugar de
 /// producir una composición inválida; la UI puede avisar de la carencia.
 pub fn assign_roles_with_locks(champions: &[&Champion], locks: &[Option<Role>]) -> RoleAssignment {
+    assign_roles_avoiding(champions, locks, &[])
+}
+
+/// Igual que [`assign_roles`], pero deja uno o más roles fuera del reparto.
+///
+/// Sirve para evaluar un pick propio en un rol reservado (por ejemplo, el rol
+/// asignado en SoloQ) sin que los aliados lo ocupen por heurística.
+pub fn assign_roles_avoiding(
+    champions: &[&Champion],
+    locks: &[Option<Role>],
+    reserved: &[Role],
+) -> RoleAssignment {
+    let reserved_mask = reserved
+        .iter()
+        .fold(0u8, |mask, role| mask | (1u8 << role.index()));
     let mut search = Search {
         champions,
         locks,
@@ -35,7 +50,7 @@ pub fn assign_roles_with_locks(champions: &[&Champion], locks: &[Option<Role>]) 
         best_score: 0.0,
         second_score: 0.0,
     };
-    search.run(0, 0, 0.0);
+    search.run(0, reserved_mask, 0.0);
 
     let assigned = search
         .best_roles
@@ -217,5 +232,25 @@ mod tests {
         assert_eq!(assignment.roles[0], Some(Role::Top));
         assert_eq!(assignment.roles[1], None);
         assert_eq!(assignment.assigned, 1);
+    }
+
+    #[test]
+    fn a_reserved_role_is_left_free_for_the_pending_pick() {
+        let mid_only = champion(1, &[(Role::Mid, 1.0), (Role::Support, 0.2)]);
+        let top = champion(2, &[(Role::Top, 0.9)]);
+        let assignment = assign_roles_avoiding(&[&mid_only, &top], &[None, None], &[Role::Mid]);
+
+        assert_eq!(assignment.roles[0], Some(Role::Support));
+        assert_eq!(assignment.roles[1], Some(Role::Top));
+        assert_eq!(assignment.assigned, 2);
+    }
+
+    #[test]
+    fn reserving_a_role_can_leave_a_champion_without_one() {
+        let mid_only = champion(1, &[(Role::Mid, 1.0)]);
+        let assignment = assign_roles_avoiding(&[&mid_only], &[None], &[Role::Mid]);
+
+        assert_eq!(assignment.roles, vec![None]);
+        assert_eq!(assignment.assigned, 0);
     }
 }
