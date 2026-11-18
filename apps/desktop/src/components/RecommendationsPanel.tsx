@@ -63,6 +63,10 @@ interface RecommendationsPanelProps {
   hasProfiles: boolean;
   draftComplete: boolean;
   onInspect: (championKey: number) => void;
+  /** Etiqueta propia del contexto (SoloQ) en lugar de "Acción N de 20". */
+  actionLabel?: string | null;
+  /** Texto mostrado cuando aún no hay recomendación calculada. */
+  emptyHint?: string;
 }
 
 function clamp01(value: number): number {
@@ -530,9 +534,11 @@ export function RecommendationsPanel({
   hasProfiles,
   draftComplete,
   onInspect,
+  actionLabel = null,
+  emptyHint = "Esperando el estado del draft para calcular recomendaciones.",
 }: RecommendationsPanelProps) {
   const output = recommendations;
-  const actionNumber = output?.actionNumber ?? null;
+  const actionNumber = actionLabel === null ? output?.actionNumber ?? null : null;
 
   return (
     <section className="panel border-gold/20 p-4">
@@ -541,6 +547,9 @@ export function RecommendationsPanel({
           <p className="eyebrow text-gold">Recomendaciones</p>
           {output && <span className="chip">{PHASE_LABEL[output.phase]}</span>}
           {output && <SideBadge side={output.side} />}
+          {actionLabel !== null && (
+            <span className="chip tabular">{actionLabel}</span>
+          )}
           {actionNumber !== null && (
             <span className="chip tabular">Acción {actionNumber} de 20</span>
           )}
@@ -596,9 +605,7 @@ export function RecommendationsPanel({
       )}
 
       {hasProfiles && !draftComplete && !output && !recommending && !error && (
-        <p className="mt-3 text-[11px] text-muted">
-          Esperando el estado del draft para calcular recomendaciones.
-        </p>
+        <p className="mt-3 text-[11px] text-muted">{emptyHint}</p>
       )}
 
       {output && output.picks.length > 0 && (

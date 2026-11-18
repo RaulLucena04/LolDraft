@@ -13,6 +13,7 @@ import type {
 } from "./types";
 import { Home } from "./components/Home";
 import { DraftScreen } from "./components/DraftScreen";
+import { SoloqScreen } from "./components/SoloqScreen";
 import { ChampionDrawer } from "./components/ChampionDrawer";
 import { ToastStack } from "./components/ToastStack";
 import type { Toast } from "./components/ToastStack";
@@ -23,7 +24,7 @@ const IS_TAURI = "__TAURI_INTERNALS__" in window;
 export default function App() {
   const [bootstrap, setBootstrap] = useState<Bootstrap | null>(null);
   const [draft, setDraft] = useState<DraftView | null>(null);
-  const [screen, setScreen] = useState<"home" | "draft">("home");
+  const [screen, setScreen] = useState<"home" | "draft" | "soloq">("home");
   const [drawer, setDrawer] = useState<Champion | null>(null);
   const [selected, setSelected] = useState<Champion | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -215,6 +216,12 @@ export default function App() {
         // La pantalla de inicio conserva los datos ya cargados.
       }
     })();
+  }, []);
+
+  const handleSoloq = useCallback(() => {
+    setScreen("soloq");
+    setDrawer(null);
+    setSelected(null);
   }, []);
 
   const handleSync = useCallback(async () => {
@@ -471,6 +478,13 @@ export default function App() {
           recommendationError={recommendationError}
           onRefreshRecommendations={() => void handleRecommendations()}
         />
+      ) : screen === "soloq" ? (
+        <SoloqScreen
+          champions={bootstrap.champions}
+          hasProfiles={hasProfiles}
+          onHome={handleHome}
+          onInspect={handleInspect}
+        />
       ) : (
         <Home
           bootstrap={bootstrap}
@@ -479,6 +493,7 @@ export default function App() {
           importingProfiles={importingProfiles}
           importingSet={importingSet}
           onNewDraft={(side) => void handleNewDraft(side)}
+          onSoloq={handleSoloq}
           onOpenSession={(id) => void handleOpenSession(id)}
           onDeleteSession={(id) => void handleDeleteSession(id)}
           onSync={() => void handleSync()}

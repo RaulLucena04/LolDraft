@@ -11,6 +11,8 @@ import type {
   Role,
   SessionSummary,
   Side,
+  SoloqDraftInput,
+  SoloqImport,
 } from "./types";
 
 function toCommandError(error: unknown): CommandError {
@@ -60,6 +62,9 @@ export const api = {
     call<ProfileSet[]>("profiles_activate", { id }),
   analysis: () => call<DraftAnalysis>("analysis_current"),
   recommendations: () => call<RecommendationSet>("recommendations_current"),
+  soloqRecommend: (draft: SoloqDraftInput) =>
+    call<RecommendationSet>("soloq_recommend", { draft }),
+  lcuChampSelect: () => call<SoloqImport>("lcu_champ_select"),
   championProfile: (championKey: number) =>
     call<ChampionProfileDetail>("profile_champion", { championKey }),
 };

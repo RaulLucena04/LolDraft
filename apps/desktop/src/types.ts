@@ -442,3 +442,28 @@ export interface RecommendationSet {
   missingFeatures: RecommendationFeature[];
   missingBanFeatures: BanFeature[];
 }
+
+/** Estado manual de un draft de SoloQ: lo que el jugador ve en el cliente. */
+export interface SoloqDraftInput {
+  side: Side;
+  /** Posición de pick dentro del equipo propio (1..=5). */
+  slot: number;
+  /** Rol reservado para este pick; `null` deja libres los demás. */
+  role: Role | null;
+  bans: number[];
+  /** Picks aliados ya bloqueados, sin incluir el propio. */
+  allyPicks: number[];
+  enemyPicks: number[];
+}
+
+/** Draft leído del cliente de League of Legends. */
+export interface SoloqImport {
+  side: Side;
+  slot: number;
+  role: Role | null;
+  bans: number[];
+  allyPicks: number[];
+  enemyPicks: number[];
+  timerPhase: string | null;
+  unknownChampions: number[];
+}

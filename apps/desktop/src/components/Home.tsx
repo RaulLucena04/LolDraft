@@ -12,6 +12,7 @@ interface HomeProps {
   importingProfiles: boolean;
   importingSet: boolean;
   onNewDraft: (side: Side) => void;
+  onSoloq: () => void;
   onOpenSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onSync: () => void;
@@ -26,6 +27,7 @@ export function Home({
   importingProfiles,
   importingSet,
   onNewDraft,
+  onSoloq,
   onOpenSession,
   onDeleteSession,
   onSync,
@@ -128,6 +130,26 @@ export function Home({
                 Sin winrates como argumento principal. Los huecos de información
                 se muestran como pendientes, nunca como ceros o valores inventados.
               </p>
+
+              <button
+                type="button"
+                onClick={onSoloq}
+                className="group mt-4 flex w-full items-center gap-3 rounded-xl border border-gold/40 bg-gold/5 px-4 py-3 text-left transition hover:border-gold hover:bg-gold/10"
+              >
+                <span className="flex-1">
+                  <span className="flex items-center gap-2 text-sm font-bold text-ink">
+                    <span className="h-2 w-2 rounded-full bg-gold" />
+                    Draft de SoloQ
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    Introduce tu draft de ranked (o impórtalo del cliente) y
+                    obtén el mejor pick para tu turno.
+                  </span>
+                </span>
+                <span className="text-xl text-gold/70 transition group-hover:translate-x-0.5">
+                  →
+                </span>
+              </button>
             </div>
           </div>
 
