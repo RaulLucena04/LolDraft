@@ -290,11 +290,7 @@ impl StatsCsvImport {
 /// fichero entero. Si no queda ninguna fila válida, el import falla. Las
 /// comillas no se aceptan: el formato es deliberadamente simple y comprobable.
 pub fn parse_stats_csv(text: &str, meta: StatsCsvMeta) -> Result<StatsCsvImport, StatsError> {
-    require_text("id", &meta.id)?;
-    require_text("version", &meta.version)?;
-    require_text("source", &meta.source)?;
-    require_text("license", &meta.license)?;
-    validate_patch(&meta.patch)?;
+    let mut meta = meta;
 
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let mut lines = text
@@ -308,7 +304,15 @@ pub fn parse_stats_csv(text: &str, meta: StatsCsvMeta) -> Result<StatsCsvImport,
 
     for (line_number, line) in lines.by_ref() {
         let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.starts_with('#') {
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Some(comment) = trimmed.strip_prefix('#') {
+            // Metadatos en comentarios antes de la cabecera. Así un CSV puede
+            // ser autodescriptivo sin un formulario aparte.
+            if header.is_none() {
+                apply_csv_comment(&mut meta, comment, line_number)?;
+            }
             continue;
         }
         if trimmed.contains('"') {
@@ -367,9 +371,48 @@ pub fn parse_stats_csv(text: &str, meta: StatsCsvMeta) -> Result<StatsCsvImport,
         return Err(StatsError::TooManyRows { rows: rows.len() });
     }
 
+    require_text("id", &meta.id)?;
+    require_text("version", &meta.version)?;
+    require_text("source", &meta.source)?;
+    require_text("license", &meta.license)?;
+    validate_patch(&meta.patch)?;
+
     let stats = meta.into_document(rows);
     stats.validate()?;
     Ok(StatsCsvImport { stats, discarded })
+}
+
+/// Aplica una línea `# clave: valor` a los metadatos. Los comentarios sin
+/// `clave: valor` se ignoran: son notas para humanos.
+fn apply_csv_comment(
+    meta: &mut StatsCsvMeta,
+    comment: &str,
+    line: usize,
+) -> Result<(), StatsError> {
+    let Some((key, value)) = comment.split_once(':') else {
+        return Ok(());
+    };
+    let key = key.trim().to_ascii_lowercase();
+    let value = value.trim();
+    if value.is_empty() {
+        return Ok(());
+    }
+    match key.as_str() {
+        "id" => meta.id = value.to_string(),
+        "version" => meta.version = value.to_string(),
+        "source" | "fuente" => meta.source = value.to_string(),
+        "license" | "licencia" => meta.license = value.to_string(),
+        "patch" | "parche" => meta.patch = value.to_string(),
+        "queue" | "cola" => {
+            meta.queue = StatsQueue::from_code(value).ok_or_else(|| StatsError::InvalidQueue {
+                line,
+                value: value.to_string(),
+            })?;
+        }
+        // Otras claves son notas libres.
+        _ => {}
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -591,6 +634,8 @@ pub enum StatsError {
     DuplicateRow { champion: ChampionKey, role: Role },
     #[error("el CSV está vacío: falta la cabecera")]
     EmptyCsv,
+    #[error("cola desconocida en la línea {line}: `{value}` (usa soloq o pro)")]
+    InvalidQueue { line: usize, value: String },
     #[error("columna desconocida en la cabecera (línea {line}): `{column}`")]
     UnknownCsvColumn { line: usize, column: String },
     #[error("columna repetida en la cabecera (línea {line}): `{column}`")]
@@ -613,6 +658,7 @@ impl StatsError {
             | Self::InvalidRate { line, .. } => *line,
             Self::UnknownCsvColumn { line, .. }
             | Self::DuplicateCsvColumn { line, .. }
+            | Self::InvalidQueue { line, .. }
             | Self::QuotedCsvField { line } => Some(*line),
             _ => None,
         }
@@ -798,6 +844,39 @@ champion,role,games,wins,pick_rate,ban_rate\n\
         assert!(matches!(
             parse_stats_csv(csv, meta()),
             Err(StatsError::NoValidRows { discarded: 1 })
+        ));
+    }
+
+    #[test]
+    fn csv_comments_can_describe_the_dataset() {
+        let csv = "# id: comentado-16.22\n\
+# version: 3\n\
+# parche: 16.22\n\
+# cola: pro\n\
+# fuente: Exportación externa\n\
+# licencia: CC0\n\
+# nota libre para humanos\n\
+champion,role,games,wins\n\
+64,jungle,1200,620\n";
+        let mut fallback = meta();
+        fallback.id = "sin-metadatos".to_string();
+        fallback.patch = String::new();
+
+        let imported = parse_stats_csv(csv, fallback).expect("csv válido");
+        assert_eq!(imported.stats.id, "comentado-16.22");
+        assert_eq!(imported.stats.version, "3");
+        assert_eq!(imported.stats.patch, "16.22");
+        assert_eq!(imported.stats.queue, StatsQueue::Pro);
+        assert_eq!(imported.stats.source, "Exportación externa");
+        assert_eq!(imported.stats.license, "CC0");
+    }
+
+    #[test]
+    fn an_unknown_queue_in_a_comment_is_an_error() {
+        let csv = "# queue: aram\nchampion,role,games,wins\n64,jungle,10,5\n";
+        assert!(matches!(
+            parse_stats_csv(csv, meta()),
+            Err(StatsError::InvalidQueue { .. })
         ));
     }
 

@@ -4,6 +4,8 @@ import type { Bootstrap, Side } from "../types";
 import { formatRelative } from "../lib/format";
 import { Logo } from "./Logo";
 import { SideBadge, StatusPill } from "./Badges";
+import { StatsDatasetsCard } from "./StatsDatasetsCard";
+import type { Toast } from "./ToastStack";
 import { UpdatesCard } from "./UpdatesCard";
 
 interface HomeProps {
@@ -19,6 +21,7 @@ interface HomeProps {
   onSync: () => void;
   onImportPilot: () => void;
   onImportSet: (file: File) => void;
+  onNotify: (kind: Toast["kind"], message: string) => void;
 }
 
 export function Home({
@@ -34,6 +37,7 @@ export function Home({
   onSync,
   onImportPilot,
   onImportSet,
+  onNotify,
 }: HomeProps) {
   const { data, sessions } = bootstrap;
   const setFileInput = useRef<HTMLInputElement>(null);
@@ -404,6 +408,11 @@ export function Home({
           </div>
 
           <UpdatesCard currentVersion={bootstrap.appVersion} />
+
+          <StatsDatasetsCard
+            defaultPatch={data.patch}
+            onNotify={onNotify}
+          />
 
           <div className="panel p-5">
             <p className="eyebrow">Hoja de ruta</p>

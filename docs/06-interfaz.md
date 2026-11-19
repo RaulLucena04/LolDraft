@@ -73,6 +73,9 @@ Inicio
   release de GitHub; también carpeta local o URL), "Buscar actualizaciones" y, si hay una más
   nueva, "Instalar" (canal local) o "Descargar" (HTTP). Detalle en
   [`11-instalacion-actualizaciones.md`](./11-instalacion-actualizaciones.md).
+- Tarjeta de **estadísticas importadas**: importa un JSON o CSV local, muestra los datasets con
+  cola, parche, filas, fuente y licencia, permite activar uno por cola y borrar los antiguos. Las
+  filas inválidas de un CSV aparecen en cuarentena con línea y motivo.
 - Sin tarjetas de estadísticas inventadas. Si no hay datos, se explica qué falta y cómo obtenerlos.
 
 ### 3.2 Simulador

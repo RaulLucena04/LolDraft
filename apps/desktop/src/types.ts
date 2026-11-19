@@ -469,6 +469,45 @@ export interface SoloqImport {
   unknownChampions: number[];
 }
 
+/** Cola del dataset. SoloQ y profesional nunca se mezclan. */
+export type StatsQueue = "soloq" | "pro";
+
+/** Dataset de estadísticas observadas importado por el usuario. */
+export interface StatsDataset {
+  id: string;
+  version: string;
+  queue: StatsQueue;
+  patch: string;
+  source: string;
+  license: string;
+  rowCount: number;
+  createdAt: number;
+  isActive: boolean;
+}
+
+/** Metadatos que acompañan a un CSV. Pueden venir también en comentarios `# clave: valor`. */
+export interface StatsCsvMeta {
+  id: string;
+  version: string;
+  source: string;
+  license: string;
+  queue: StatsQueue;
+  patch: string;
+}
+
+/** Fila del CSV que no se pudo importar y por qué. */
+export interface StatsDiscardedRow {
+  line: number | null;
+  reason: string;
+}
+
+/** Resultado de importar un CSV: dataset guardado y filas en cuarentena. */
+export interface StatsImport {
+  dataset: StatsDataset;
+  discarded: StatsDiscardedRow[];
+  summary: string;
+}
+
 /** Resultado de consultar el canal de actualizaciones. */
 export interface UpdateCheck {
   currentVersion: string;

@@ -260,7 +260,7 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 ## Fase 4 — Integración de datos
 
 > **Estado:** en curso. Implementados el esquema validado de estadísticas observadas, la importación
-> CSV/JSON y el shrinkage en `loldraft-engine::stats`. Pendientes: persistencia, UI de importación y
+> CSV/JSON, el shrinkage, la persistencia en SQLite y la pantalla de importación/activación. Pendiente:
 > conectar `power` a las recomendaciones.
 
 **Objetivo:** actualizar datos sin reinstalar y sin mezclar fuentes/licencias.

@@ -1,4 +1,4 @@
-import type { ActionKind, Role, Side } from "../types";
+import type { ActionKind, Role, Side, StatsQueue } from "../types";
 
 export const SIDE_LABEL: Record<Side, string> = {
   blue: "Azul",
@@ -14,6 +14,11 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export const ROLE_ORDER: Role[] = ["top", "jungle", "mid", "adc", "support"];
+
+export const STATS_QUEUE_LABEL: Record<StatsQueue, string> = {
+  soloq: "SoloQ",
+  pro: "Profesional",
+};
 
 export const KIND_LABEL: Record<ActionKind, string> = {
   ban: "Ban",

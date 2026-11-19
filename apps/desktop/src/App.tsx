@@ -499,6 +499,7 @@ export default function App() {
           onSync={() => void handleSync()}
           onImportPilot={() => void handleImportPilot()}
           onImportSet={(file) => void handleImportSet(file)}
+          onNotify={showToast}
         />
       )}
 

@@ -5,8 +5,9 @@ use crate::dto::{
     FormatDto, LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileDamageDto,
     ProfileProvenanceDto, ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto,
     RecommendationDto, RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto,
-    SoloqDraftInput, SoloqImportDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto,
-    TeamMatchupDto, TeamViewDto, TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
+    SoloqDraftInput, SoloqImportDto, StatsCsvMetaDto, StatsDatasetDto, StatsDiscardedRowDto,
+    StatsImportDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto, TeamViewDto,
+    TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
@@ -164,6 +165,88 @@ pub fn profiles_activate(
         .into_iter()
         .map(ProfileSetDto::from)
         .collect())
+}
+
+#[tauri::command]
+pub fn stats_list(state: State<'_, AppState>) -> Result<Vec<StatsDatasetDto>, CommandError> {
+    let db = lock_db(&state)?;
+    Ok(db
+        .list_stats_datasets()?
+        .into_iter()
+        .map(StatsDatasetDto::from)
+        .collect())
+}
+
+#[tauri::command]
+pub fn stats_import_json(
+    state: State<'_, AppState>,
+    json: String,
+    activate: Option<bool>,
+) -> Result<StatsDatasetDto, CommandError> {
+    let stats = loldraft_engine::ObservedStats::from_json(&json)?;
+    save_stats(&state, &stats, activate.unwrap_or(false))
+}
+
+#[tauri::command]
+pub fn stats_import_csv(
+    state: State<'_, AppState>,
+    csv: String,
+    meta: StatsCsvMetaDto,
+    activate: Option<bool>,
+) -> Result<StatsImportDto, CommandError> {
+    let imported = loldraft_engine::parse_stats_csv(&csv, meta.into())?;
+    let summary = imported.summary_es();
+    let dataset = save_stats(&state, &imported.stats, activate.unwrap_or(false))?;
+    Ok(StatsImportDto {
+        dataset,
+        discarded: imported
+            .discarded
+            .into_iter()
+            .map(|row| StatsDiscardedRowDto {
+                line: row.line,
+                reason: row.reason,
+            })
+            .collect(),
+        summary,
+    })
+}
+
+#[tauri::command]
+pub fn stats_activate(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<StatsDatasetDto>, CommandError> {
+    let mut db = lock_db(&state)?;
+    db.set_active_stats_dataset(&id)?;
+    Ok(db
+        .list_stats_datasets()?
+        .into_iter()
+        .map(StatsDatasetDto::from)
+        .collect())
+}
+
+#[tauri::command]
+pub fn stats_delete(state: State<'_, AppState>, id: String) -> Result<bool, CommandError> {
+    let mut db = lock_db(&state)?;
+    Ok(db.delete_stats_dataset(&id)?)
+}
+
+fn save_stats(
+    state: &AppState,
+    stats: &loldraft_engine::ObservedStats,
+    activate: bool,
+) -> Result<StatsDatasetDto, CommandError> {
+    let id = stats.id.clone();
+    let mut db = lock_db(state)?;
+    db.save_observed_stats(stats)?;
+    if activate {
+        db.set_active_stats_dataset(&id)?;
+    }
+    db.list_stats_datasets()?
+        .into_iter()
+        .find(|summary| summary.id == id)
+        .map(StatsDatasetDto::from)
+        .ok_or_else(|| CommandError::internal("el dataset importado no aparece en la base"))
 }
 
 #[tauri::command]

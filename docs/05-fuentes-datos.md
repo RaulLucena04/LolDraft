@@ -287,7 +287,8 @@ dice cuántas se descartaron y por qué. Nunca se completa un hueco con un prome
 ### 9.1 Formato de importación de estadísticas (Fase 4)
 
 El primer entregable de la Fase 4 está en `loldraft-engine::stats`. Es código puro: valida el
-documento y calcula la señal; la persistencia y la UI llegan en incrementos posteriores.
+documento y calcula la señal. La persistencia (`loldraft-data::stats`, tabla `observed_stats`) y la
+pantalla de importación ya existen.
 
 Documento JSON (autodescriptivo, estricto):
 
@@ -329,8 +330,13 @@ Reglas:
   baseline externo. Si no hay dos filas comparables en el rol, no hay señal.
 - Cada fila conserva su `n`; por debajo de 200 partidas se muestra pero no puntúa.
 
-Lo que no hace todavía: guardar datasets en SQLite, elegir el activo desde la UI ni conectar `power`
-a las recomendaciones. Tampoco descarga ni convierte datos de Lolalytics.
+Desde la pantalla de inicio se puede importar un JSON o un CSV. El dataset se guarda entero en
+SQLite y se activa **para su cola**: activar SoloQ no toca el dataset profesional. La lista muestra
+id, versión, parche, filas, fuente, licencia y antigüedad, y permite activar o borrar. Si un CSV deja
+filas inválidas, la interfaz muestra la lista de cuarentena con línea y motivo.
+
+Lo que no hace todavía: conectar `power` a las recomendaciones. Tampoco descarga ni convierte datos
+de Lolalytics.
 
 ## 10. Atribución en la aplicación
 

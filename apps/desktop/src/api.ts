@@ -13,6 +13,9 @@ import type {
   Side,
   SoloqDraftInput,
   SoloqImport,
+  StatsCsvMeta,
+  StatsDataset,
+  StatsImport,
   UpdateCheck,
   UpdateInstall,
 } from "./types";
@@ -67,6 +70,14 @@ export const api = {
   soloqRecommend: (draft: SoloqDraftInput) =>
     call<RecommendationSet>("soloq_recommend", { draft }),
   lcuChampSelect: () => call<SoloqImport>("lcu_champ_select"),
+  stats: () => call<StatsDataset[]>("stats_list"),
+  statsImportJson: (json: string, activate = true) =>
+    call<StatsDataset>("stats_import_json", { json, activate }),
+  statsImportCsv: (csv: string, meta: StatsCsvMeta, activate = true) =>
+    call<StatsImport>("stats_import_csv", { csv, meta, activate }),
+  statsActivate: (id: string) =>
+    call<StatsDataset[]>("stats_activate", { id }),
+  statsDelete: (id: string) => call<boolean>("stats_delete", { id }),
   championProfile: (championKey: number) =>
     call<ChampionProfileDetail>("profile_champion", { championKey }),
   settingGet: (key: string) => call<unknown | null>("settings_get", { key }),

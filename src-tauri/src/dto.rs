@@ -652,6 +652,79 @@ pub struct SoloqImportDto {
     pub unknown_champions: Vec<u16>,
 }
 
+/// Resumen de un dataset de estadísticas observadas.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatsDatasetDto {
+    pub id: String,
+    pub version: String,
+    pub queue: loldraft_engine::StatsQueue,
+    pub patch: String,
+    pub source: String,
+    pub license: String,
+    pub row_count: usize,
+    pub created_at: i64,
+    pub is_active: bool,
+}
+
+impl From<loldraft_data::StatsDatasetSummary> for StatsDatasetDto {
+    fn from(summary: loldraft_data::StatsDatasetSummary) -> Self {
+        Self {
+            id: summary.id,
+            version: summary.version,
+            queue: summary.queue,
+            patch: summary.patch,
+            source: summary.source,
+            license: summary.license,
+            row_count: summary.row_count,
+            created_at: summary.created_at,
+            is_active: summary.is_active,
+        }
+    }
+}
+
+/// Metadatos que acompañan a un CSV importado. El JSON los lleva dentro.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatsCsvMetaDto {
+    pub id: String,
+    pub version: String,
+    pub source: String,
+    pub license: String,
+    pub queue: loldraft_engine::StatsQueue,
+    pub patch: String,
+}
+
+impl From<StatsCsvMetaDto> for loldraft_engine::StatsCsvMeta {
+    fn from(meta: StatsCsvMetaDto) -> Self {
+        Self {
+            id: meta.id,
+            version: meta.version,
+            source: meta.source,
+            license: meta.license,
+            queue: meta.queue,
+            patch: meta.patch,
+        }
+    }
+}
+
+/// Fila que no se importó y por qué.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatsDiscardedRowDto {
+    pub line: Option<usize>,
+    pub reason: String,
+}
+
+/// Resultado de importar un CSV: dataset guardado + filas descartadas.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatsImportDto {
+    pub dataset: StatsDatasetDto,
+    pub discarded: Vec<StatsDiscardedRowDto>,
+    pub summary: String,
+}
+
 /// Resultado de consultar el canal de actualizaciones.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
