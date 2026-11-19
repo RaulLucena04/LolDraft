@@ -56,7 +56,7 @@ Espaciado en múltiplos de 4. Radios de 8–12 px. Sombras sutiles, sin glassmor
 Inicio
 ├─ Nuevo draft ──────────────► Simulador
 ├─ Continuar draft ──────────► Simulador (sesión guardada)
-├─ Draft de SoloQ ───────────► Modo SoloQ (draft manual + mejor pick)
+├─ Draft de SoloQ ───────────► Modo SoloQ (sincronizado con el cliente)
 ├─ Análisis de composición ──► Laboratorio de análisis
 ├─ Estadísticas ─────────────► Explorador de datos
 ├─ Configuración ────────────► Ajustes
@@ -137,19 +137,21 @@ pregunta: qué pick encaja mejor en el turno propio de una partida de ranked.
 
 ```text
 Tu situación ........ lado · turno de pick (1-5) · rol opcional
-Draft ............... 5 huecos aliados (el propio se marca aparte),
-                      5 rivales y 10 baneos opcionales
-Acción .............. "Ver mejor pick"
+Draft ............... 4 huecos aliados + tu pick, 5 rivales y 10 baneos
+Sincronización ...... automática cada 2 s (se puede pausar)
+Acción .............. "Ver mejor pick" (desactivado si tu pick ya está bloqueado)
 Resultado ........... tarjeta del mejor pick + panel de recomendaciones
-Importar ............ "Importar del cliente" (solo lectura, experimental)
+Estado .............. "Cliente conectado" / "cerrado" / "fuera de champ select"
 ```
 
-- Cada hueco abre un buscador de campeones filtrado a los disponibles; no se
-  pueden repetir campeones.
+- Los huecos se rellenan solos desde el cliente; cada uno abre un buscador de
+  campeones filtrado a los disponibles y no se pueden repetir campeones.
+- Cuando el cliente bloquea tu campeón, la tarjeta «Tu pick» muestra
+  «Bloqueado · turno N» y el campeón deja de ser candidato.
+- Solo se aplica un estado cuando cambia: una respuesta idéntica no invalida la
+  recomendación visible. Un fallo de lectura tampoco borra el draft.
 - Al cambiar cualquier dato se descarta el resultado anterior: nunca se muestra
   una recomendación calculada sobre otro estado.
-- Si el cliente no está abierto, el error se explica y la entrada manual sigue
-  disponible.
 - Detalle del contrato y límites en [`10-modo-soloq.md`](./10-modo-soloq.md).
 
 ### 3.3 Laboratorio de análisis

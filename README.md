@@ -3,11 +3,12 @@
 Aplicación de escritorio para simular, analizar y asistir drafts competitivos de League of Legends.
 Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind CSS.
 
-> **Estado del repositorio:** Fase 1 implementada; Fase 2 en curso. El simulador estándar de 20
-> acciones funciona, persiste en SQLite y muestra los 173 campeones de Data Dragon con sus roles
-> importados. La taxonomía v1, el esquema de perfiles, el motor de análisis y un piloto inferido de
-> 38 campeones ya están integrados. El piloto se etiqueta siempre como `Inferred` y queda pendiente
-> de revisión experta; las recomendaciones de pick/ban todavía no existen.
+> **Estado del repositorio:** fases 1–3 implementadas y publicadas en
+> [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.3). El simulador de 20
+> acciones, el análisis de composición y las recomendaciones de pick/ban explicables funcionan; el
+> modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. El talón
+> de Aquiles son los datos: solo existe un piloto inferido de 38 campeones, etiquetado siempre como
+> `Inferred`, y la Fase 4 (estadísticas observadas) está por hacer.
 
 ## Qué hace diferente a esta herramienta
 
@@ -23,7 +24,7 @@ equipos:
 Cada recomendación deberá explicarse con las mismas contribuciones numéricas que produjeron la
 puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando motivos.
 
-## Qué funciona ahora (Fase 1)
+## Qué funciona ahora
 
 - **Simulador competitivo:** formato estándar de 20 acciones (6 bans, 6 picks, 4 bans, 4 picks),
   validación de turno, lado, tipo de acción y campeón duplicado.
@@ -41,8 +42,11 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Datos honestos:** los perfiles estratégicos ausentes se muestran como pendientes; las celdas
   inferidas se etiquetan como `Inferred` y no se presentan como observadas. No se muestran ceros ni
   winrates falsos.
+- **Modo SoloQ:** el draft se rellena solo desde el cliente de League of Legends cada dos segundos
+  (con pausa y actualización manual), incluido tu pick cuando lo bloqueas. Mejor pick por turno con
+  entrada manual como respaldo.
 
-## Fase 2 en curso
+## Análisis estratégico (Fase 2)
 
 - **Taxonomía v1.0.0** validada: 20 arquetipos, 18 traits y una rúbrica de intensidad de cinco anclas.
 - **Esquema de perfiles** con procedencia (`Riot`, curado, importado o inferido), confianza por celda,
@@ -74,8 +78,34 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
   observados. La herramienta de curación ya existe; falta el trabajo de revisión con criterio de
   experto.
 
-Todavía **no** incluye: recomendaciones de pick/ban, sinergias curadas ni matchups observados,
-estadísticas externas, importación de drafts profesionales ni fearless draft.
+## Recomendaciones de pick/ban (Fase 3)
+
+- **Features explicables:** `need`, `answer`, `synergy`, `counter`, `flex`, `balance` y `safety`, con
+  renormalización de pesos cuando falta una señal, pesos por fase del draft, penalización por
+  confianza y diversificación por rol y arquetipo.
+- **Explicaciones con parámetros**, no texto generado: puntuación, contribuciones, riesgos, motivos,
+  carencias que cubre y datos que faltan. La invariante `contribuciones + riesgos = puntuación` se
+  cumple y se testea.
+- **Baneos desde el plan del rival**, no solo por winrate.
+- **UI:** panel de recomendaciones con detalle expandible, lista de alternativas y desglose; aviso
+  explícito cuando los datos no bastan para recomendar.
+- **Pendiente:** `power` (necesita estadísticas observadas), reasignación completa de roles al evaluar
+  y filtros de alternativas.
+
+Todavía **no** incluye: estadísticas observadas por campeón, sinergias curadas, matchups observados,
+importación de drafts profesionales ni fearless draft.
+
+## Descargar la app
+
+Windows 10/11 x64. Instalador por usuario, sin administrador:
+
+1. Descarga `LolDraft_<versión>_x64-setup.exe` desde
+   [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest).
+2. El instalador **no está firmado**: SmartScreen mostrará un aviso → *Más información* →
+   *Ejecutar de todas formas*.
+3. Al abrir, pulsa **Cargar piloto inferido** en Inicio. Sin ese paso solo hay catálogo de campeones;
+   el piloto es un dato `Inferred` (38 campeones) y la app lo marca como pendiente de revisión.
+4. Las versiones siguientes se detectan con **Buscar actualizaciones**, que abre la descarga.
 
 ## Arranque rápido (Windows)
 
@@ -144,9 +174,9 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 | Ruta | Responsabilidad |
 | --- | --- |
 | `crates/loldraft-domain` | Dominio puro: formato, estado del draft, historial y roles. Sin I/O. |
-| `crates/loldraft-engine` | Taxonomía, perfiles, propuestas, análisis de composiciones y futuras recomendaciones. Sin I/O. |
+| `crates/loldraft-engine` | Taxonomía, perfiles, propuestas, análisis de composiciones y recomendaciones de pick/ban. Sin I/O. |
 | `crates/loldraft-data` | SQLite, migraciones, semillas y CRUD de sesiones/ajustes. |
-| `crates/loldraft-sources` | Clientes de fuentes externas; ahora Data Dragon. |
+| `crates/loldraft-sources` | Clientes de fuentes externas: Data Dragon y cliente local de League (LCU). |
 | `crates/loldraft-curation` | CLI de curación por fichero: propuestas, revisión, aprobación y validación. |
 | `src-tauri` | Estado de aplicación, DTOs, comandos Tauri y errores estables. |
 | `apps/desktop` | UI React + TypeScript + Tailwind. |
@@ -190,7 +220,7 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 | [07 — Plan por fases](docs/07-plan-fases.md) | Entregables y criterios de aceptación por fase |
 | [08 — Riesgos y decisiones](docs/08-riesgos-decisiones.md) | Riesgos, mitigaciones y ADRs |
 | [09 — Curación de perfiles](docs/09-curacion-perfiles.md) | CLI, flujo de revisión, límites y honestidad |
-| [10 — Modo SoloQ](docs/10-modo-soloq.md) | Draft manual, mejor pick por turno e importación del cliente |
+| [10 — Modo SoloQ](docs/10-modo-soloq.md) | Sincronización con el cliente, pick propio y mejor pick por turno |
 | [11 — Instalación y actualizaciones](docs/11-instalacion-actualizaciones.md) | Instalador NSIS, canal `latest.json`, botón de actualizar y límites |
 
 ## Principios del proyecto

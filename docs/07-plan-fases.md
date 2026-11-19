@@ -1,9 +1,10 @@
 # 07 — Plan de desarrollo por fases
 
-> Estado: planificación. Cada fase termina con una versión funcional y verificable. No se avanza si
-> los criterios de aceptación no se cumplen.
+> Estado: fases 0–3 cerradas en código, publicadas hasta v0.1.3. La Fase 2 queda pendiente de
+> revisión experta de datos y la Fase 3 de estadísticas observadas. Cada fase termina con una versión
+> funcional y verificable. No se avanza si los criterios de aceptación no se cumplen.
 
-## Fase 0 — Diseño (actual)
+## Fase 0 — Diseño (cerrada)
 
 Entregables:
 
@@ -190,13 +191,14 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 
 ## Fase 3 — Motor de recomendaciones
 
-> **Estado:** en curso. Implementados: features `need`, `answer`, `synergy`, `counter`, `flex`,
-> `balance` y `safety` con renormalización de pesos cuando falta una señal, pesos por fase, riesgos,
-> penalización por confianza, diversificación por rol y arquetipo, baneos desde la perspectiva del
-> rival, explicaciones con parámetros y la invariante `contribuciones + riesgos = puntuación`.
-> La UI muestra picks y baneos, el desglose, los motivos, las carencias cubiertas y los datos que
-> faltan. `power` sigue ausente porque no hay estadísticas observadas; tampoco hay reasignación
-> completa de roles al evaluar (se respetan las asignaciones existentes) ni filtros de alternativas.
+> **Estado:** implementada y publicada (v0.1.2). Implementados: features `need`, `answer`, `synergy`,
+> `counter`, `flex`, `balance` y `safety` con renormalización de pesos cuando falta una señal, pesos
+> por fase, riesgos, penalización por confianza, diversificación por rol y arquetipo, baneos desde la
+> perspectiva del rival, explicaciones con parámetros y la invariante `contribuciones + riesgos =
+> puntuación`. La UI muestra picks y baneos, el desglose, los motivos, las carencias cubiertas y los
+> datos que faltan. `power` sigue ausente porque no hay estadísticas observadas; tampoco hay
+> reasignación completa de roles al evaluar (se respetan las asignaciones existentes) ni filtros de
+> alternativas.
 
 **Objetivo:** recomendar picks y baneos explicables, contextualizados y no dominados por winrate.
 
@@ -237,6 +239,18 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 - Sin perfiles suficientes, la UI dice "datos limitados" y no inventa una recomendación.
 - El cálculo completo de recomendaciones para un draft tarda < 100 ms.
 
+### Estado de implementación
+
+- [x] Features y pesos por fase, con renormalización al faltar señales.
+- [x] Riesgos, penalización por confianza y diversificación por rol/arquetipo.
+- [x] Baneos puntuados desde la perspectiva del rival.
+- [x] Explicaciones con parámetros e invariante de suma, con tests.
+- [x] Determinismo, dominancia, sensibilidad a pesos y rendimiento (<100 ms) testeados.
+- [x] UI de picks y baneos con desglose, motivos, carencias cubiertas y datos que faltan.
+- [ ] `power` con estadísticas observadas (depende de la Fase 4).
+- [ ] Reasignación completa de roles al evaluar.
+- [ ] Filtros de alternativas.
+
 ### Fuera de alcance
 
 - Datos externos, backtesting serio, optimización fina.
@@ -244,6 +258,9 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 ---
 
 ## Fase 4 — Integración de datos
+
+> **Estado:** sin empezar. El importador CSV/JSON con esquema validado, shrinkage y separación
+> soloq/pro es el primer entregable.
 
 **Objetivo:** actualizar datos sin reinstalar y sin mezclar fuentes/licencias.
 
@@ -292,6 +309,8 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 ---
 
 ## Fase 5 — Evaluación y optimización
+
+> **Estado:** sin empezar. Requiere datos observados de la Fase 4 y drafts profesionales.
 
 **Objetivo:** medir si el motor aporta valor y corregir sin sobreajustar.
 

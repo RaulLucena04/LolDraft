@@ -52,6 +52,8 @@ pub struct ChampSelectDraft {
     pub slot: u8,
     /// Rol asignado por el cliente, si ya se conoce.
     pub role: Option<Role>,
+    /// Campeón que tú ya has bloqueado, si lo hay. No se repite en `ally_picks`.
+    pub own_pick: Option<ChampionKey>,
     pub ally_picks: Vec<ChampionKey>,
     pub enemy_picks: Vec<ChampionKey>,
     pub bans: Vec<ChampionKey>,
@@ -249,8 +251,10 @@ pub fn draft_from_session(session: &serde_json::Value) -> Result<ChampSelectDraf
 
     let mut ally_picks = Vec::new();
     let mut enemy_picks = Vec::new();
+    let mut own_pick = None;
     for (_, actor, champion) in &picks {
         if *actor == local_cell {
+            own_pick = Some(ChampionKey(*champion));
             continue;
         }
         if same_side(*actor) {
@@ -266,6 +270,7 @@ pub fn draft_from_session(session: &serde_json::Value) -> Result<ChampSelectDraf
         side,
         slot,
         role,
+        own_pick,
         ally_picks,
         enemy_picks,
         bans,
@@ -419,6 +424,7 @@ mod tests {
         assert_eq!(draft.slot, 1);
         assert_eq!(draft.role, Some(Role::Top));
         // Mi pick (64) no cuenta como aliado; el del compañero sí.
+        assert_eq!(draft.own_pick, Some(ChampionKey(64)));
         assert_eq!(draft.ally_picks, vec![ChampionKey(268)]);
         assert_eq!(draft.enemy_picks, vec![ChampionKey(103), ChampionKey(22)]);
         assert_eq!(
@@ -453,7 +459,24 @@ mod tests {
         assert_eq!(draft.side, Side::Blue);
         assert_eq!(draft.slot, 4);
         assert_eq!(draft.role, Some(Role::Adc));
+        // Ese jugador aún no ha bloqueado: no se le inventa un pick.
+        assert_eq!(draft.own_pick, None);
         assert_eq!(draft.ally_picks, vec![ChampionKey(64), ChampionKey(268)]);
+    }
+
+    #[test]
+    fn my_locked_pick_is_reported_once_the_action_completes() {
+        let mut session = session_fixture();
+        session["actions"][3][0]["completed"] = serde_json::json!(false);
+
+        let draft = draft_from_session(&session).unwrap();
+        assert_eq!(draft.own_pick, None);
+        assert_eq!(draft.ally_picks, vec![ChampionKey(268)]);
+
+        session["actions"][3][0]["completed"] = serde_json::json!(true);
+        let draft = draft_from_session(&session).unwrap();
+        assert_eq!(draft.own_pick, Some(ChampionKey(64)));
+        assert_eq!(draft.ally_picks, vec![ChampionKey(268)]);
     }
 
     #[test]

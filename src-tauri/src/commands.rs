@@ -416,11 +416,22 @@ pub async fn lcu_champ_select(state: State<'_, AppState>) -> Result<SoloqImportD
     let bans = known(session.bans, &mut unknown);
     let ally_picks = known(session.ally_picks, &mut unknown);
     let enemy_picks = known(session.enemy_picks, &mut unknown);
+    let own_pick = session.own_pick.and_then(|key| {
+        if catalog.get(key).is_some() {
+            Some(key.0)
+        } else {
+            if !unknown.contains(&key.0) {
+                unknown.push(key.0);
+            }
+            None
+        }
+    });
 
     Ok(SoloqImportDto {
         side: session.side,
         slot: session.slot,
         role: session.role,
+        own_pick,
         bans,
         ally_picks,
         enemy_picks,

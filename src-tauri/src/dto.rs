@@ -642,6 +642,8 @@ pub struct SoloqImportDto {
     pub side: Side,
     pub slot: u8,
     pub role: Option<Role>,
+    /// Campeón que tú ya has bloqueado en el cliente.
+    pub own_pick: Option<u16>,
     pub bans: Vec<u16>,
     pub ally_picks: Vec<u16>,
     pub enemy_picks: Vec<u16>,

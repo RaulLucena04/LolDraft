@@ -78,16 +78,16 @@ export function Home({
               className="pointer-events-none absolute -bottom-32 right-24 h-64 w-64 rounded-full bg-red/10 blur-2xl"
             />
             <div className="relative">
-              <p className="eyebrow text-gold">Fase 1 · Simulador de draft</p>
+              <p className="eyebrow text-gold">Simulador · Análisis · SoloQ</p>
               <h1 className="mt-4 max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-ink">
                 Simula el draft.
                 <br />
                 <span className="text-muted">Entiende la composición.</span>
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
-                Un asistente competitivo en Rust + Tauri. Primero, un simulador
-                fiable con las 20 acciones, roles flexibles y persistencia local.
-                Después, análisis y recomendaciones explicables.
+                Un asistente competitivo en Rust + Tauri. Simulador de las 20
+                acciones, análisis de composición y recomendaciones explicables.
+                En SoloQ, el draft se sincroniza solo con el cliente.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -143,8 +143,8 @@ export function Home({
                     Draft de SoloQ
                   </span>
                   <span className="mt-0.5 block text-xs text-muted">
-                    Introduce tu draft de ranked (o impórtalo del cliente) y
-                    obtén el mejor pick para tu turno.
+                    Se sincroniza solo con el cliente durante el champ select y
+                    te da el mejor pick para tu turno.
                   </span>
                 </span>
                 <span className="text-xl text-gold/70 transition group-hover:translate-x-0.5">

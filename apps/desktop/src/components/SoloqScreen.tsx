@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Champion,
   CommandError,
@@ -6,6 +6,7 @@ import type {
   Role,
   Side,
   SoloqDraftInput,
+  SoloqImport,
 } from "../types";
 import { api } from "../api";
 import { ROLE_LABEL, ROLE_ORDER, SIDE_LABEL } from "../lib/format";
@@ -26,6 +27,17 @@ interface EditingSlot {
   team: SlotTeam;
   index: number;
 }
+
+/** Estado de la sincronización con el cliente, sin detalles que cambien en cada tick. */
+type SyncState =
+  | { kind: "syncing" }
+  | { kind: "live"; phase: string | null }
+  | { kind: "closed" }
+  | { kind: "idle" }
+  | { kind: "off" }
+  | { kind: "error"; message: string };
+
+const SYNC_INTERVAL_MS = 2000;
 
 const emptyAllies = (): (number | null)[] => [null, null, null, null];
 const emptyEnemies = (): (number | null)[] => [null, null, null, null, null];
@@ -55,6 +67,30 @@ function errorMessage(error: unknown): string {
   return String(error);
 }
 
+/**
+ * Traduce un fallo del cliente a un estado de sincronización. Estar fuera de
+ * champ select o con el cliente cerrado es normal, no un error rojo.
+ */
+function syncStateFromError(error: unknown): SyncState {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as CommandError).code)
+      : "";
+  switch (code) {
+    case "lcu_not_running":
+      return { kind: "closed" };
+    case "lcu_not_in_champ_select":
+      return { kind: "idle" };
+    case "lcu_unreachable":
+      return {
+        kind: "error",
+        message: "No se pudo hablar con el cliente de League of Legends.",
+      };
+    default:
+      return { kind: "error", message: errorMessage(error) };
+  }
+}
+
 export function SoloqScreen({
   champions,
   hasProfiles,
@@ -67,13 +103,17 @@ export function SoloqScreen({
   const [allies, setAllies] = useState<(number | null)[]>(emptyAllies);
   const [enemies, setEnemies] = useState<(number | null)[]>(emptyEnemies);
   const [bans, setBans] = useState<(number | null)[]>(emptyBans);
+  const [ownPick, setOwnPick] = useState<number | null>(null);
   const [editing, setEditing] = useState<EditingSlot | null>(null);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<RecommendationSet | null>(null);
   const [recommending, setRecommending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [autoSync, setAutoSync] = useState(true);
+  const [sync, setSync] = useState<SyncState>({ kind: "syncing" });
+  const [refreshing, setRefreshing] = useState(false);
+  const lastPayload = useRef("");
 
   const byKey = useMemo(() => {
     const map = new Map<number, Champion>();
@@ -86,14 +126,15 @@ export function SoloqScreen({
     for (const key of [...filled(allies), ...filled(enemies), ...filled(bans)]) {
       keys.add(key);
     }
+    if (ownPick !== null) keys.add(ownPick);
     return keys;
-  }, [allies, enemies, bans]);
+  }, [allies, enemies, bans, ownPick]);
 
   // Cualquier cambio en el estado del draft invalida el resultado anterior:
   // no se muestra una recomendación calculada para otro estado.
   useEffect(() => {
     setResult(null);
-  }, [side, slot, role, allies, enemies, bans]);
+  }, [side, slot, role, allies, enemies, bans, ownPick]);
 
   const setSlotChampion = (target: EditingSlot, key: number | null) => {
     const update = (values: (number | null)[]) =>
@@ -107,6 +148,9 @@ export function SoloqScreen({
     setAllies(emptyAllies());
     setEnemies(emptyEnemies());
     setBans(emptyBans());
+    setOwnPick(null);
+    // El cliente sigue mandando: se vuelve a leer en el siguiente tick.
+    lastPayload.current = "";
     setResult(null);
     setError(null);
     setNotice(null);
@@ -114,55 +158,100 @@ export function SoloqScreen({
     setQuery("");
   };
 
-  const applyImport = async () => {
-    setImporting(true);
-    setNotice(null);
-    setError(null);
-    try {
-      const imported = await api.lcuChampSelect();
-      setSide(imported.side);
-      setSlotNumber(Math.min(5, Math.max(1, imported.slot)));
-      setRole(imported.role ?? "");
-      const nextAllies = emptyAllies();
-      const nextEnemies = emptyEnemies();
-      const nextBans = emptyBans();
-      const unknown = new Set(imported.unknownChampions);
-      imported.allyPicks
-        .filter((key) => !unknown.has(key))
-        .slice(0, 4)
+  /** Vuelca una lectura del cliente sin inventar huecos ni campeones desconocidos. */
+  const applyImport = useCallback((imported: SoloqImport, announce: boolean) => {
+    const unknown = new Set(imported.unknownChampions);
+    const usable = (key: number) => !unknown.has(key);
+    const fill = (keys: number[], size: number): (number | null)[] => {
+      const next: (number | null)[] = Array.from({ length: size }, () => null);
+      keys
+        .filter(usable)
+        .slice(0, size)
         .forEach((key, index) => {
-          nextAllies[index] = key;
+          next[index] = key;
         });
-      imported.enemyPicks
-        .filter((key) => !unknown.has(key))
-        .slice(0, 5)
-        .forEach((key, index) => {
-          nextEnemies[index] = key;
-        });
-      imported.bans
-        .filter((key) => !unknown.has(key))
-        .slice(0, 10)
-        .forEach((key, index) => {
-          nextBans[index] = key;
-        });
-      setAllies(nextAllies);
-      setEnemies(nextEnemies);
-      setBans(nextBans);
-      setResult(null);
+      return next;
+    };
+
+    setSide(imported.side);
+    setSlotNumber(Math.min(5, Math.max(1, imported.slot)));
+    setRole(imported.role ?? "");
+    setOwnPick(
+      imported.ownPick !== null && usable(imported.ownPick)
+        ? imported.ownPick
+        : null,
+    );
+    const nextAllies = fill(imported.allyPicks, 4);
+    const nextEnemies = fill(imported.enemyPicks, 5);
+    const nextBans = fill(imported.bans, 10);
+    setAllies(nextAllies);
+    setEnemies(nextEnemies);
+    setBans(nextBans);
+    setResult(null);
+
+    if (announce) {
       setNotice(
         imported.unknownChampions.length > 0
-          ? `Se importaron ${
-              imported.allyPicks.length + imported.enemyPicks.length
-            } picks y ${imported.bans.length} baneos. ${
-              imported.unknownChampions.length
-            } campeón(es) del cliente no están en tu catálogo y se omitieron.`
-          : "Draft importado del cliente. Revisa los huecos y calcula el pick.",
+          ? `Se leyeron ${nextAllies.filter((k) => k !== null).length + nextEnemies.filter((k) => k !== null).length} picks y ${nextBans.filter((k) => k !== null).length} baneos. ${imported.unknownChampions.length} campeón(es) del cliente no están en tu catálogo y se omitieron.`
+          : "Draft sincronizado con el cliente. Pulsa «Ver mejor pick» cuando quieras el análisis.",
       );
-    } catch (importError) {
-      setNotice(null);
-      setError(errorMessage(importError));
+    }
+  }, []);
+
+  /** Una lectura del cliente: solo aplica el estado si ha cambiado. */
+  const readClient = useCallback(
+    async (announce: boolean) => {
+      try {
+        const imported = await api.lcuChampSelect();
+        const key = JSON.stringify(imported);
+        if (key !== lastPayload.current) {
+          lastPayload.current = key;
+          applyImport(imported, announce);
+        }
+        setSync((previous) =>
+          previous.kind === "live" && previous.phase === imported.timerPhase
+            ? previous
+            : { kind: "live", phase: imported.timerPhase },
+        );
+      } catch (caught) {
+        lastPayload.current = "";
+        const next = syncStateFromError(caught);
+        setSync((previous) =>
+          JSON.stringify(previous) === JSON.stringify(next) ? previous : next,
+        );
+      }
+    },
+    [applyImport],
+  );
+
+  // Sincronización continua: mientras la pantalla está abierta se relee el
+  // cliente cada dos segundos. Los fallos (cerrado, sin champ select) solo
+  // cambian el estado visible; nunca borran el draft ya leído.
+  useEffect(() => {
+    if (!autoSync) {
+      setSync({ kind: "off" });
+      return;
+    }
+    let cancelled = false;
+    let timer: number | undefined;
+    const tick = async () => {
+      await readClient(false);
+      if (!cancelled) timer = window.setTimeout(tick, SYNC_INTERVAL_MS);
+    };
+    void tick();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [autoSync, readClient]);
+
+  const refreshNow = async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      await readClient(true);
     } finally {
-      setImporting(false);
+      setRefreshing(false);
     }
   };
 
@@ -261,25 +350,35 @@ export function SoloqScreen({
     );
   };
 
+  const ownChampion = ownPick === null ? null : (byKey.get(ownPick) ?? null);
+
   const myPickCard = (
     <div
       key="my-pick"
       className="rounded-lg border border-gold/30 bg-gold/5 p-1.5"
-      title="Tu pick es el que se va a recomendar"
+      title={
+        ownChampion
+          ? "Ya has bloqueado este campeón en el cliente"
+          : "Tu pick es el que se va a recomendar"
+      }
     >
       <span className="flex items-center gap-1.5">
-        <span
-          aria-hidden="true"
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-dashed border-gold/40 text-[10px] font-bold text-gold"
-        >
-          Tú
-        </span>
+        {ownChampion ? (
+          <ChampionAvatar champion={ownChampion} size="sm" />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-dashed border-gold/40 text-[10px] font-bold text-gold"
+          >
+            Tú
+          </span>
+        )}
         <span className="min-w-0">
           <span className="block truncate text-[11px] font-semibold text-ink">
-            Tu pick
+            {ownChampion?.name ?? "Tu pick"}
           </span>
           <span className="block truncate text-[9px] uppercase tracking-wider text-muted">
-            Turno {slot}
+            {ownChampion ? `Bloqueado · turno ${slot}` : `Turno ${slot}`}
           </span>
         </span>
       </span>
@@ -304,25 +403,66 @@ export function SoloqScreen({
           <div>
             <p className="eyebrow text-gold">SoloQ</p>
             <h1 className="text-xl font-extrabold text-ink">
-              Draft manual · mejor pick
+              Draft en vivo · mejor pick
             </h1>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => void applyImport()}
-            disabled={importing}
-            className="btn-ghost px-3 py-1.5 text-xs"
-            title="Lee la selección de campeones del cliente de League of Legends (solo lectura, experimental)"
+            onClick={() => setAutoSync((value) => !value)}
+            aria-pressed={autoSync}
+            className={`px-3 py-1.5 text-xs ${autoSync ? "btn-ghost border-success/40 text-success" : "btn-ghost"}`}
+            title="Lee la selección de campeones del cliente cada dos segundos (solo lectura)"
           >
-            {importing ? "Leyendo cliente…" : "Importar del cliente"}
+            {autoSync ? "● Sincronizando" : "○ Sincronización pausada"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void refreshNow()}
+            disabled={refreshing}
+            className="btn-ghost px-3 py-1.5 text-xs"
+            title="Leer el cliente ahora mismo"
+          >
+            {refreshing ? "Leyendo…" : "Actualizar"}
           </button>
           <button type="button" onClick={clearAll} className="btn-ghost px-3 py-1.5 text-xs">
             Limpiar
           </button>
         </div>
       </header>
+
+      <p
+        className={`mt-2 flex items-center gap-1.5 text-[11px] ${
+          sync.kind === "live"
+            ? "text-success"
+            : sync.kind === "error"
+              ? "text-warning"
+              : "text-muted"
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`h-1.5 w-1.5 rounded-full ${
+            sync.kind === "live"
+              ? "bg-success"
+              : sync.kind === "error"
+                ? "bg-warning"
+                : "bg-muted/60"
+          }`}
+        />
+        {sync.kind === "live"
+          ? `Cliente conectado${sync.phase ? ` · fase ${sync.phase}` : ""}. El draft se actualiza solo.`
+          : sync.kind === "closed"
+            ? "Cliente cerrado: rellena el draft a mano o abre League of Legends."
+            : sync.kind === "idle"
+              ? "Cliente abierto, fuera de champ select. Esperando a que empiece el draft…"
+              : sync.kind === "syncing"
+                ? "Buscando al cliente…"
+                : sync.kind === "off"
+                  ? "Sincronización pausada: el draft no se actualiza solo."
+                  : sync.message}
+      </p>
 
       {notice && (
         <p className="mt-3 rounded-md border border-line bg-surface2/60 px-3 py-2 text-[11px] text-muted">
@@ -525,12 +665,23 @@ export function SoloqScreen({
               <button
                 type="button"
                 onClick={() => void handleRecommend()}
-                disabled={recommending || !hasProfiles}
+                disabled={recommending || !hasProfiles || ownChampion !== null}
                 className="btn-gold px-4 py-2 text-xs"
               >
-                {recommending ? "Calculando…" : "Ver mejor pick"}
+                {ownChampion
+                  ? "Pick bloqueado"
+                  : recommending
+                    ? "Calculando…"
+                    : "Ver mejor pick"}
               </button>
-              {best && (
+              {ownChampion && (
+                <span className="text-[11px] text-muted">
+                  Ya has bloqueado a{" "}
+                  <span className="font-semibold text-ink">{ownChampion.name}</span>{" "}
+                  en el cliente. No hay pick que recomendar en este draft.
+                </span>
+              )}
+              {!ownChampion && best && (
                 <span className="text-[11px] text-muted">
                   Mejor ajuste:{" "}
                   <span className="font-semibold text-ink">
@@ -582,7 +733,13 @@ export function SoloqScreen({
             draftComplete={false}
             onInspect={onInspect}
             actionLabel={`Pick ${slot} de tu equipo`}
-            emptyHint="Rellena los picks ya bloqueados y pulsa «Ver mejor pick»."
+            emptyHint={
+              ownChampion
+                ? "Tu pick ya está bloqueado; este panel servirá en el siguiente draft."
+                : sync.kind === "live"
+                  ? "El draft se rellena solo desde el cliente. Pulsa «Ver mejor pick» cuando quieras el análisis."
+                  : "Rellena los picks ya bloqueados y pulsa «Ver mejor pick»."
+            }
           />
         </div>
       </main>

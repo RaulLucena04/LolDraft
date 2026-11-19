@@ -461,6 +461,7 @@ export interface SoloqImport {
   side: Side;
   slot: number;
   role: Role | null;
+  ownPick: number | null;
   bans: number[];
   allyPicks: number[];
   enemyPicks: number[];

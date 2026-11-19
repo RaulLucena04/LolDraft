@@ -1,9 +1,9 @@
-# 10 - Modo SoloQ (draft manual)
+# 10 - Modo SoloQ (sincronizado con el cliente)
 
-> Estado: implementado y verificado en la app con draft manual. La importación
-> desde el cliente de League of Legends está implementada pero **no verificada en
-> vivo**: en el entorno de desarrollo no había un cliente en selección de
-> campeones. Se marca como experimental en la interfaz.
+> Estado: implementado y verificado, incluida la lectura del cliente de League of
+> Legends en una partida real: el draft se rellena solo y el pick propio se
+> registra en cuanto el cliente lo bloquea. La entrada manual sigue disponible
+> como respaldo y la pantalla no depende de que el cliente esté abierto.
 
 ## 1. Para qué sirve
 
@@ -20,14 +20,40 @@ sus motivos.
 
 ## 2. Flujo de uso
 
-1. Elegir lado (azul/rojo), turno de pick (1-5) y, opcionalmente, rol.
-2. Rellenar los picks aliados y rivales ya bloqueados.
-3. Rellenar los baneos (opcional, pero recomendado).
-4. Pulsar **Ver mejor pick**.
+No hay que preparar nada: al abrir **SoloQ** la app empieza a leer el cliente
+cada dos segundos.
 
-La pantalla destaca el primer candidato y muestra la lista completa de
-recomendaciones reutilizando el panel de la Fase 3: contribuciones, riesgos,
-features sin datos y enlaces al perfil del campeón.
+1. Si el cliente está en selección de campeones, lado, turno, rol asignado,
+   picks y baneos aparecen ya rellenos.
+2. Cuando el cliente bloquea tu campeón, la tarjeta **Tu pick** pasa a
+   «Bloqueado · turno N». Ese campeón se excluye de los candidatos y el botón
+   «Ver mejor pick» se desactiva: ya no queda pick que recomendar.
+3. Mientras sigues eligiendo, pulsa **Ver mejor pick** para el análisis del
+   turno actual.
+
+La barra de estado resume lo que está pasando sin ruido:
+
+| Estado | Significado |
+| --- | --- |
+| `Cliente conectado · fase …` | Leyendo un champ select real. Se actualiza solo. |
+| `Cliente cerrado` | No hay `lockfile`; se puede rellenar a mano. |
+| `Cliente abierto, fuera de champ select` | Esperando a que empiece el draft. |
+| `Sincronización pausada` | El usuario la ha parado con el botón. |
+| `No se pudo hablar…` | El cliente responde mal; el draft anterior no se borra. |
+
+Controles:
+
+- **● Sincronizando / ○ Sincronización pausada** alterna la lectura automática.
+  Al pausarla, el draft visible se conserva y se puede editar a mano.
+- **Actualizar** fuerza una lectura inmediata y anuncia el resultado, con los
+  campeones del cliente que no existen en el catálogo local.
+- **Limpiar** vacía el draft, pero la siguiente lectura vuelve a traer lo que
+  mande el cliente.
+
+Solo se aplica un estado cuando **cambia**: si el cliente repite la misma
+respuesta cada dos segundos, el draft y las recomendaciones no se tocan. Los
+fallos de lectura (cliente cerrado, fuera de champ select) solo cambian la línea
+de estado; nunca vacían el draft ya leído.
 
 El estado **no se persiste**: es una consulta, no una sesión de draft. Al
 cambiar cualquier dato de entrada el resultado anterior se descarta, para no
@@ -77,7 +103,7 @@ Nota: si un aliado ya bloqueado solo puede ocupar el rol reservado, el análisis
 lo deja sin rol y no lo cuenta en la composición, igual que en el simulador
 competitivo. No se le inventa una posición para que encaje.
 
-## 4. Importación desde el cliente (experimental)
+## 4. Lectura del cliente
 
 `loldraft-sources::lcu` lee el cliente por su API local no documentada:
 
@@ -85,20 +111,22 @@ competitivo. No se le inventa una posición para que encaje.
   instalación) y extrae puerto y contraseña;
 - consulta `GET /lol-champ-select/v1/session` con autenticación básica y
   certificado autofirmado aceptado solo para `127.0.0.1`;
-- normaliza lado, turno, posición asignada, picks completados y baneos.
+- normaliza lado, turno, posición asignada, picks completados, **tu pick** y
+  baneos.
 
 Es **solo lectura**: no envía acciones al cliente ni escribe nada. Solo se
 consideran picks con `completed = true`; un hueco no se rellena con un campeón
-inventado. Los campeones del cliente que no existen en el catálogo local se
-omiten y se informan en la interfaz.
+inventado. `own_pick` se separa de los aliados: la tarjeta «Tu pick» lo muestra
+como bloqueado y el motor no lo propone. Los campeones del cliente que no
+existen en el catálogo local se omiten y se informan en la interfaz.
 
 Limitaciones conocidas:
 
 - la API local no es pública y puede cambiar entre parches;
-- no se ha podido probar contra un cliente real en este entorno, solo con
-  fixtures sintéticos de la respuesta;
 - si el `lockfile` no existe, el cliente no está abierto o no está en selección,
-  la app muestra un error específico y sigue permitiendo la entrada manual.
+  la app lo explica en la línea de estado y mantiene el draft y la entrada
+  manual;
+- la lectura es de solo lectura: la app no banea ni bloquea por ti.
 
 Códigos de error estables: `lcu_not_running`, `lcu_not_in_champ_select`,
 `lcu_no_pick_action`, `lcu_unreachable`, `lcu_invalid_session`.
@@ -129,6 +157,8 @@ imposible no produce una recomendación fiable.
 
 - Dominio: formato SoloQ, mapeo de turnos a índices y reserva de rol (23 tests).
 - Motor: fases equivalentes entre formatos y filtrado por rol fijo (73 tests).
-- Fuentes: `lockfile`, sesión azul/roja, turnos posteriores, espectador y
-  posiciones asignadas (11 tests).
-- UI: compilación TypeScript y prueba manual del flujo en la app.
+- Fuentes: `lockfile`, sesión azul/roja, turnos posteriores, pick propio
+  bloqueado, espectador y posiciones asignadas (12 tests).
+- UI: compilación TypeScript y verificación contra cliente real: el draft se
+  rellena solo, el pick propio aparece al bloquearlo sin tocar nada, la pausa
+  conserva el draft y una caída del cliente no lo borra.
