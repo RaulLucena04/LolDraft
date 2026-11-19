@@ -8,6 +8,7 @@ pub mod analysis;
 pub mod profile;
 pub mod proposals;
 pub mod recommendation;
+pub mod stats;
 pub mod taxonomy;
 
 pub use analysis::{
@@ -29,6 +30,11 @@ pub use recommendation::{
     DraftPhase, FeatureId, FeatureWeights, NoDataReason, PickWeightPhase, Reason, Recommendation,
     RecommendationError, RecommendationParams, RecommendationParamsError, RecommendationRequest,
     RecommendationSet, RiskContribution, RiskId,
+};
+pub use stats::{
+    parse_stats_csv, ChampionStatRow, DiscardedRow, ObservedStats, StatsCsvImport, StatsCsvMeta,
+    StatsError, StatsQueue, MAX_ROWS, MIN_GAMES_FOR_POWER, PRIOR_GAMES, PRIOR_WINRATE,
+    STATS_SCHEMA_VERSION,
 };
 pub use taxonomy::{
     taxonomy, ArchetypeCategory, ArchetypeEntry, ArchetypeId, RubricAnchor, Taxonomy,

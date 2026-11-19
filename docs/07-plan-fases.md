@@ -259,8 +259,9 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 
 ## Fase 4 — Integración de datos
 
-> **Estado:** sin empezar. El importador CSV/JSON con esquema validado, shrinkage y separación
-> soloq/pro es el primer entregable.
+> **Estado:** en curso. Implementados el esquema validado de estadísticas observadas, la importación
+> CSV/JSON y el shrinkage en `loldraft-engine::stats`. Pendientes: persistencia, UI de importación y
+> conectar `power` a las recomendaciones.
 
 **Objetivo:** actualizar datos sin reinstalar y sin mezclar fuentes/licencias.
 

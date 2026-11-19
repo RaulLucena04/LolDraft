@@ -1,7 +1,9 @@
 # 05 — Fuentes de datos e integración
 
-> Estado: diseño e investigación. Las conclusiones de licencias deben revisarse antes de publicar
-> una versión distribuible. No se ha implementado ningún scraper.
+> Estado: diseño e investigación, con el primer entregable de la Fase 4 ya implementado: esquema
+> validado de estadísticas observadas, importación CSV/JSON y shrinkage en el motor. Sigue sin haber
+> ningún scraper ni descarga automática. Las conclusiones de licencias deben revisarse antes de
+> publicar datos de terceros.
 
 ## 1. Resumen de la investigación
 
@@ -281,6 +283,54 @@ Validaciones mínimas:
 
 Cuando una fila falla, se descarta o se envía a cuarentena con motivo. El resumen de importación
 dice cuántas se descartaron y por qué. Nunca se completa un hueco con un promedio inventado.
+
+### 9.1 Formato de importación de estadísticas (Fase 4)
+
+El primer entregable de la Fase 4 está en `loldraft-engine::stats`. Es código puro: valida el
+documento y calcula la señal; la persistencia y la UI llegan en incrementos posteriores.
+
+Documento JSON (autodescriptivo, estricto):
+
+```json
+{
+  "schema": "1",
+  "id": "manual-soloq-16.22",
+  "version": "1",
+  "source": "Exportación manual",
+  "license": "Uso personal; no redistribuir",
+  "queue": "soloq",
+  "patch": "16.22",
+  "rows": [
+    { "champion": 64, "role": "jungle", "games": 1200, "wins": 620, "pick_rate": 0.08, "ban_rate": 0.12 }
+  ]
+}
+```
+
+CSV equivalente (cabecera obligatoria; orden libre; `pick_rate` y `ban_rate` opcionales):
+
+```csv
+champion,role,games,wins,pick_rate,ban_rate
+64,jungle,1200,620,0.08,0.12
+103,mid,900,470,,
+```
+
+Reglas:
+
+- `queue` es `soloq` o `pro`; nunca se mezclan en la misma cifra.
+- `patch` debe ser `major.minor` o `major.minor.patch`.
+- `games > 0`, `wins <= games`, tasas en `0..1`, sin pares `(campeón, rol)` duplicados.
+- JSON: un campo desconocido o una fila inválida rechazan el dataset completo.
+- CSV: las filas inválidas se descartan con su motivo y la importación devuelve la lista; si no queda
+  ninguna fila válida, falla. No se admiten comillas: el formato es simple y comprobable.
+- El winrate crudo se muestra, pero el motor solo usa el **ajustado**:
+  `(wins + 200 × 0.5) / (games + 200)`. Con 200 partidas la confianza es 0.5; con 50, 0.2.
+- `power` no usa el winrate aislado: usa el percentil del winrate ajustado **dentro del mismo rol**
+  entre filas con al menos 200 partidas. Así no se compara jungla con support ni se inventa un
+  baseline externo. Si no hay dos filas comparables en el rol, no hay señal.
+- Cada fila conserva su `n`; por debajo de 200 partidas se muestra pero no puntúa.
+
+Lo que no hace todavía: guardar datasets en SQLite, elegir el activo desde la UI ni conectar `power`
+a las recomendaciones. Tampoco descarga ni convierte datos de Lolalytics.
 
 ## 10. Atribución en la aplicación
 
