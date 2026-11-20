@@ -5,6 +5,7 @@ import { formatRelative } from "../lib/format";
 import { Logo } from "./Logo";
 import { SideBadge, StatusPill } from "./Badges";
 import { StatsDatasetsCard } from "./StatsDatasetsCard";
+import { BuildsCard } from "./BuildsCard";
 import type { Toast } from "./ToastStack";
 import { UpdatesCard } from "./UpdatesCard";
 
@@ -413,6 +414,8 @@ export function Home({
             defaultPatch={data.patch}
             onNotify={onNotify}
           />
+
+          <BuildsCard onNotify={onNotify} />
 
           <div className="panel p-5">
             <p className="eyebrow">Hoja de ruta</p>

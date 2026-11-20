@@ -5,11 +5,17 @@
 //! multicriterio llegan en incrementos posteriores.
 
 pub mod analysis;
+pub mod builds;
 pub mod profile;
 pub mod proposals;
 pub mod recommendation;
 pub mod stats;
 pub mod taxonomy;
+
+pub use builds::{
+    BuildBasis, BuildChoice, BuildsError, BuildsProvenance, ChampionBuildRow, ObservedBuilds,
+    RunePage, BUILDS_SCHEMA_VERSION, MAX_BUILD_ROWS, MAX_BUILD_TEXT, MAX_ITEMS_PER_LIST,
+};
 
 pub use analysis::{
     analyze_draft, analyze_team, candidate_synergies, Advantage, AnalysisError, AnalysisParams,

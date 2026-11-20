@@ -522,6 +522,66 @@ export interface StatsImport {
   summary: string;
 }
 
+/** Motivo por el que se eligió una build. */
+export type BuildBasis = "observed_winrate" | "sample_size" | "only_build";
+
+/** Página de runas de una build. */
+export interface RunePage {
+  primaryPath: string;
+  keystone: string;
+  primaryRunes: string[];
+  secondaryPath: string;
+  secondaryRunes: string[];
+  shards: string[];
+}
+
+/** Build de un campeón en un rol, tal como viene del dataset. */
+export interface ChampionBuild {
+  champion: number;
+  role: Role;
+  name: string;
+  starterItems: string[];
+  coreItems: string[];
+  situationalItems: string[];
+  runes: RunePage;
+  games: number;
+  wins: number;
+  shrunkWinrate: number;
+  confidence: number;
+  basis: BuildBasis;
+}
+
+/** Dataset de builds y runas importado por el usuario. */
+export interface BuildDataset {
+  id: string;
+  version: string;
+  queue: StatsQueue;
+  patch: string;
+  source: string;
+  license: string;
+  rowCount: number;
+  createdAt: number;
+  isActive: boolean;
+}
+
+/** Procedencia del dataset de builds que alimentó la build mostrada. */
+export interface BuildsProvenance {
+  id: string;
+  version: string;
+  queue: StatsQueue;
+  patch: string;
+  source: string;
+  license: string;
+  rows: number;
+  minGames: number;
+}
+
+/** Build elegida y dataset del que sale. Ambos pueden ser `null`. */
+export interface BuildLookup {
+  build: ChampionBuild | null;
+  dataset: BuildsProvenance | null;
+}
+
 /** Resultado de consultar el canal de actualizaciones. */
 export interface UpdateCheck {
   currentVersion: string;

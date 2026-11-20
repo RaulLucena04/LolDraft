@@ -2,12 +2,14 @@
 //!
 //! `loldraft-data` no conoce Tauri ni React.
 
+pub mod builds;
 pub mod db;
 pub mod error;
 pub mod profiles;
 pub mod seed;
 pub mod stats;
 
+pub use builds::BuildDatasetSummary;
 pub use db::{now_ms, Database, SessionRecord, SessionSummary};
 pub use error::DataError;
 pub use profiles::{ActiveProfileSet, ProfileSetSummary};

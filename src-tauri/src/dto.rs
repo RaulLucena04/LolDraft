@@ -755,6 +755,142 @@ pub struct StatsImportDto {
     pub summary: String,
 }
 
+/// Resumen de un dataset de builds y runas observadas.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildDatasetDto {
+    pub id: String,
+    pub version: String,
+    pub queue: loldraft_engine::StatsQueue,
+    pub patch: String,
+    pub source: String,
+    pub license: String,
+    pub row_count: usize,
+    pub created_at: i64,
+    pub is_active: bool,
+}
+
+impl From<loldraft_data::BuildDatasetSummary> for BuildDatasetDto {
+    fn from(summary: loldraft_data::BuildDatasetSummary) -> Self {
+        Self {
+            id: summary.id,
+            version: summary.version,
+            queue: summary.queue,
+            patch: summary.patch,
+            source: summary.source,
+            license: summary.license,
+            row_count: summary.row_count,
+            created_at: summary.created_at,
+            is_active: summary.is_active,
+        }
+    }
+}
+
+/// Procedencia del dataset de builds que alimentó la recomendación de build.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildsProvenanceDto {
+    pub id: String,
+    pub version: String,
+    pub queue: loldraft_engine::StatsQueue,
+    pub patch: String,
+    pub source: String,
+    pub license: String,
+    pub rows: usize,
+    pub min_games: u32,
+}
+
+impl From<loldraft_engine::BuildsProvenance> for BuildsProvenanceDto {
+    fn from(provenance: loldraft_engine::BuildsProvenance) -> Self {
+        Self {
+            id: provenance.id,
+            version: provenance.version,
+            queue: provenance.queue,
+            patch: provenance.patch,
+            source: provenance.source,
+            license: provenance.license,
+            rows: provenance.rows,
+            min_games: provenance.min_games,
+        }
+    }
+}
+
+/// Página de runas de una build.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunePageDto {
+    pub primary_path: String,
+    pub keystone: String,
+    pub primary_runes: Vec<String>,
+    pub secondary_path: String,
+    pub secondary_runes: Vec<String>,
+    pub shards: Vec<String>,
+}
+
+impl From<loldraft_engine::RunePage> for RunePageDto {
+    fn from(runes: loldraft_engine::RunePage) -> Self {
+        Self {
+            primary_path: runes.primary_path,
+            keystone: runes.keystone,
+            primary_runes: runes.primary_runes,
+            secondary_path: runes.secondary_path,
+            secondary_runes: runes.secondary_runes,
+            shards: runes.shards,
+        }
+    }
+}
+
+/// Build elegida para un campeón, con la muestra que la respalda (o su ausencia).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChampionBuildDto {
+    pub champion: u16,
+    pub role: loldraft_domain::Role,
+    pub name: String,
+    pub starter_items: Vec<String>,
+    pub core_items: Vec<String>,
+    pub situational_items: Vec<String>,
+    pub runes: RunePageDto,
+    pub games: u32,
+    pub wins: u32,
+    pub shrunk_winrate: f32,
+    pub confidence: f32,
+    /// `observed_winrate`, `sample_size` o `only_build`.
+    pub basis: &'static str,
+}
+
+impl ChampionBuildDto {
+    pub fn new(
+        row: &loldraft_engine::ChampionBuildRow,
+        basis: loldraft_engine::BuildBasis,
+    ) -> Self {
+        Self {
+            champion: row.champion.0,
+            role: row.role,
+            name: row.name.clone(),
+            starter_items: row.starter_items.clone(),
+            core_items: row.core_items.clone(),
+            situational_items: row.situational_items.clone(),
+            runes: row.runes.clone().into(),
+            games: row.games,
+            wins: row.wins,
+            shrunk_winrate: row.shrunk_winrate(),
+            confidence: row.confidence(),
+            basis: basis.as_str(),
+        }
+    }
+}
+
+/// Build recomendada más la procedencia del dataset activo de esa cola.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildLookupDto {
+    /// `None` si no hay dataset activo para la cola o no hay fila para el campeón.
+    pub build: Option<ChampionBuildDto>,
+    /// Dataset activo de la cola, aunque no tenga una fila para este campeón.
+    pub dataset: Option<BuildsProvenanceDto>,
+}
+
 /// Resultado de consultar el canal de actualizaciones.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

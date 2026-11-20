@@ -147,7 +147,27 @@ CREATE INDEX IF NOT EXISTS ix_observed_stats_role
     ON observed_stats(dataset_id, role_id);
 "#;
 
-const MIGRATIONS: &[&str] = &[MIGRATION_1, MIGRATION_2, MIGRATION_3];
+const MIGRATION_4: &str = r#"
+CREATE TABLE IF NOT EXISTS champion_builds (
+    dataset_id        TEXT NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+    position          INTEGER NOT NULL,
+    champion_key      INTEGER NOT NULL,
+    role_id           TEXT NOT NULL CHECK (role_id IN ('top','jungle','mid','adc','support')),
+    name              TEXT NOT NULL,
+    starter_items     TEXT NOT NULL,
+    core_items        TEXT NOT NULL,
+    situational_items TEXT NOT NULL,
+    runes_json        TEXT NOT NULL,
+    games             INTEGER NOT NULL CHECK (games >= 0),
+    wins              INTEGER NOT NULL CHECK (wins >= 0 AND wins <= games),
+    PRIMARY KEY (dataset_id, position)
+);
+
+CREATE INDEX IF NOT EXISTS ix_champion_builds_champion
+    ON champion_builds(dataset_id, champion_key, role_id);
+"#;
+
+const MIGRATIONS: &[&str] = &[MIGRATION_1, MIGRATION_2, MIGRATION_3, MIGRATION_4];
 
 pub struct Database {
     pub(crate) conn: Connection,

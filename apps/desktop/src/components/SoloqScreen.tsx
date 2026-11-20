@@ -12,6 +12,7 @@ import { api } from "../api";
 import { ROLE_LABEL, ROLE_ORDER, SIDE_LABEL } from "../lib/format";
 import { RoleBadge, SideBadge } from "./Badges";
 import { ChampionAvatar } from "./ChampionAvatar";
+import { ChampionBuildPanel } from "./ChampionBuildPanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 
 interface SoloqScreenProps {
@@ -352,6 +353,12 @@ export function SoloqScreen({
 
   const ownChampion = ownPick === null ? null : (byKey.get(ownPick) ?? null);
 
+  // Build del pick propio si ya está bloqueado; si no, la del mejor pick.
+  const buildTarget = ownChampion ?? best?.champion ?? null;
+  const buildRole = ownChampion
+    ? role || best?.role || null
+    : best?.role ?? null;
+
   const myPickCard = (
     <div
       key="my-pick"
@@ -587,7 +594,7 @@ export function SoloqScreen({
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-                  Baneos (opcional)
+                  Baneos (importante)
                 </p>
                 <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
                   {Array.from({ length: 10 }, (_, index) =>
@@ -595,8 +602,9 @@ export function SoloqScreen({
                   )}
                 </div>
                 <p className="mt-1.5 text-[10px] leading-relaxed text-warning/90">
-                  Si dejas baneos vacíos, un campeón ya baneado podría aparecer
-                  como recomendación.
+                  Los baneos se leen solos del cliente. Si alguno falta, un campeón
+                  ya baneado podría aparecer como recomendación: revísalos antes de
+                  pedir el pick.
                 </p>
               </div>
             </div>
@@ -723,6 +731,15 @@ export function SoloqScreen({
                 Ver perfil del campeón
               </button>
             </section>
+          )}
+
+          {buildTarget && (
+            <ChampionBuildPanel
+              champion={buildTarget}
+              role={buildRole}
+              queue="soloq"
+              context={ownChampion ? "own" : "suggested"}
+            />
           )}
 
           <RecommendationsPanel

@@ -1,13 +1,14 @@
 use crate::dto::{
     AdvantageDto, AssignmentDto, BanContributionDto, BanRecommendationDto, BootstrapDto,
-    ChampionDto, ChampionProfileContextDto, ChampionProfileDto, ChampionRefDto, ContributionDto,
-    CoverageDto, DamageProfileDto, DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto,
-    FormatDto, LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileDamageDto,
-    ProfileProvenanceDto, ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto,
-    RecommendationDto, RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto,
-    SoloqDraftInput, SoloqImportDto, StatsCsvMetaDto, StatsDatasetDto, StatsDiscardedRowDto,
-    StatsImportDto, StatsProvenanceDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto,
-    TeamMatchupDto, TeamViewDto, TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
+    BuildDatasetDto, BuildLookupDto, BuildsProvenanceDto, ChampionBuildDto, ChampionDto,
+    ChampionProfileContextDto, ChampionProfileDto, ChampionRefDto, ContributionDto, CoverageDto,
+    DamageProfileDto, DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto,
+    LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileDamageDto, ProfileProvenanceDto,
+    ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto, RecommendationDto,
+    RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto, SoloqDraftInput,
+    SoloqImportDto, StatsCsvMetaDto, StatsDatasetDto, StatsDiscardedRowDto, StatsImportDto,
+    StatsProvenanceDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto,
+    TeamViewDto, TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
@@ -248,6 +249,82 @@ fn save_stats(
         .find(|summary| summary.id == id)
         .map(StatsDatasetDto::from)
         .ok_or_else(|| CommandError::internal("el dataset importado no aparece en la base"))
+}
+
+#[tauri::command]
+pub fn builds_list(state: State<'_, AppState>) -> Result<Vec<BuildDatasetDto>, CommandError> {
+    let db = lock_db(&state)?;
+    Ok(db
+        .list_build_datasets()?
+        .into_iter()
+        .map(BuildDatasetDto::from)
+        .collect())
+}
+
+#[tauri::command]
+pub fn builds_import_json(
+    state: State<'_, AppState>,
+    json: String,
+    activate: Option<bool>,
+) -> Result<BuildDatasetDto, CommandError> {
+    let builds = loldraft_engine::ObservedBuilds::from_json(&json)?;
+    let id = builds.id.clone();
+    let mut db = lock_db(&state)?;
+    db.save_builds(&builds)?;
+    if activate.unwrap_or(false) {
+        db.set_active_builds_dataset(&id)?;
+    }
+    db.list_build_datasets()?
+        .into_iter()
+        .find(|summary| summary.id == id)
+        .map(BuildDatasetDto::from)
+        .ok_or_else(|| CommandError::internal("el dataset de builds no aparece en la base"))
+}
+
+#[tauri::command]
+pub fn builds_activate(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Vec<BuildDatasetDto>, CommandError> {
+    let mut db = lock_db(&state)?;
+    db.set_active_builds_dataset(&id)?;
+    Ok(db
+        .list_build_datasets()?
+        .into_iter()
+        .map(BuildDatasetDto::from)
+        .collect())
+}
+
+#[tauri::command]
+pub fn builds_delete(state: State<'_, AppState>, id: String) -> Result<bool, CommandError> {
+    let mut db = lock_db(&state)?;
+    Ok(db.delete_builds_dataset(&id)?)
+}
+
+/// Build recomendada para un campeón. `role` vacío busca en todos sus roles.
+///
+/// La build sale del dataset activo de la cola; si no hay dataset o no hay
+/// fila para el campeón, `build` es `None` y la UI lo explica. Nunca se
+/// sustituye por una build de otra cola ni por una inventada.
+#[tauri::command]
+pub fn builds_for(
+    state: State<'_, AppState>,
+    champion: u16,
+    role: Option<Role>,
+    queue: loldraft_engine::StatsQueue,
+) -> Result<BuildLookupDto, CommandError> {
+    let db = lock_db(&state)?;
+    let Some(builds) = db.active_builds_dataset(queue)? else {
+        return Ok(BuildLookupDto {
+            build: None,
+            dataset: None,
+        });
+    };
+    let dataset = Some(BuildsProvenanceDto::from(builds.provenance()));
+    let build = builds
+        .best_for(ChampionKey(champion), role)
+        .map(|choice| ChampionBuildDto::new(choice.row, choice.basis));
+    Ok(BuildLookupDto { build, dataset })
 }
 
 #[tauri::command]

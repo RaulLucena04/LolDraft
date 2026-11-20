@@ -155,6 +155,12 @@ impl From<loldraft_engine::StatsError> for CommandError {
     }
 }
 
+impl From<loldraft_engine::BuildsError> for CommandError {
+    fn from(error: loldraft_engine::BuildsError) -> Self {
+        Self::new("builds_invalid", error.to_string())
+    }
+}
+
 impl From<crate::updates::UpdateError> for CommandError {
     fn from(error: crate::updates::UpdateError) -> Self {
         use crate::updates::UpdateError;

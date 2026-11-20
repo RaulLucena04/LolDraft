@@ -59,11 +59,24 @@ El estado **no se persiste**: es una consulta, no una sesión de draft. Al
 cambiar cualquier dato de entrada el resultado anterior se descarta, para no
 mostrar una recomendación calculada sobre otro estado.
 
-### 2.1 Baneos opcionales
+### 2.1 Baneos
 
-Los baneos son opcionales porque en ranked pueden no conocerse todavía. La
-interfaz avisa de la consecuencia: si se omiten, un campeón ya baneado puede
-aparecer como recomendación, porque el motor solo excluye lo que recibe.
+Los baneos se leen del cliente y se envían al motor: un campeón baneado no
+puede aparecer como recomendación. La interfaz los marca como **importantes**,
+no opcionales, porque omitirlos puede hacer que el motor proponga un campeón
+que ya no está disponible.
+
+Fuente de los baneos, por orden:
+
+1. acciones `ban` **completadas** de la sesión, ordenadas por su identificador;
+2. el resumen `bans.myTeamBans` / `theirTeamBans` como respaldo, sin duplicar.
+
+Durante la fase de baneo el resumen puede estar vacío, pero las acciones ya
+completadas sí están; por eso mandan las acciones. Un baneo en curso todavía no
+se cuenta: solo lo que el cliente ha confirmado.
+
+Si el cliente no expone ningún baneo, la interfaz avisa de que el análisis
+puede incluir campeones baneados; no se inventa una lista.
 
 ## 3. Qué hace el motor con este formato
 
@@ -112,11 +125,11 @@ competitivo. No se le inventa una posición para que encaje.
 - consulta `GET /lol-champ-select/v1/session` con autenticación básica y
   certificado autofirmado aceptado solo para `127.0.0.1`;
 - normaliza lado, turno, posición asignada, picks completados, **tu pick** y
-  baneos.
+  baneos (acciones completadas primero; resumen `bans` como respaldo).
 
 Es **solo lectura**: no envía acciones al cliente ni escribe nada. Solo se
-consideran picks con `completed = true`; un hueco no se rellena con un campeón
-inventado. `own_pick` se separa de los aliados: la tarjeta «Tu pick» lo muestra
+consideran picks y baneos con estado completado; un hueco no se rellena con un
+campeón inventado. `own_pick` se separa de los aliados: la tarjeta «Tu pick» lo muestra
 como bloqueado y el motor no lo propone. Los campeones del cliente que no
 existen en el catálogo local se omiten y se informan en la interfaz.
 

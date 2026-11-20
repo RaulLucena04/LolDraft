@@ -324,17 +324,57 @@ fn pick_slot(
 fn bans_from_session(session: &serde_json::Value) -> Vec<ChampionKey> {
     let mut bans = Vec::new();
     let mut seen = BTreeSet::new();
-    let Some(bans_object) = session.get("bans") else {
-        return bans;
-    };
-    for field in ["myTeamBans", "theirTeamBans"] {
-        let Some(list) = bans_object.get(field).and_then(serde_json::Value::as_array) else {
-            continue;
-        };
-        for value in list {
-            let key = value.as_u64().unwrap_or(0) as u16;
-            if key != 0 && seen.insert(key) {
-                bans.push(ChampionKey(key));
+
+    // Fuente principal: las acciones de baneo completadas, en orden. El objeto
+    // `bans` del cliente puede llegar vacío durante la fase de baneo, así que
+    // no basta con leerlo al final.
+    let mut completed: Vec<(i64, u16)> = Vec::new();
+    if let Some(actions) = session.get("actions").and_then(serde_json::Value::as_array) {
+        for group in actions {
+            let Some(group) = group.as_array() else {
+                continue;
+            };
+            for action in group {
+                if action.get("type").and_then(serde_json::Value::as_str) != Some("ban") {
+                    continue;
+                }
+                let is_completed = action
+                    .get("completed")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false);
+                let champion = action
+                    .get("championId")
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(0) as u16;
+                if !is_completed || champion == 0 {
+                    continue;
+                }
+                let id = action
+                    .get("id")
+                    .and_then(serde_json::Value::as_i64)
+                    .unwrap_or(0);
+                completed.push((id, champion));
+            }
+        }
+    }
+    completed.sort_by_key(|(id, _)| *id);
+    for (_, key) in completed {
+        if seen.insert(key) {
+            bans.push(ChampionKey(key));
+        }
+    }
+
+    // Respaldo: el resumen `bans` del cliente. Se añade lo que aún no esté.
+    if let Some(bans_object) = session.get("bans") {
+        for field in ["myTeamBans", "theirTeamBans"] {
+            let Some(list) = bans_object.get(field).and_then(serde_json::Value::as_array) else {
+                continue;
+            };
+            for value in list {
+                let key = value.as_u64().unwrap_or(0) as u16;
+                if key != 0 && seen.insert(key) {
+                    bans.push(ChampionKey(key));
+                }
             }
         }
     }
@@ -449,6 +489,31 @@ mod tests {
         assert_eq!(draft.slot, 1);
         assert_eq!(draft.ally_picks, vec![ChampionKey(268)]);
         assert_eq!(draft.enemy_picks, vec![ChampionKey(103), ChampionKey(22)]);
+    }
+
+    #[test]
+    fn bans_come_from_completed_actions_even_without_the_summary_object() {
+        let mut session = session_fixture();
+        session.as_object_mut().unwrap().remove("bans");
+        let draft = draft_from_session(&session).unwrap();
+        assert_eq!(
+            draft.bans,
+            vec![ChampionKey(103), ChampionKey(12), ChampionKey(34)]
+        );
+    }
+
+    #[test]
+    fn incomplete_ban_actions_are_not_tracked() {
+        let mut session = session_fixture();
+        session.as_object_mut().unwrap().remove("bans");
+        session["actions"] = serde_json::json!([
+            [{"id": 1, "actorCellId": 0, "type": "ban", "championId": 103, "completed": true}],
+            [{"id": 2, "actorCellId": 5, "type": "ban", "championId": 12, "completed": false, "isInProgress": true}],
+            [{"id": 3, "actorCellId": 1, "type": "ban", "championId": 0, "completed": true}],
+            [{"id": 21, "actorCellId": 0, "type": "pick", "championId": 64, "completed": true}]
+        ]);
+        let draft = draft_from_session(&session).unwrap();
+        assert_eq!(draft.bans, vec![ChampionKey(103)]);
     }
 
     #[test]

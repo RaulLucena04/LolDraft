@@ -1,6 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   Bootstrap,
+  BuildDataset,
+  BuildLookup,
   Champion,
   ChampionProfileDetail,
   CommandError,
@@ -16,6 +18,7 @@ import type {
   StatsCsvMeta,
   StatsDataset,
   StatsImport,
+  StatsQueue,
   UpdateCheck,
   UpdateInstall,
 } from "./types";
@@ -78,6 +81,14 @@ export const api = {
   statsActivate: (id: string) =>
     call<StatsDataset[]>("stats_activate", { id }),
   statsDelete: (id: string) => call<boolean>("stats_delete", { id }),
+  builds: () => call<BuildDataset[]>("builds_list"),
+  buildsImportJson: (json: string, activate = true) =>
+    call<BuildDataset>("builds_import_json", { json, activate }),
+  buildsActivate: (id: string) =>
+    call<BuildDataset[]>("builds_activate", { id }),
+  buildsDelete: (id: string) => call<boolean>("builds_delete", { id }),
+  buildsFor: (champion: number, role: Role | null, queue: StatsQueue) =>
+    call<BuildLookup>("builds_for", { champion, role, queue }),
   championProfile: (championKey: number) =>
     call<ChampionProfileDetail>("profile_champion", { championKey }),
   settingGet: (key: string) => call<unknown | null>("settings_get", { key }),

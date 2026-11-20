@@ -344,6 +344,72 @@ los pesos se renormalizan; nunca se cruza el de la otra cola.
 Lo que no hace todavía: descargar ni convertir datos de Lolalytics. La importación es siempre de un
 fichero local que elige el usuario.
 
+### 9.2 Formato de importación de builds y runas (Fase 4)
+
+La build y las runas salen del mismo principio que las estadísticas: un documento local que declara
+su fuente y su licencia. El motor (`loldraft-engine::builds`) elige la build; no la inventa.
+
+```json
+{
+  "schema": "1",
+  "id": "manual-soloq-16.22",
+  "version": "1",
+  "source": "Exportación manual",
+  "license": "Uso personal; no redistribuir",
+  "queue": "soloq",
+  "patch": "16.22",
+  "rows": [
+    {
+      "champion": 64,
+      "role": "jungle",
+      "name": "Conqueror bruiser",
+      "starter_items": ["Doran's Blade", "Health Potion"],
+      "core_items": ["Eclipse", "Sundered Sky", "Black Cleaver"],
+      "situational_items": ["Death's Dance"],
+      "runes": {
+        "primary_path": "Precision",
+        "keystone": "Conqueror",
+        "primary_runes": ["Triumph", "Legend: Alacrity", "Last Stand"],
+        "secondary_path": "Inspiration",
+        "secondary_runes": ["Magical Footwear", "Cosmic Insight"],
+        "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"]
+      },
+      "games": 1200,
+      "wins": 620
+    }
+  ]
+}
+```
+
+Reglas:
+
+- `queue` es `soloq` o `pro`; activar un dataset de una cola no toca el de la otra.
+- `patch` con el mismo formato que las estadísticas.
+- `core_items` no puede estar vacío: una build sin núcleo no es una build.
+- `runes.primary_path` y `runes.secondary_path` deben ser distintas; `primary_runes` admite como
+  máximo 4, `secondary_runes` 3 y `shards` 3. Los fragmentos pueden repetirse (dos veces «Adaptive
+  Force» es legítimo); los objetos de una misma lista no.
+- No hay `(campeón, rol, nombre)` repetidos. `wins <= games`.
+- `games = 0` describe una **build curada sin muestra**: se muestra como tal y nunca se presenta como
+  winrate observado.
+- El documento es estricto: un campo desconocido o una fila inválida rechazan el dataset completo.
+
+Selección para un campeón (y opcionalmente un rol):
+
+1. entre las filas con al menos 200 partidas, la de mejor winrate ajustado con el mismo shrinkage
+   que las estadísticas;
+2. si ninguna llega al mínimo, la fila con más partidas (se etiqueta «muestra insuficiente»);
+3. si ninguna tiene partidas, la primera del fichero (se etiqueta «build curada»).
+
+Los empates conservan el orden del fichero: manda el dataset, no una heurística oculta. La interfaz
+muestra junto a la build la muestra, el winrate ajustado, la confianza, la procedencia (id, versión,
+cola, parche, fuente, licencia, filas y mínimo) y el motivo de la elección. Si no hay dataset activo
+para la cola, o el dataset no tiene fila para ese campeón, se dice explícitamente; no se usa la build
+de otra cola ni se rellena con una genérica.
+
+`data/samples/builds-soloq.example.json` es un ejemplo de estructura para probar la importación. Sus
+filas son de demostración (`games: 0`), no estadísticas: sustitúyelo por datos propios.
+
 ## 10. Atribución en la aplicación
 
 Pantalla "Acerca de / Datos":

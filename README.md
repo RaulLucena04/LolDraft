@@ -8,7 +8,8 @@ Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind C
 > acciones, el análisis de composición y las recomendaciones de pick/ban explicables funcionan; el
 > modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. La
 > Fase 4 ya importa estadísticas observadas (CSV/JSON) y conecta `power` a las recomendaciones con
-> separación estricta SoloQ/profesional. El talón de Aquiles siguen siendo los datos: solo existe un
+> separación estricta SoloQ/profesional; también importa builds y runas por campeón y rol, que se
+> muestran junto al pick. El talón de Aquiles siguen siendo los datos: solo existe un
 > piloto inferido de 38 campeones, etiquetado siempre como `Inferred`, y los datasets observados hay
 > que importarlos a mano.
 
@@ -50,6 +51,9 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Estadísticas observadas:** importación de CSV/JSON con esquema validado, shrinkage y cuarentena de
   filas inválidas; el dataset activo alimenta `power` solo en su cola, y la UI muestra su procedencia
   (id, parche, fuente, licencia y filas). Sin dataset, la señal se marca ausente.
+- **Builds y runas:** dataset JSON importable por campeón, rol y cola. La app elige la build con mejor
+  winrate ajustado (o la más jugada / la curada, etiquetándolo) y muestra objetos, runas, muestra y
+  procedencia al lado del pick. Sin datos, no hay build: nunca se inventa.
 
 ## Análisis estratégico (Fase 2)
 

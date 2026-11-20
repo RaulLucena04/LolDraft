@@ -1,0 +1,83 @@
+{
+  "schema": "1",
+  "id": "demo-builds-soloq-16.22",
+  "version": "1",
+  "source": "Ejemplo de demostración incluido en el repositorio; no son estadísticas reales",
+  "license": "Ejemplo de uso libre; sustitúyelo por tus propios datos",
+  "queue": "soloq",
+  "patch": "16.22",
+  "rows": [
+    {
+      "champion": 64,
+      "role": "jungle",
+      "name": "Conqueror bruiser",
+      "starter_items": ["Doran's Blade", "Health Potion"],
+      "core_items": ["Eclipse", "Sundered Sky", "Black Cleaver"],
+      "situational_items": ["Death's Dance", "Maw of Malmortius", "Guardian Angel"],
+      "runes": {
+        "primary_path": "Precision",
+        "keystone": "Conqueror",
+        "primary_runes": ["Triumph", "Legend: Alacrity", "Last Stand"],
+        "secondary_path": "Inspiration",
+        "secondary_runes": ["Magical Footwear", "Cosmic Insight"],
+        "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"]
+      },
+      "games": 0,
+      "wins": 0
+    },
+    {
+      "champion": 103,
+      "role": "mid",
+      "name": "Electrocute burst",
+      "starter_items": ["Doran's Ring", "Health Potion"],
+      "core_items": ["Luden's Companion", "Rabadon's Deathcap", "Zhonya's Hourglass"],
+      "situational_items": ["Void Staff", "Banshee's Veil"],
+      "runes": {
+        "primary_path": "Domination",
+        "keystone": "Electrocute",
+        "primary_runes": ["Sudden Impact", "Eyeball Collection", "Ultimate Hunter"],
+        "secondary_path": "Sorcery",
+        "secondary_runes": ["Manaflow Band", "Scorch"],
+        "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"]
+      },
+      "games": 0,
+      "wins": 0
+    },
+    {
+      "champion": 222,
+      "role": "adc",
+      "name": "Lethal Tempo crit",
+      "starter_items": ["Doran's Blade", "Health Potion"],
+      "core_items": ["Kraken Slayer", "Infinity Edge", "Runaan's Hurricane"],
+      "situational_items": ["Lord Dominik's Regards", "Bloodthirster", "Guardian Angel"],
+      "runes": {
+        "primary_path": "Precision",
+        "keystone": "Lethal Tempo",
+        "primary_runes": ["Presence of Mind", "Legend: Bloodline", "Coup de Grace"],
+        "secondary_path": "Inspiration",
+        "secondary_runes": ["Magical Footwear", "Biscuit Delivery"],
+        "shards": ["Attack Speed", "Adaptive Force", "Health Scaling"]
+      },
+      "games": 0,
+      "wins": 0
+    },
+    {
+      "champion": 89,
+      "role": "support",
+      "name": "Engage support",
+      "starter_items": ["World Atlas", "Health Potion"],
+      "core_items": ["Locket of the Iron Solari", "Knight's Vow", "Redemption"],
+      "situational_items": ["Zeke's Convergence", "Thornmail"],
+      "runes": {
+        "primary_path": "Resolve",
+        "keystone": "Aftershock",
+        "primary_runes": ["Font of Life", "Bone Plating", "Overgrowth"],
+        "secondary_path": "Inspiration",
+        "secondary_runes": ["Hextech Flashtraption", "Cosmic Insight"],
+        "shards": ["Ability Haste", "Move Speed", "Health Scaling"]
+      },
+      "games": 0,
+      "wins": 0
+    }
+  ]
+}
