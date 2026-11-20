@@ -106,19 +106,28 @@ counter = 0.55 * lane_edge + 0.45 * team_edge
 
 ### 3.5 `power` — fuerza observada en el parche
 
-No es winrate crudo. Es un percentil dentro del pool elegible:
+No es winrate crudo. Es el percentil del winrate **ajustado** dentro del mismo rol:
 
 ```text
-wr_pct   = percentil(wr_adj)        // shrinkado, por rol/parche/cola
-pres_pct = percentil(pickrate + banrate)  // presencia, si existe
-power    = 0.60 * wr_pct + 0.40 * pres_pct
+wr_adj  = (wins + 200 × 0.5) / (games + 200)   // shrinkage
+conf    = games / (games + 200)                // confianza de la fila
+power   = percentil(wr_adj) entre las filas del mismo rol con games ≥ 200
 ```
 
-- `wr_adj` usa el prior y el tamaño de muestra (doc 03).
-- Se separan `soloq` y `pro`; la mezcla es configurable.
-- El percentil evita que un outlier de winrate aplaste al resto.
+- El prior (200 partidas al 50 %) evita que un 3–0 parezca imbatible y que un 1–4 parezca
+  catastrófico. El winrate crudo se muestra como dato, nunca como señal.
+- El percentil se calcula **solo dentro del mismo rol**: comparar un support con un mid mezclaría
+  bases distintas. No se usa un baseline externo ni un promedio inventado; el percentil sale del
+  propio dataset. Con menos de dos filas elegibles en el rol no hay señal.
+- Los empates comparten la media de sus posiciones.
+- La confianza que acompaña a la feature es la de la fila (`games / (games + 200)`), no una constante.
+- Se separan `soloq` y `pro` de forma estricta: cada modo lee solo el dataset activo de su cola.
+  Si no hay dataset activo para esa cola, `power` queda ausente; nunca se sustituye por el de la otra.
+- `pick_rate` y `ban_rate` se aceptan en el esquema como datos opcionales, pero **todavía no** entran
+  en el cálculo. Cuando se usen, se documentará la fórmula de presencia.
 - `power` tiene un peso deliberadamente bajo en picks tardíos. **Nunca** puede decidir por sí solo.
-- Si no hay estadísticas, la feature se marca ausente.
+- La respuesta lleva la procedencia (`StatsProvenance`: id, versión, cola, parche, fuente, licencia,
+  filas y mínimo de partidas) para que la UI no muestre un percentil anónimo.
 
 ### 3.6 `flex` — flexibilidad e información revelada
 
@@ -296,7 +305,8 @@ Donde:
 
 - `opp_need_gain`: cuánto mejora la composición rival con ese campeón.
 - `opp_synergy`: sinergia con los picks rivales ya revelados.
-- `opp_power`: fuerza observada, con peso bajo.
+- `opp_power`: percentil observado del campeón en el rol rival, con peso bajo. Usa el mismo dataset
+  de la cola y la misma regla de muestra mínima que `power`; sin fila suficiente, se marca ausente.
 - `opp_flex`: amenaza de flex / información que niega.
 - `own_threat`: cuánto castiga ese campeón al plan propio (counter directo a nuestros picks).
 

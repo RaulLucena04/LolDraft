@@ -123,7 +123,35 @@ pub struct ObservedStats {
     pub rows: Vec<ChampionStatRow>,
 }
 
+/// Procedencia de un dataset observado que alimentó una recomendación. La UI
+/// la muestra junto al resultado: nunca se presenta un percentil sin decir de
+/// qué dataset, cola y parche sale.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StatsProvenance {
+    pub id: String,
+    pub version: String,
+    pub queue: StatsQueue,
+    pub patch: String,
+    pub source: String,
+    pub license: String,
+    pub rows: usize,
+    pub min_games: u32,
+}
+
 impl ObservedStats {
+    pub fn provenance(&self) -> StatsProvenance {
+        StatsProvenance {
+            id: self.id.clone(),
+            version: self.version.clone(),
+            queue: self.queue,
+            patch: self.patch.clone(),
+            source: self.source.clone(),
+            license: self.license.clone(),
+            rows: self.rows.len(),
+            min_games: MIN_GAMES_FOR_POWER,
+        }
+    }
+
     /// Parsea un documento JSON estricto. Un campo desconocido, una fila
     /// duplicada o un valor fuera de rango invalidan el dataset completo.
     pub fn from_json(json: &str) -> Result<Self, StatsError> {

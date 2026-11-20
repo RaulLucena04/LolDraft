@@ -4,6 +4,7 @@ use crate::analysis::{AnalysisParams, PickedChampion};
 use crate::profile::{
     ArchetypeRating, ChampionProfile, ProfileRole, ProfileSet, Provenance, TraitRating,
 };
+use crate::stats::{ChampionStatRow, ObservedStats, StatsQueue, STATS_SCHEMA_VERSION};
 use crate::taxonomy::{ArchetypeId, TraitId, TAXONOMY_VERSION};
 use loldraft_domain::{ChampionKey, DraftFormat, Role, Side};
 
@@ -237,11 +238,184 @@ fn request<'a>(
         analysis_params,
         params,
         fixed_role: None,
+        observed: None,
     }
 }
 
 fn pick(key: u16, role: Role) -> PickedChampion {
     PickedChampion::new(ChampionKey(key), role, 1.0)
+}
+
+fn stat_row(champion: u16, role: Role, games: u32, wins: u32) -> ChampionStatRow {
+    ChampionStatRow {
+        champion: ChampionKey(champion),
+        role,
+        games,
+        wins,
+        pick_rate: None,
+        ban_rate: None,
+    }
+}
+
+fn observed_stats(rows: Vec<ChampionStatRow>) -> ObservedStats {
+    ObservedStats {
+        schema: STATS_SCHEMA_VERSION.to_string(),
+        id: "test-stats".to_string(),
+        version: "1".to_string(),
+        source: "Prueba".to_string(),
+        license: "Uso personal".to_string(),
+        queue: StatsQueue::Soloq,
+        patch: "16.22".to_string(),
+        rows,
+    }
+}
+
+#[test]
+fn observed_stats_add_power_and_explain_the_percentile() {
+    let format = DraftFormat::standard();
+    let profiles = fixture_set();
+    let analysis = AnalysisParams::default();
+    let params = RecommendationParams::default();
+    let blue: [PickedChampion; 0] = [];
+    let red: [PickedChampion; 0] = [];
+    let used: [ChampionKey; 0] = [];
+    // Dos filas comparables en Top: el 5 queda por encima del 7.
+    let observed = observed_stats(vec![
+        stat_row(5, Role::Top, 1000, 560),
+        stat_row(7, Role::Top, 1000, 440),
+    ]);
+    let output = recommend(&RecommendationRequest {
+        format: &format,
+        action_index: 6,
+        blue_picks: &blue,
+        red_picks: &red,
+        used: &used,
+        profiles: &profiles,
+        analysis_params: &analysis,
+        params: &params,
+        fixed_role: Some(Role::Top),
+        observed: Some(&observed),
+    })
+    .expect("recommendation");
+
+    let stats = output.stats.as_ref().expect("procedencia expuesta");
+    assert_eq!(stats.id, "test-stats");
+    assert_eq!(stats.queue, StatsQueue::Soloq);
+    assert_eq!(stats.patch, "16.22");
+    assert_eq!(stats.rows, 2);
+    assert_eq!(stats.min_games, crate::stats::MIN_GAMES_FOR_POWER);
+
+    let best = output
+        .picks
+        .iter()
+        .find(|pick| pick.champion == ChampionKey(5))
+        .expect("candidato con muestra");
+    let power = best
+        .contributions
+        .iter()
+        .find(|contribution| contribution.feature == FeatureId::Power)
+        .expect("contribución power");
+    assert!((power.value - 1.0).abs() < 1e-6);
+    assert!(!best.missing.contains(&FeatureId::Power));
+    assert!(best.reasons.iter().any(|reason| matches!(
+        reason,
+        Reason::ObservedPower {
+            queue: StatsQueue::Soloq,
+            games: 1000,
+            ..
+        }
+    )));
+
+    let worst = output
+        .picks
+        .iter()
+        .find(|pick| pick.champion == ChampionKey(7))
+        .expect("candidato con muestra");
+    let worst_power = worst
+        .contributions
+        .iter()
+        .find(|contribution| contribution.feature == FeatureId::Power)
+        .expect("contribución power");
+    assert!(worst_power.value.abs() < 1e-6);
+}
+
+#[test]
+fn small_samples_do_not_produce_power() {
+    let format = DraftFormat::standard();
+    let profiles = fixture_set();
+    let analysis = AnalysisParams::default();
+    let params = RecommendationParams::default();
+    let blue: [PickedChampion; 0] = [];
+    let red: [PickedChampion; 0] = [];
+    let used: [ChampionKey; 0] = [];
+    // Por debajo de MIN_GAMES_FOR_POWER: el dato existe, pero no puntúa.
+    let observed = observed_stats(vec![
+        stat_row(5, Role::Top, 100, 90),
+        stat_row(7, Role::Top, 100, 10),
+    ]);
+    let output = recommend(&RecommendationRequest {
+        format: &format,
+        action_index: 6,
+        blue_picks: &blue,
+        red_picks: &red,
+        used: &used,
+        profiles: &profiles,
+        analysis_params: &analysis,
+        params: &params,
+        fixed_role: Some(Role::Top),
+        observed: Some(&observed),
+    })
+    .expect("recommendation");
+
+    assert!(output.stats.is_some());
+    for pick in &output.picks {
+        assert!(pick
+            .contributions
+            .iter()
+            .all(|contribution| contribution.feature != FeatureId::Power));
+        assert!(pick.missing.contains(&FeatureId::Power));
+    }
+}
+
+#[test]
+fn bans_use_observed_power_of_the_enemy_role() {
+    let format = DraftFormat::standard();
+    let profiles = fixture_set();
+    let analysis = AnalysisParams::default();
+    let params = RecommendationParams::default();
+    let empty: [PickedChampion; 0] = [];
+    let used: [ChampionKey; 0] = [];
+    let observed = observed_stats(vec![
+        stat_row(5, Role::Top, 1000, 560),
+        stat_row(7, Role::Top, 1000, 440),
+    ]);
+    let output = recommend(&RecommendationRequest {
+        format: &format,
+        action_index: 0,
+        blue_picks: &empty,
+        red_picks: &empty,
+        used: &used,
+        profiles: &profiles,
+        analysis_params: &analysis,
+        params: &params,
+        fixed_role: None,
+        observed: Some(&observed),
+    })
+    .expect("recommendation");
+
+    let ban = output
+        .bans
+        .iter()
+        .find(|ban| ban.champion == ChampionKey(5))
+        .expect("campeón baneable");
+    assert!(ban
+        .contributions
+        .iter()
+        .any(|contribution| contribution.feature == BanFeatureId::OppPower));
+    assert!(ban
+        .reasons
+        .iter()
+        .any(|reason| matches!(reason, Reason::ObservedPower { games: 1000, .. })));
 }
 
 #[test]
@@ -767,6 +941,7 @@ fn a_fixed_role_only_recommends_champions_viable_there() {
         analysis_params: &analysis,
         params: &params,
         fixed_role: Some(Role::Jungle),
+        observed: None,
     })
     .expect("recommendation");
 

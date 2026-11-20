@@ -127,7 +127,10 @@ Comportamiento:
   motivo (baneado/picado) y no se pueden seleccionar.
 - **Recomendaciones:** lista ordenada; la primera con énfasis dorado. Cada tarjeta muestra
   puntuación, rol, confianza y 2–3 motivos. Al expandir: contribuciones, sinergias, matchups,
-  carencias y riesgos.
+  carencias y riesgos. Si hay un dataset observado activo para la cola, se muestra su procedencia
+  (id, versión, cola, parche, filas, fuente y licencia) y el motivo de potencia indica percentil,
+  winrate ajustado y muestra. Si no lo hay, se dice explícitamente que la señal de potencia queda
+  fuera; nunca se usa el dataset de otra cola.
 - **Análisis:** resumen visual de ambas composiciones con intervalos; pestañas "Fortalezas",
   "Carencias", "Condiciones de victoria", "Matchups". No se muestran números sin contexto.
 - **Detalle de campeón:** drawer lateral al hacer clic en un retrato; no abandona el simulador.

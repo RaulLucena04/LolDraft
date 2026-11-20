@@ -24,7 +24,7 @@ const PICK_FEATURE_LABEL: Record<RecommendationFeature, string> = {
   answer: "Respuesta",
   synergy: "Sinergia",
   counter: "Counter",
-  power: "Poder",
+  power: "Potencia observada",
   flex: "Flexibilidad",
   balance: "Equilibrio",
   safety: "Seguridad",
@@ -33,7 +33,7 @@ const PICK_FEATURE_LABEL: Record<RecommendationFeature, string> = {
 const BAN_FEATURE_LABEL: Record<BanFeature, string> = {
   opp_need: "Carencia rival",
   opp_synergy: "Sinergia rival",
-  opp_power: "Poder rival",
+  opp_power: "Potencia rival",
   opp_flex: "Flexibilidad rival",
   own_threat: "Amenaza propia",
   own_pick_value: "Valor para tu equipo",
@@ -175,6 +175,19 @@ function reasonText(reason: RecommendationReason): string {
       return roles !== null
         ? `Rol ambiguo entre ${roles} roles`
         : "Rol ambiguo";
+    }
+    case "observed_power": {
+      const queue = readString(params, "queueLabel") ?? "datos observados";
+      const percentile = readNumber(params, "percentile");
+      const games = readNumber(params, "games");
+      const shrunk = readNumber(params, "shrunkWinrate");
+      const ranking =
+        percentile !== null
+          ? `percentil ${Math.round(clamp01(percentile) * 100)}`
+          : "percentil —";
+      const sample = games !== null ? ` · n=${games}` : "";
+      const winrate = shrunk !== null ? ` · winrate ajustado ${percent(shrunk)}` : "";
+      return `Potencia observada en ${queue}: ${ranking}${winrate}${sample}`;
     }
     default:
       return reason.code;
@@ -567,6 +580,24 @@ export function RecommendationsPanel({
         features sin datos se excluyen y los pesos restantes se renormalizan;
         nunca se rellenan con valores neutros.
       </p>
+
+      {output?.stats && (
+        <p className="mt-1.5 text-[10px] leading-relaxed text-muted/80">
+          Potencia observada ·{" "}
+          {output.stats.queue === "soloq" ? "SoloQ" : "Profesional"} ·{" "}
+          {output.stats.id} v{output.stats.version} · parche{" "}
+          {output.stats.patch} · {output.stats.rows} filas · mínimo{" "}
+          {output.stats.minGames} partidas. Fuente: {output.stats.source} ·
+          licencia: {output.stats.license}.
+        </p>
+      )}
+
+      {output && !output.stats && (
+        <p className="mt-1.5 text-[10px] leading-relaxed text-muted/70">
+          Sin dataset observado activo para esta cola: la señal de potencia queda
+          fuera y los pesos se renormalizan. No se usa el dataset de otra cola.
+        </p>
+      )}
 
       {!hasProfiles && (
         <p className="mt-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-[11px] text-warning">

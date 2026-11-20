@@ -6,8 +6,8 @@ use crate::dto::{
     ProfileProvenanceDto, ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto,
     RecommendationDto, RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto,
     SoloqDraftInput, SoloqImportDto, StatsCsvMetaDto, StatsDatasetDto, StatsDiscardedRowDto,
-    StatsImportDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto, TeamViewDto,
-    TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
+    StatsImportDto, StatsProvenanceDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto,
+    TeamMatchupDto, TeamViewDto, TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
@@ -19,9 +19,10 @@ use loldraft_domain::{
 use loldraft_engine::{
     analyze_draft, candidate_synergies, recommend, Advantage, AnalysisParams, ArchetypeId,
     BanRecommendation, Coverage, Dimension, LaneMatchup, MatchupRuleId, NeedSource, NeedStatus,
-    PickedChampion, ProfileProposalSet, ProfileSet, Provenance, Reason, Recommendation,
-    RecommendationParams, RecommendationRequest, RecommendationSet, SynergyId, Taxonomy,
-    TeamMatchup, ThreatRuleId, TraitId, WinConditionId, PILOT_PROFILE_PROPOSAL_JSON,
+    ObservedStats, PickedChampion, ProfileProposalSet, ProfileSet, Provenance, Reason,
+    Recommendation, RecommendationParams, RecommendationRequest, RecommendationSet, StatsQueue,
+    SynergyId, Taxonomy, TeamMatchup, ThreatRuleId, TraitId, WinConditionId,
+    PILOT_PROFILE_PROPOSAL_JSON,
 };
 use loldraft_sources::DdragonClient;
 use serde_json::{json, Value};
@@ -337,6 +338,9 @@ pub fn recommendations_current(
 
     let analysis_params = AnalysisParams::default();
     let params = RecommendationParams::default();
+    // El simulador competitivo usa el dataset profesional. Si no hay uno
+    // activo, se ejecuta sin `power`; nunca se sustituye por SoloQ.
+    let observed = active_observed_stats(&state, StatsQueue::Pro)?;
     let output = recommend(&RecommendationRequest {
         format: &format,
         action_index,
@@ -347,6 +351,7 @@ pub fn recommendations_current(
         analysis_params: &analysis_params,
         params: &params,
         fixed_role: None,
+        observed: observed.as_ref(),
     })?;
 
     let catalog = state
@@ -440,6 +445,9 @@ pub fn soloq_recommend(
 
     let analysis_params = AnalysisParams::default();
     let params = RecommendationParams::default();
+    // SoloQ consume solo el dataset de SoloQ. Mezclarlo con el profesional
+    // daría una cifra que no corresponde a la cola que se está jugando.
+    let observed = active_observed_stats(&state, StatsQueue::Soloq)?;
     let output = recommend(&RecommendationRequest {
         format: &format,
         action_index,
@@ -450,6 +458,7 @@ pub fn soloq_recommend(
         analysis_params: &analysis_params,
         params: &params,
         fixed_role: draft.role,
+        observed: observed.as_ref(),
     })?;
 
     Ok(recommendation_set_dto(
@@ -1183,6 +1192,7 @@ fn recommendation_set_dto(
             .iter()
             .map(|feature| feature.as_str())
             .collect(),
+        stats: output.stats.map(StatsProvenanceDto::from),
     }
 }
 
@@ -1340,6 +1350,23 @@ fn reason_dto(reason: &Reason, taxonomy: &Taxonomy, catalog: &ChampionCatalog) -
             ("unknown_profile", json!({ "knowledge": knowledge }))
         }
         Reason::RoleAmbiguous { roles } => ("role_ambiguous", json!({ "roles": roles })),
+        Reason::ObservedPower {
+            queue,
+            percentile,
+            games,
+            shrunk_winrate,
+            confidence,
+        } => (
+            "observed_power",
+            json!({
+                "queue": queue.as_str(),
+                "queueLabel": queue.label_es(),
+                "percentile": percentile,
+                "games": games,
+                "shrunkWinrate": shrunk_winrate,
+                "confidence": confidence,
+            }),
+        ),
     };
     ReasonDto {
         code: code.to_string(),
@@ -1718,6 +1745,16 @@ pub async fn update_install(
             })
         }
     }
+}
+
+/// Dataset observado activo de una cola, si existe. La ausencia no es un
+/// error: el motor simplemente no emite `power`.
+fn active_observed_stats(
+    state: &AppState,
+    queue: StatsQueue,
+) -> Result<Option<ObservedStats>, CommandError> {
+    let db = lock_db(state)?;
+    Ok(db.active_stats_dataset(queue)?)
 }
 
 /// Conjunto de perfiles activo y su versión, con el error que espera la UI.

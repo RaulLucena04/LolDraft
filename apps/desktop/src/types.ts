@@ -425,6 +425,18 @@ export interface BanRecommendation {
   ownPickValue: number;
 }
 
+/** Procedencia del dataset observado que alimentó la señal `power`. */
+export interface StatsProvenance {
+  id: string;
+  version: string;
+  queue: StatsQueue;
+  patch: string;
+  source: string;
+  license: string;
+  rows: number;
+  minGames: number;
+}
+
 export interface RecommendationSet {
   phase: RecommendationPhase;
   side: Side;
@@ -441,6 +453,8 @@ export interface RecommendationSet {
   limitedData: boolean;
   missingFeatures: RecommendationFeature[];
   missingBanFeatures: BanFeature[];
+  /** `null` si no hay dataset observado activo para esta cola. */
+  stats: StatsProvenance | null;
 }
 
 /** Estado manual de un draft de SoloQ: lo que el jugador ve en el cliente. */

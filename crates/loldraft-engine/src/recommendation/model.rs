@@ -7,6 +7,7 @@
 
 use super::params::{DraftPhase, FeatureId};
 use crate::analysis::{Dimension, SynergyId};
+use crate::stats::{StatsProvenance, StatsQueue};
 use crate::taxonomy::TraitId;
 use loldraft_domain::{ActionKind, ChampionKey, Role, Side};
 use serde::{Deserialize, Serialize};
@@ -105,6 +106,15 @@ pub enum Reason {
     },
     RoleAmbiguous {
         roles: u8,
+    },
+    /// Percentil de winrate ajustado dentro del rol, sacado de un dataset
+    /// observado activo. `games` es la muestra de esa fila.
+    ObservedPower {
+        queue: StatsQueue,
+        percentile: f32,
+        games: u32,
+        shrunk_winrate: f32,
+        confidence: f32,
     },
 }
 
@@ -221,4 +231,7 @@ pub struct RecommendationSet {
     pub missing_features: Vec<FeatureId>,
     /// Unión de features ausentes en las recomendaciones de baneo.
     pub missing_ban_features: Vec<BanFeatureId>,
+    /// Dataset observado que alimentó `power`, si había uno activo. Se expone
+    /// la procedencia para que la UI no muestre un percentil anónimo.
+    pub stats: Option<StatsProvenance>,
 }

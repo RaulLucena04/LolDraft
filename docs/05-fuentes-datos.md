@@ -335,8 +335,14 @@ SQLite y se activa **para su cola**: activar SoloQ no toca el dataset profesiona
 id, versión, parche, filas, fuente, licencia y antigüedad, y permite activar o borrar. Si un CSV deja
 filas inválidas, la interfaz muestra la lista de cuarentena con línea y motivo.
 
-Lo que no hace todavía: conectar `power` a las recomendaciones. Tampoco descarga ni convierte datos
-de Lolalytics.
+El dataset activo alimenta la señal `power` de las recomendaciones, pero solo en su cola: el
+simulador competitivo lee el activo de `pro` y el modo SoloQ el de `soloq`. Cada respuesta incluye la
+procedencia del dataset (id, versión, cola, parche, fuente, licencia, filas y mínimo de partidas) y
+la UI la muestra bajo la recomendación. Si falta el dataset de esa cola, `power` se marca ausente y
+los pesos se renormalizan; nunca se cruza el de la otra cola.
+
+Lo que no hace todavía: descargar ni convertir datos de Lolalytics. La importación es siempre de un
+fichero local que elige el usuario.
 
 ## 10. Atribución en la aplicación
 

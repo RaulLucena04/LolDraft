@@ -615,6 +615,7 @@ pub struct RecommendationSetDto {
     pub limited_data: bool,
     pub missing_features: Vec<&'static str>,
     pub missing_ban_features: Vec<&'static str>,
+    pub stats: Option<StatsProvenanceDto>,
 }
 
 /// Estado manual de un draft de SoloQ: lo que el jugador ve en el cliente.
@@ -679,6 +680,35 @@ impl From<loldraft_data::StatsDatasetSummary> for StatsDatasetDto {
             row_count: summary.row_count,
             created_at: summary.created_at,
             is_active: summary.is_active,
+        }
+    }
+}
+
+/// Procedencia del dataset observado que alimentó `power`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatsProvenanceDto {
+    pub id: String,
+    pub version: String,
+    pub queue: loldraft_engine::StatsQueue,
+    pub patch: String,
+    pub source: String,
+    pub license: String,
+    pub rows: usize,
+    pub min_games: u32,
+}
+
+impl From<loldraft_engine::StatsProvenance> for StatsProvenanceDto {
+    fn from(provenance: loldraft_engine::StatsProvenance) -> Self {
+        Self {
+            id: provenance.id,
+            version: provenance.version,
+            queue: provenance.queue,
+            patch: provenance.patch,
+            source: provenance.source,
+            license: provenance.license,
+            rows: provenance.rows,
+            min_games: provenance.min_games,
         }
     }
 }

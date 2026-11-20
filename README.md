@@ -6,9 +6,11 @@ Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind C
 > **Estado del repositorio:** fases 1–3 implementadas y publicadas en
 > [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.3). El simulador de 20
 > acciones, el análisis de composición y las recomendaciones de pick/ban explicables funcionan; el
-> modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. El talón
-> de Aquiles son los datos: solo existe un piloto inferido de 38 campeones, etiquetado siempre como
-> `Inferred`, y la Fase 4 (estadísticas observadas) está por hacer.
+> modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. La
+> Fase 4 ya importa estadísticas observadas (CSV/JSON) y conecta `power` a las recomendaciones con
+> separación estricta SoloQ/profesional. El talón de Aquiles siguen siendo los datos: solo existe un
+> piloto inferido de 38 campeones, etiquetado siempre como `Inferred`, y los datasets observados hay
+> que importarlos a mano.
 
 ## Qué hace diferente a esta herramienta
 
@@ -45,6 +47,9 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Modo SoloQ:** el draft se rellena solo desde el cliente de League of Legends cada dos segundos
   (con pausa y actualización manual), incluido tu pick cuando lo bloqueas. Mejor pick por turno con
   entrada manual como respaldo.
+- **Estadísticas observadas:** importación de CSV/JSON con esquema validado, shrinkage y cuarentena de
+  filas inválidas; el dataset activo alimenta `power` solo en su cola, y la UI muestra su procedencia
+  (id, parche, fuente, licencia y filas). Sin dataset, la señal se marca ausente.
 
 ## Análisis estratégico (Fase 2)
 
@@ -80,20 +85,19 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 
 ## Recomendaciones de pick/ban (Fase 3)
 
-- **Features explicables:** `need`, `answer`, `synergy`, `counter`, `flex`, `balance` y `safety`, con
-  renormalización de pesos cuando falta una señal, pesos por fase del draft, penalización por
-  confianza y diversificación por rol y arquetipo.
+- **Features explicables:** `need`, `answer`, `synergy`, `counter`, `power` (con dataset observado),
+  `flex`, `balance` y `safety`, con renormalización de pesos cuando falta una señal, pesos por fase
+  del draft, penalización por confianza y diversificación por rol y arquetipo.
 - **Explicaciones con parámetros**, no texto generado: puntuación, contribuciones, riesgos, motivos,
   carencias que cubre y datos que faltan. La invariante `contribuciones + riesgos = puntuación` se
   cumple y se testea.
 - **Baneos desde el plan del rival**, no solo por winrate.
 - **UI:** panel de recomendaciones con detalle expandible, lista de alternativas y desglose; aviso
   explícito cuando los datos no bastan para recomendar.
-- **Pendiente:** `power` (necesita estadísticas observadas), reasignación completa de roles al evaluar
-  y filtros de alternativas.
+- **Pendiente:** reasignación completa de roles al evaluar y filtros de alternativas.
 
-Todavía **no** incluye: estadísticas observadas por campeón, sinergias curadas, matchups observados,
-importación de drafts profesionales ni fearless draft.
+Todavía **no** incluye: sinergias curadas ni matchups observados, importación de drafts profesionales
+ni fearless draft. La potencia observada ya está conectada cuando importas un dataset.
 
 ## Descargar la app
 

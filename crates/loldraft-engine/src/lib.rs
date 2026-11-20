@@ -33,8 +33,8 @@ pub use recommendation::{
 };
 pub use stats::{
     parse_stats_csv, ChampionStatRow, DiscardedRow, ObservedStats, StatsCsvImport, StatsCsvMeta,
-    StatsError, StatsQueue, MAX_ROWS, MIN_GAMES_FOR_POWER, PRIOR_GAMES, PRIOR_WINRATE,
-    STATS_SCHEMA_VERSION,
+    StatsError, StatsProvenance, StatsQueue, MAX_ROWS, MIN_GAMES_FOR_POWER, PRIOR_GAMES,
+    PRIOR_WINRATE, STATS_SCHEMA_VERSION,
 };
 pub use taxonomy::{
     taxonomy, ArchetypeCategory, ArchetypeEntry, ArchetypeId, RubricAnchor, Taxonomy,

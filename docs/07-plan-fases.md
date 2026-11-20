@@ -247,7 +247,8 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 - [x] Explicaciones con parámetros e invariante de suma, con tests.
 - [x] Determinismo, dominancia, sensibilidad a pesos y rendimiento (<100 ms) testeados.
 - [x] UI de picks y baneos con desglose, motivos, carencias cubiertas y datos que faltan.
-- [ ] `power` con estadísticas observadas (depende de la Fase 4).
+- [x] `power` con estadísticas observadas: percentil del winrate ajustado por rol, procedencia
+  expuesta y separación estricta soloq/pro.
 - [ ] Reasignación completa de roles al evaluar.
 - [ ] Filtros de alternativas.
 
@@ -260,8 +261,9 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 ## Fase 4 — Integración de datos
 
 > **Estado:** en curso. Implementados el esquema validado de estadísticas observadas, la importación
-> CSV/JSON, el shrinkage, la persistencia en SQLite y la pantalla de importación/activación. Pendiente:
-> conectar `power` a las recomendaciones.
+> CSV/JSON, el shrinkage, la persistencia en SQLite, la pantalla de importación/activación y la señal
+> `power` conectada al motor con separación estricta soloq/pro y procedencia visible. Pendientes:
+> el cliente de Leaguepedia, la caché HTTP condicional y los drafts profesionales.
 
 **Objetivo:** actualizar datos sin reinstalar y sin mezclar fuentes/licencias.
 

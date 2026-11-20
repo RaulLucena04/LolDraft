@@ -14,6 +14,7 @@ use crate::analysis::{
     NeedSource, PickedChampion, Synergy, TeamAnalysis,
 };
 use crate::profile::{ChampionProfile, ProfileSet};
+use crate::stats::ObservedStats;
 use crate::taxonomy::TraitId;
 use loldraft_domain::{ChampionKey, DraftFormat, Role, Side};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -32,6 +33,25 @@ pub struct RecommendationRequest<'a> {
     /// Rol reservado para el pick que se va a hacer (SoloQ con posición
     /// conocida). Si es `None`, se evalúan todos los roles libres.
     pub fixed_role: Option<Role>,
+    /// Estadísticas observadas del dataset activo para esta cola. `None`
+    /// desactiva `power`: nunca se sustituye por una estimación.
+    pub observed: Option<&'a ObservedStats>,
+}
+
+/// Índice de `power` ya calculado para todo el dataset. Se construye una vez
+/// por recomendación, no por candidato.
+struct ObservedPower<'a> {
+    stats: &'a ObservedStats,
+    percentiles: BTreeMap<(ChampionKey, Role), f32>,
+}
+
+impl<'a> ObservedPower<'a> {
+    fn new(stats: &'a ObservedStats) -> Self {
+        Self {
+            stats,
+            percentiles: stats.power_percentiles(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -77,6 +97,7 @@ pub fn recommend(
         .filter(|key| !used.contains(key))
         .collect();
     let candidates_considered = candidates.len();
+    let observed_power = request.observed.map(ObservedPower::new);
 
     let (picks, bans, no_data) = if request.profiles.champions.is_empty() {
         (Vec::new(), Vec::new(), Some(NoDataReason::NoProfiles))
@@ -87,11 +108,24 @@ pub fn recommend(
             Some(NoDataReason::NoAvailableChampions),
         )
     } else if phase.is_ban() {
-        let bans = evaluate_bans(request, &baseline, side, phase, &candidates);
+        let bans = evaluate_bans(
+            request,
+            &baseline,
+            side,
+            phase,
+            &candidates,
+            observed_power.as_ref(),
+        );
         let no_data = bans.is_empty().then_some(NoDataReason::NoViableCandidate);
         (Vec::new(), bans, no_data)
     } else {
-        let picks = evaluate_picks(request, &baseline, side, &candidates);
+        let picks = evaluate_picks(
+            request,
+            &baseline,
+            side,
+            &candidates,
+            observed_power.as_ref(),
+        );
         let no_data = picks.is_empty().then_some(NoDataReason::NoViableCandidate);
         (picks, Vec::new(), no_data)
     };
@@ -124,6 +158,7 @@ pub fn recommend(
         limited_data,
         missing_features: missing.into_iter().collect(),
         missing_ban_features: missing_ban.into_iter().collect(),
+        stats: request.observed.map(|stats| stats.provenance()),
     })
 }
 
@@ -146,6 +181,7 @@ fn evaluate_picks(
     baseline: &DraftAnalysis,
     side: Side,
     candidates: &[ChampionKey],
+    observed: Option<&ObservedPower<'_>>,
 ) -> Vec<Recommendation> {
     let (our_picks, enemy_picks) = match side {
         Side::Blue => (request.blue_picks, request.red_picks),
@@ -204,6 +240,7 @@ fn evaluate_picks(
                 *role,
                 &weights,
                 &occupied,
+                observed,
             ) {
                 drafts.push(draft);
             }
@@ -267,6 +304,7 @@ fn evaluate_pick_role(
     role: Role,
     weights: &FeatureWeights,
     occupied: &HashSet<Role>,
+    observed: Option<&ObservedPower<'_>>,
 ) -> Option<PickDraft> {
     let mut blue = request.blue_picks.to_vec();
     let mut red = request.red_picks.to_vec();
@@ -378,7 +416,12 @@ fn evaluate_pick_role(
         features.push(feature);
     }
 
-    // `power` sigue ausente: no hay estadísticas observadas en esta fase.
+    // `power`: percentil observado dentro del rol, si hay dataset activo.
+    if let Some((feature, reason)) = power_feature(observed, candidate.key, role) {
+        features.push(feature);
+        reasons.push(reason);
+    }
+
     let missing = missing_features(&features, &FeatureId::ALL);
 
     let knowledge = candidate.known_cell_ratio();
@@ -415,6 +458,7 @@ fn evaluate_bans(
     acting_side: Side,
     phase: DraftPhase,
     candidates: &[ChampionKey],
+    observed: Option<&ObservedPower<'_>>,
 ) -> Vec<BanRecommendation> {
     let opponent = acting_side.opposite();
     let (our_picks, enemy_picks) = match acting_side {
@@ -459,6 +503,7 @@ fn evaluate_bans(
                 &weights,
                 &enemy_occupied,
                 &our_occupied,
+                observed,
             ) {
                 drafts.push(draft);
             }
@@ -548,6 +593,7 @@ fn evaluate_ban_role(
     weights: &BanWeights,
     enemy_occupied: &HashSet<Role>,
     our_occupied: &HashSet<Role>,
+    observed: Option<&ObservedPower<'_>>,
 ) -> Option<BanDraft> {
     // Escenario rival con el candidato.
     let mut enemy_blue = request.blue_picks.to_vec();
@@ -632,7 +678,12 @@ fn evaluate_ban_role(
         }
     }
 
-    // `opp_power` sigue ausente: no se inventa presencia sin estadísticas.
+    // `opp_power`: percentil observado del rival dentro del rol. Un rival con
+    // muestra insuficiente no aporta señal; no se inventa presencia.
+    if let Some((feature, reason)) = power_feature(observed, candidate.key, role) {
+        features.push((BanFeatureId::OppPower, feature.value));
+        reasons.push(reason);
+    }
 
     if let Some(feature) = flex_feature(
         candidate,
@@ -1029,6 +1080,30 @@ fn team_edge_mean(analysis: &DraftAnalysis, side: Side) -> Option<(f32, f32)> {
 
 fn midpoint(advantage: &Advantage) -> f32 {
     (advantage.low + advantage.high) / 2.0
+}
+
+/// `power` observado: percentil del winrate ajustado dentro del mismo rol.
+/// Solo existe para filas con muestra suficiente; por eso el mapa de
+/// percentiles ya viene filtrado. La confianza es la de la propia fila.
+fn power_feature(
+    observed: Option<&ObservedPower<'_>>,
+    champion: ChampionKey,
+    role: Role,
+) -> Option<(FeatureValue, Reason)> {
+    let observed = observed?;
+    let percentile = *observed.percentiles.get(&(champion, role))?;
+    let row = observed.stats.row(champion, role)?;
+    let confidence = row.confidence();
+    Some((
+        FeatureValue::new(FeatureId::Power, percentile, confidence),
+        Reason::ObservedPower {
+            queue: observed.stats.queue,
+            percentile,
+            games: row.games,
+            shrunk_winrate: row.shrunk_winrate(),
+            confidence,
+        },
+    ))
 }
 
 fn flex_feature(
