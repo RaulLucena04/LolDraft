@@ -19,9 +19,9 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * Tarjeta de actualizaciones: consulta el canal configurado y lanza el
- * instalador. No descarga binarios por su cuenta; el canal HTTP solo abre el
- * navegador.
+ * Tarjeta de actualizaciones: consulta el canal configurado y actualiza sobre
+ * la propia instalación. Al arrancar, `UpdateBanner` ya hace la comprobación;
+ * esta tarjeta permite revisar el canal y lanzar la actualización a mano.
  */
 export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
   const [source, setSource] = useState("");
@@ -70,12 +70,9 @@ export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
 
   const install = useCallback(async () => {
     if (!result?.available) return;
-    const opensBrowser = result.channel === "url";
     if (
       !window.confirm(
-        opensBrowser
-          ? `Se abrirá en el navegador la descarga de LolDraft ${result.latestVersion}. Ejecuta el instalador cuando termine. ¿Continuar?`
-          : `Se abrirá el instalador de la versión ${result.latestVersion}. Si LolDraft sigue abierto, el instalador pedirá cerrarlo. ¿Continuar?`,
+        `Se descargará LolDraft ${result.latestVersion}, se verificará y se instalará sobre esta app. LolDraft se cerrará y volverá a abrir. ¿Continuar?`,
       )
     ) {
       return;
@@ -114,9 +111,9 @@ export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
       </div>
 
       <p className="mt-2 text-xs leading-relaxed text-muted">
-        Comprueba el canal público de LolDraft o la carpeta o URL que indiques.
-        El canal es un <code className="text-ink">latest.json</code> junto a su
-        instalador.
+        Al arrancar se comprueba el canal público de LolDraft o la carpeta o URL
+        que indiques. El canal es un <code className="text-ink">latest.json</code>{" "}
+        junto a su instalador.
       </p>
 
       <label
@@ -179,10 +176,8 @@ export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
                 className="btn-gold mt-2 w-full text-xs"
               >
                 {installing
-                  ? "Abriendo…"
-                  : result.channel === "url"
-                    ? `Descargar ${result.latestVersion}`
-                    : `Instalar ${result.latestVersion}`}
+                  ? "Descargando e instalando…"
+                  : `Actualizar a ${result.latestVersion}`}
               </button>
             </>
           ) : (
@@ -202,8 +197,10 @@ export function UpdatesCard({ currentVersion }: UpdatesCardProps) {
       )}
 
       <p className="mt-2 text-[10px] leading-relaxed text-muted/70">
-        Sin firma: el canal solo indica qué instalador ejecutar. Si el origen es
-        HTTP, la app abre el navegador y nunca ejecuta la descarga por su cuenta.
+        La actualización se descarga del canal y se verifica con su{" "}
+        <code>sha256</code> antes de ejecutarse. Si el origen es HTTP abierto o
+        no publica checksum, la app no ejecuta nada: abre la descarga en el
+        navegador. Sin firma Authenticode: Windows puede mostrar SmartScreen.
       </p>
     </div>
   );

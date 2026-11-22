@@ -1760,12 +1760,45 @@ pub async fn update_check(state: State<'_, AppState>) -> Result<UpdateCheckDto, 
     })
 }
 
-/// Ejecuta el instalador del canal local o abre su descarga si el canal es HTTP.
-///
-/// Nunca descarga ni ejecuta un binario de internet por su cuenta: en HTTP se
-/// abre el navegador y decide el usuario.
+/// Ejecuta el instalador NSIS en modo silencioso y le pide que vuelva a abrir
+/// la app al terminar. Es la actualización sobre la propia instalación: no se
+/// descarga un archivo aparte que el usuario tenga que ejecutar a mano.
+fn launch_installer(path: &std::path::Path) -> Result<(), CommandError> {
+    std::process::Command::new(path)
+        .args(["/S", "/R"])
+        .spawn()
+        .map_err(|error| {
+            CommandError::new(
+                "update_install_failed",
+                format!(
+                    "No se pudo iniciar el instalador {}: {error}",
+                    path.display()
+                ),
+            )
+        })?;
+    Ok(())
+}
+
+/// Cierra la app poco después de responder a la interfaz, para que el
+/// instalador pueda reemplazar los archivos y la vuelva a abrir con `/R`.
+fn schedule_exit(app: &tauri::AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(1200)).await;
+        app.exit(0);
+    });
+}
+
+fn update_cache_dir() -> std::path::PathBuf {
+    std::env::temp_dir().join("loldraft-updates")
+}
+
+/// Descarga el instalador del canal, comprueba su `sha256` y lo ejecuta en
+/// modo silencioso. Si el canal no permite una instalación segura (HTTP abierto
+/// o sin checksum), abre la descarga en el navegador como hasta ahora.
 #[tauri::command]
 pub async fn update_install(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     version: String,
 ) -> Result<UpdateInstallDto, CommandError> {
@@ -1787,39 +1820,49 @@ pub async fn update_install(
 
     let installer = updates::installer_for(&target, &manifest)?;
     match installer {
-        Installer::Local(path) => {
-            std::process::Command::new(&path).spawn().map_err(|error| {
-                CommandError::new(
-                    "update_install_failed",
-                    format!("No se pudo abrir el instalador {}: {error}", path.display()),
-                )
-            })?;
+        Installer::Local(_) => {
+            let path = updates::fetch_installer(&target, &manifest, &update_cache_dir()).await?;
+            launch_installer(&path)?;
+            schedule_exit(&app);
             Ok(UpdateInstallDto {
-                action: "installer",
+                action: "installing",
                 version: manifest.version,
                 target: path.display().to_string(),
-                message: "Se ha abierto el instalador. Sigue sus pasos; si LolDraft sigue abierto, te pedirá cerrarlo.".to_string(),
+                message: "Actualización descargada y verificada. LolDraft se cerrará y volverá a abrir con la nueva versión.".to_string(),
             })
         }
         Installer::Url(url) => {
-            // `explorer` abre la URL con el navegador predeterminado sin pasar
-            // por un shell que interprete `&` u otros caracteres de la URL.
-            std::process::Command::new("explorer")
-                .arg(&url)
-                .spawn()
-                .map_err(|error| {
-                    CommandError::new(
-                        "update_launch_failed",
-                        format!("No se pudo abrir el navegador para descargar la actualización: {error}"),
-                    )
-                })?;
-            Ok(UpdateInstallDto {
-                action: "browser",
-                version: manifest.version,
-                target: url,
-                message: "Se ha abierto la descarga en el navegador. Ejecuta el instalador cuando termine."
-                    .to_string(),
-            })
+            if updates::channel_is_secure(&target) && manifest.sha256.is_some() {
+                let path =
+                    updates::fetch_installer(&target, &manifest, &update_cache_dir()).await?;
+                launch_installer(&path)?;
+                schedule_exit(&app);
+                Ok(UpdateInstallDto {
+                    action: "installing",
+                    version: manifest.version,
+                    target: path.display().to_string(),
+                    message: "Actualización descargada y verificada. LolDraft se cerrará y volverá a abrir con la nueva versión.".to_string(),
+                })
+            } else {
+                // Sin HTTPS o sin checksum no se ejecuta nada automáticamente.
+                std::process::Command::new("explorer")
+                    .arg(&url)
+                    .spawn()
+                    .map_err(|error| {
+                        CommandError::new(
+                            "update_launch_failed",
+                            format!(
+                                "No se pudo abrir el navegador para descargar la actualización: {error}"
+                            ),
+                        )
+                    })?;
+                Ok(UpdateInstallDto {
+                    action: "browser",
+                    version: manifest.version,
+                    target: url,
+                    message: "Este canal no permite instalar en un clic (necesita HTTPS y sha256), así que se ha abierto la descarga en el navegador.".to_string(),
+                })
+            }
         }
     }
 }

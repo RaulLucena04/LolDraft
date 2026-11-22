@@ -16,6 +16,7 @@ import { DraftScreen } from "./components/DraftScreen";
 import { SoloqScreen } from "./components/SoloqScreen";
 import { ChampionDrawer } from "./components/ChampionDrawer";
 import { ToastStack } from "./components/ToastStack";
+import { UpdateBanner } from "./components/UpdateBanner";
 import type { Toast } from "./components/ToastStack";
 import { Logo } from "./components/Logo";
 
@@ -529,6 +530,7 @@ export default function App() {
       />
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
+      <UpdateBanner />
     </>
   );
 }

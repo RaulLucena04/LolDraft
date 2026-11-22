@@ -42,6 +42,9 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **UI de escritorio:** inicio, estado de datos, sesiones recientes, simulador con paneles azul/rojo,
   timeline compacta de 20 turnos, selector de campeones visible en la columna central con búsqueda y
   filtros, drawer de campeón y avisos de error estables.
+- **Actualizaciones sobre la app:** al arrancar se comprueba GitHub Releases; si hay una versión
+  nueva, un aviso permite descargarla, verificar su `sha256` e instalarla en silencio, y LolDraft se
+  reinicia con la versión nueva.
 - **Datos honestos:** los perfiles estratégicos ausentes se muestran como pendientes; las celdas
   inferidas se etiquetan como `Inferred` y no se presentan como observadas. No se muestran ceros ni
   winrates falsos.

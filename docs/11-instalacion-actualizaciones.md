@@ -3,9 +3,11 @@
 La app se distribuye como instalador de escritorio (Tauri v2 + NSIS) y se
 actualiza desde un **canal de archivos**: un `latest.json` junto al instalador.
 Por defecto el canal es la última release pública de GitHub; también admite una
-carpeta local o cualquier URL. No hay firma de actualizaciones. Este documento
-explica qué hace cada pieza, cómo publicar una versión, cómo dársela a otra
-persona y qué límites tiene.
+carpeta local o cualquier URL. Al arrancar se comprueba si hay una versión nueva
+y, con un clic, la app **se actualiza sobre sí misma**: descarga el instalador,
+verifica su `sha256`, lo ejecuta en silencio y se reinicia con la versión nueva.
+No hay firma Authenticode de código. Este documento explica qué hace cada pieza,
+cómo publicar una versión, cómo dársela a otra persona y qué límites tiene.
 
 ## 1. Compilar el instalador
 
@@ -66,9 +68,29 @@ Por defecto **nunca reutiliza la misma versión sin avisar**: si no indicas
 estrictamente más nuevas. `--no-bump` existe para reconstruir un instalador o
 para la primera publicación.
 
-## 3. La tarjeta de actualizaciones
+## 3. Actualización al arrancar
 
-Inicio → columna derecha → **Aplicación · Versión X**.
+Al abrir la app se consulta el canal **una vez, en segundo plano**. Si hay una
+versión más nueva aparece un aviso abajo a la derecha con las notas y el botón
+**Actualizar ahora**; «Recordar más tarde» lo oculta hasta la siguiente versión.
+Un fallo de red al arrancar no muestra error: la app funciona igual y la
+comprobación manual sigue disponible.
+
+La instalación es sobre la propia app:
+
+1. descarga el instalador del canal (máximo 200 MB, timeout de 180 s);
+2. comprueba que su `sha256` coincide con el publicado; si no, aborta;
+3. ejecuta el instalador NSIS con `/S /R`: instala en silencio sobre la versión
+   actual y vuelve a abrir LolDraft;
+4. la app se cierra poco después de responder a la interfaz. Si el instalador
+   sigue viendo la app abierta, la cierra él mediante el Restart Manager.
+
+Solo se instala automáticamente desde **HTTPS, localhost o una carpeta local**, y
+solo si el manifiesto publica `sha256`. Un canal HTTP abierto o sin checksum abre
+la descarga en el navegador, como antes.
+
+Inicio → columna derecha → **Aplicación · Versión X** sigue existiendo para
+revisar el canal y actualizar a mano:
 
 1. **Origen** (opcional): carpeta o URL base. Vacío usa el canal público
    `https://github.com/RaulLucena04/LolDraft/releases/latest/download`, es decir,
@@ -77,11 +99,8 @@ Inicio → columna derecha → **Aplicación · Versión X**.
    `%APPDATA%\com.loldraft.desktop\updates`.
 2. **Buscar actualizaciones**: lee `<origen>/latest.json`, compara versiones y
    muestra el canal y la ruta exacta consultada.
-3. **Instalar**: solo aparece si la versión del canal es mayor.
-   - **Canal local**: ejecuta el instalador y muestra su ruta. El instalador
-     pide cerrar LolDraft si sigue abierto.
-   - **Canal HTTP** (incluido GitHub): abre la descarga en el navegador. La app
-     **no** descarga ni ejecuta nada de internet por su cuenta.
+3. **Actualizar a X**: solo aparece si la versión del canal es mayor. Descarga,
+   verifica y aplica la actualización sobre la instalación actual.
 
 La comparación es numérica (`0.2.0 > 0.1.9`, `1.0 > 0.9.9`) e ignora etiquetas
 de preestreno: `0.2.0-beta` no se considera más nueva que `0.2.0`.
@@ -103,7 +122,7 @@ de preestreno: `0.2.0-beta` no se considera más nueva que `0.2.0`.
 | `version` | sí | Versión publicada; se compara con la instalada. |
 | `installer` | sí | Nombre relativo del instalador dentro del canal. |
 | `notes` | no | Texto que se muestra antes de instalar. |
-| `sha256` | no | Solo informativo; la app **no** lo verifica. |
+| `sha256` | sí para instalar en un clic | Huella del instalador; si falta, el canal solo puede abrir la descarga en el navegador. |
 | `generated_at` | no | Metadatos del script de publicación. |
 
 El `installer` debe ser un nombre simple (`setup.exe`) o una subcarpeta
@@ -144,8 +163,9 @@ cambia `DEFAULT_CHANNEL` en `src-tauri/src/updates.rs`.
 
 También vale cualquier hosting estático: copia el instalador y `latest.json` a
 `https://tu-dominio/updates/` e indica esa URL como origen. La app consulta
-`<url>/latest.json` con un timeout de 10 s y un límite de 64 KiB; la descarga la
-abre el navegador.
+`<url>/latest.json` con un timeout de 10 s y un límite de 64 KiB. Si el canal es
+HTTPS y publica `sha256`, la actualización se descarga y se aplica sobre la app;
+si es HTTP abierto o no hay checksum, solo se abre la descarga en el navegador.
 
 ## 6. Compartir la app con otra persona
 
@@ -160,20 +180,26 @@ accesos en el menú Inicio y el escritorio. Al abrirla por primera vez solo hay
 catálogo de campeones: para tener recomendaciones debe pulsar **Cargar piloto
 inferido** en Inicio. Es un dato `Inferred`, no curado.
 
-A partir de ahí, si el repositorio es público y hay releases, **Inicio →
-Actualizaciones → Buscar actualizaciones** le dirá si hay una versión nueva y el
-botón abrirá la descarga. Sin canal público, hay que enviarle cada instalador
-nuevo a mano.
+A partir de ahí, si el repositorio es público y hay releases, al abrir la app se
+comprueba el canal y aparece el aviso de actualización: **Actualizar ahora**
+descarga, verifica e instala sobre la app, sin mandarle nada a mano. Sin canal
+público, hay que enviarle cada instalador nuevo.
 
 ## 7. Seguridad y límites
 
-- **Sin firma.** La app no verifica la autenticidad del instalador. Solo ejecuta
-  un `.exe` que ya está en el canal local configurado; en HTTP abre el navegador
-  y decide el usuario. El `sha256` del manifiesto es informativo. No apuntes el
-  canal a una carpeta o URL que no controles.
-- **Sin autoactualización.** Nunca se descarga ni se ejecuta en segundo plano.
+- **Sin firma Authenticode.** La app no verifica la autenticidad criptográfica del
+  editor, pero sí comprueba que el instalador coincide con el `sha256` publicado
+  por el canal antes de ejecutarlo. No apuntes el canal a una carpeta o URL que no
+  controles: quien controle el canal controla el binario y su hash.
+- **Instalación solo tras un clic.** Al arrancar se comprueba si hay versión
+  nueva, pero no se descarga ni se ejecuta nada hasta que el usuario pulsa
+  **Actualizar ahora**. No hay instalación silenciosa en segundo plano.
+- **Solo canales seguros.** La instalación automática exige HTTPS, localhost o
+  una carpeta local, y un `sha256` válido. HTTP abierto o manifiesto sin checksum
+  abre la descarga en el navegador.
 - **Sin downgrade.** Una versión igual o anterior no se ofrece como instalable.
-- **Sin actualizaciones delta.** Cada versión publica el instalador completo.
+- **Sin actualizaciones delta.** Cada versión publica el instalador completo
+  (unos 10 MB; el límite aceptado es 200 MB).
 - **Solo Windows.** El script asume las rutas de `%APPDATA%` y el bundle NSIS.
 - **El canal local es de este equipo.** Otra máquina necesita su propio
   instalador o el canal público de GitHub.
@@ -181,10 +207,12 @@ nuevo a mano.
   `update_unreachable`; el canal local sigue funcionando.
 - **Errores estables:** `update_not_found` (no hay `latest.json`),
   `update_unreachable` (red o estado HTTP), `update_invalid` (manifiesto o ruta
-  no válidos), `update_invalid_version`, `update_installer_missing` (el
-  manifiesto apunta a un instalador que no está), `update_changed` (el canal
-  cambió entre comprobar e instalar), `update_not_newer`, `update_install_failed`
-  y `update_launch_failed`.
+  no válidos), `update_invalid_version`, `update_installer_missing` (el manifiesto
+  apunta a un instalador que no está), `update_unverified` (canal sin checksum o
+  no seguro), `update_checksum_mismatch` (el instalador no coincide),
+  `update_too_large`, `update_changed` (el canal cambió entre comprobar e
+  instalar), `update_not_newer`, `update_install_failed` y
+  `update_launch_failed`.
 
 ## 8. Verificación rápida
 
@@ -200,9 +228,12 @@ npm run release -- --version 0.1.1 --notes "Prueba de actualización"
 # 3. Publicar de verdad
 npm run release -- --version 0.1.2 --notes "…" --github
 
-# 4. En la app: Inicio -> Actualizaciones -> Buscar -> Descargar
+# 4. En la app: al arrancar aparece el aviso, o Inicio -> Actualizaciones ->
+#    Buscar actualizaciones -> Actualizar a 0.1.2
 ```
 
 El canal local queda en `%APPDATA%\com.loldraft.desktop\updates`. Para comprobar
 el caso "al día", publica la misma versión instalada; para comprobar un manifiesto
-roto, edita `latest.json` a mano y vuelve a buscar.
+roto, edita `latest.json` a mano y vuelve a buscar. Para probar el rechazo por
+checksum, cambia un carácter del `sha256` y pulsa actualizar: debe fallar con
+`update_checksum_mismatch` sin ejecutar el instalador.

@@ -169,6 +169,11 @@ impl From<crate::updates::UpdateError> for CommandError {
             UpdateError::MissingInstaller(_) => "update_installer_missing",
             UpdateError::InvalidVersion(_) => "update_invalid_version",
             UpdateError::Invalid(_) | UpdateError::OutsideChannel(_) => "update_invalid",
+            UpdateError::MissingChecksum
+            | UpdateError::InsecureChannel(_)
+            | UpdateError::InvalidChecksum(_) => "update_unverified",
+            UpdateError::InstallerTooLarge(_) => "update_too_large",
+            UpdateError::ChecksumMismatch { .. } => "update_checksum_mismatch",
             UpdateError::Io(_) => "update_unreachable",
         };
         Self::new(code, error.to_string())

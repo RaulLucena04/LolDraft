@@ -600,8 +600,8 @@ export interface UpdateCheck {
 
 /** Resultado de lanzar una actualización. */
 export interface UpdateInstall {
-  /** `installer` si se ejecutó el instalador; `browser` si el canal es HTTP. */
-  action: "installer" | "browser";
+  /** `installing` si se descarga y ejecuta en silencio; `browser` si solo se abre la descarga. */
+  action: "installing" | "browser";
   version: string;
   target: string;
   message: string;

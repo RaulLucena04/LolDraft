@@ -69,9 +69,11 @@ Inicio
 - Acción principal: **Nuevo draft**.
 - Sesiones recientes con formato, lado, progreso y fecha.
 - Aviso si faltan datos o hay una actualización disponible.
+- Aviso de actualización al arrancar (comprobación automática en segundo plano): versión nueva,
+  notas, "Actualizar ahora" y "Recordar más tarde". Instala sobre la propia app.
 - Tarjeta de actualizaciones: versión instalada, origen del canal (por defecto la última
   release de GitHub; también carpeta local o URL), "Buscar actualizaciones" y, si hay una más
-  nueva, "Instalar" (canal local) o "Descargar" (HTTP). Detalle en
+  nueva, "Actualizar a X": descarga, verifica el `sha256` y aplica el instalador. Detalle en
   [`11-instalacion-actualizaciones.md`](./11-instalacion-actualizaciones.md).
 - Tarjeta de **estadísticas importadas**: importa un JSON o CSV local, muestra los datasets con
   cola, parche, filas, fuente y licencia, permite activar uno por cola y borrar los antiguos. Las
