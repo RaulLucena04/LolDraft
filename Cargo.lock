@@ -1890,7 +1890,7 @@ checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
 name = "loldraft-app"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "base64 0.22.1",
  "loldraft-data",
@@ -1909,7 +1909,7 @@ dependencies = [
 
 [[package]]
 name = "loldraft-curation"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "loldraft-domain",
  "loldraft-engine",
@@ -1918,7 +1918,7 @@ dependencies = [
 
 [[package]]
 name = "loldraft-data"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "loldraft-domain",
  "loldraft-engine",
@@ -1930,7 +1930,7 @@ dependencies = [
 
 [[package]]
 name = "loldraft-domain"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -1938,7 +1938,7 @@ dependencies = [
 
 [[package]]
 name = "loldraft-engine"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "loldraft-domain",
  "serde",
@@ -1948,7 +1948,7 @@ dependencies = [
 
 [[package]]
 name = "loldraft-sources"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "loldraft-domain",
  "reqwest",
