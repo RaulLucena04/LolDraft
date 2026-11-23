@@ -344,10 +344,12 @@ los pesos se renormalizan; nunca se cruza el de la otra cola.
 Lo que no hace todavía: descargar ni convertir datos de Lolalytics. La importación es siempre de un
 fichero local que elige el usuario.
 
-### 9.2 Formato de importación de builds y runas (Fase 4)
+### 9.2 Builds y runas importadas (opcional, Fase 4)
 
-La build y las runas salen del mismo principio que las estadísticas: un documento local que declara
-su fuente y su licencia. El motor (`loldraft-engine::builds`) elige la build; no la inventa.
+La build y las runas importadas salen del mismo principio que las estadísticas: un documento local
+que declara su fuente y su licencia. El motor (`loldraft-engine::builds`) elige la build; no la
+inventa. Este dataset es **opcional**: la recomendación principal de SoloQ usa el catálogo curado de
+la sección 9.3 y no necesita importar nada.
 
 ```json
 {
@@ -409,6 +411,36 @@ de otra cola ni se rellena con una genérica.
 
 `data/samples/builds-soloq.example.json` es un ejemplo de estructura para probar la importación. Sus
 filas son de demostración (`games: 0`), no estadísticas: sustitúyelo por datos propios.
+
+### 9.3 Catálogo curado de objetos y runas (Fase 4)
+
+La vía principal de SoloQ no son builds observadas, sino **funciones**: qué hace cada objeto y cada
+página de runas, contra qué amenaza sirve y con qué tipo de campeón encaja. El catálogo vive en
+`crates/loldraft-engine/data/items-v1.json` (incluido en el binario, validado con Serde) y declara:
+
+- `provenance`: curado, editor y revisión. Sin editor y revisión no se acepta.
+- `items`: id, nombre, categoría (`damage`/`defense`/`utility`), ranura (`starter`/`boots`/`item`),
+  `function` (definición legible), `fit` (etiquetas funcionales con peso 0..1), `counters` (amenazas
+  que responde, con peso) y `roles` opcionales.
+- `rune_pages`: páginas completas (dos ramas, keystone, runas y fragmentos) con la misma estructura de
+  `fit`, `counters` y `roles`.
+- `schema` y `version`: el catálogo se versiona aparte de las reglas (`LOADOUT_RULES_VERSION`).
+
+La recomendación (`loldraft-engine::items::recommend_loadout`) es determinista y pura:
+
+1. Detecta amenazas del rival a partir del `TeamAnalysis`: reparto de daño físico/mágico, CC duro,
+   movilidad, sustain, tanques/frontline, burst/assassin, poke, engage, catch, DPS, splitpush, asedio,
+   presión temprana y escalado. Una cobertura sin celdas conocidas no activa nada; una lectura parcial
+   se marca como posible, no como confirmada.
+2. Calcula el encaje del campeón propio con su perfil estratégico (arquetipos y traits) y, si falta,
+   con sus tags de Riot (con aviso explícito). Sin perfil ni tags no se inventa encaje.
+3. Puntúa cada objeto/página con `función + amenaza + encaje + rol` y devuelve inicio, botas, núcleo,
+   situacionales y páginas de runas con sus motivos. El valor mostrado es un **índice de encaje
+   0-100**, nunca una probabilidad de victoria.
+
+La UI etiqueta el catálogo como «Curado» y el resultado como derivado de reglas. Los datos de builds
+importadas y este catálogo son compatibles, pero no se mezclan: la build importada sigue siendo
+opcional y claramente identificada.
 
 ## 10. Atribución en la aplicación
 

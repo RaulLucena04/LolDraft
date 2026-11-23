@@ -3,12 +3,12 @@ use crate::dto::{
     BuildDatasetDto, BuildLookupDto, BuildsProvenanceDto, ChampionBuildDto, ChampionDto,
     ChampionProfileContextDto, ChampionProfileDto, ChampionRefDto, ContributionDto, CoverageDto,
     DamageProfileDto, DataStatusDto, DraftAnalysisDto, DraftStepViewDto, DraftViewDto, FormatDto,
-    LaneMatchupDto, NeedDto, NextStepDto, PickViewDto, ProfileDamageDto, ProfileProvenanceDto,
-    ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto, RecommendationDto,
-    RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto, SoloqDraftInput,
-    SoloqImportDto, StatsCsvMetaDto, StatsDatasetDto, StatsDiscardedRowDto, StatsImportDto,
-    StatsProvenanceDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto, TeamMatchupDto,
-    TeamViewDto, TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
+    LaneMatchupDto, LoadoutDto, NeedDto, NextStepDto, PickViewDto, ProfileDamageDto,
+    ProfileProvenanceDto, ProfileRatingDto, ProfileRoleDto, ProfileSetDto, ReasonDto,
+    RecommendationDto, RecommendationSetDto, RiskContributionDto, SessionSummaryDto, SignalDto,
+    SoloqDraftInput, SoloqImportDto, StatsCsvMetaDto, StatsDatasetDto, StatsDiscardedRowDto,
+    StatsImportDto, StatsProvenanceDto, SynergyChampionDto, SynergyDto, TeamAnalysisDto,
+    TeamMatchupDto, TeamViewDto, TeamsDto, UpdateCheckDto, UpdateInstallDto, WinConditionDto,
 };
 use crate::error::CommandError;
 use crate::state::{new_session_id, summary_from_record, ActiveSession, AppState};
@@ -18,9 +18,9 @@ use loldraft_domain::{
     DraftError, DraftFormat, Role, Side,
 };
 use loldraft_engine::{
-    analyze_draft, candidate_synergies, recommend, Advantage, AnalysisParams, ArchetypeId,
-    BanRecommendation, Coverage, Dimension, LaneMatchup, MatchupRuleId, NeedSource, NeedStatus,
-    ObservedStats, PickedChampion, ProfileProposalSet, ProfileSet, Provenance, Reason,
+    analyze_draft, analyze_team, candidate_synergies, recommend, Advantage, AnalysisParams,
+    ArchetypeId, BanRecommendation, Coverage, Dimension, LaneMatchup, MatchupRuleId, NeedSource,
+    NeedStatus, ObservedStats, PickedChampion, ProfileProposalSet, ProfileSet, Provenance, Reason,
     Recommendation, RecommendationParams, RecommendationRequest, RecommendationSet, StatsQueue,
     SynergyId, Taxonomy, TeamMatchup, ThreatRuleId, TraitId, WinConditionId,
     PILOT_PROFILE_PROPOSAL_JSON,
@@ -325,6 +325,93 @@ pub fn builds_for(
         .best_for(ChampionKey(champion), role)
         .map(|choice| ChampionBuildDto::new(choice.row, choice.basis));
     Ok(BuildLookupDto { build, dataset })
+}
+
+/// Recomienda objetos y runas por función frente al rival del draft actual.
+///
+/// No usa builds importadas ni winrates: cruza el catálogo curado de objetos y
+/// runas con las amenazas del equipo rival y con el perfil del campeón propio.
+/// Si el campeón no tiene perfil se usan sus tags de Riot, marcados como tales.
+#[tauri::command]
+pub fn loadout_recommend(
+    state: State<'_, AppState>,
+    champion: u16,
+    role: Option<Role>,
+    enemy_picks: Vec<u16>,
+) -> Result<LoadoutDto, CommandError> {
+    loadout_for(state.inner(), champion, role, enemy_picks)
+}
+
+fn loadout_for(
+    state: &AppState,
+    champion: u16,
+    role: Option<Role>,
+    enemy_picks: Vec<u16>,
+) -> Result<LoadoutDto, CommandError> {
+    let key = ChampionKey(champion);
+    let catalog = state
+        .catalog
+        .read()
+        .map_err(|_| CommandError::internal("el catálogo está bloqueado"))?;
+    let champion_entry = catalog.get(key).ok_or_else(|| {
+        CommandError::new(
+            "loadout_unknown_champion",
+            format!(
+                "El campeón #{} no existe en el catálogo local. Actualiza los datos para usarlo.",
+                key.0
+            ),
+        )
+    })?;
+
+    let mut enemy_keys: Vec<ChampionKey> = Vec::with_capacity(enemy_picks.len());
+    for raw in enemy_picks {
+        let enemy = ChampionKey(raw);
+        if enemy == key {
+            return Err(CommandError::new(
+                "loadout_invalid_enemy",
+                "El campeón propio no puede aparecer como rival.",
+            ));
+        }
+        if catalog.get(enemy).is_none() {
+            return Err(CommandError::new(
+                "loadout_unknown_champion",
+                format!(
+                    "El campeón rival #{} no existe en el catálogo local. Actualiza los datos para usarlo.",
+                    enemy.0
+                ),
+            ));
+        }
+        if !enemy_keys.contains(&enemy) {
+            enemy_keys.push(enemy);
+        }
+    }
+
+    let (profile_set, _) = active_profile_set(state)?;
+    let own_profile = profile_set.get(key);
+    let (enemy_champions, _) =
+        picks_from_keys(&enemy_keys, &catalog, &HashMap::new(), Side::Red, &[]);
+    let enemy_analysis = analyze_team(
+        Side::Red,
+        &enemy_champions,
+        &profile_set,
+        &AnalysisParams::default(),
+    )?;
+
+    let item_catalog = loldraft_engine::item_catalog();
+    let params = loldraft_engine::LoadoutParams::default();
+    let recommendation = loldraft_engine::recommend_loadout(&loldraft_engine::LoadoutRequest {
+        champion: key,
+        champion_name: &champion_entry.name,
+        role,
+        riot_tags: &champion_entry.tags,
+        profile: own_profile,
+        enemy: Some(&enemy_analysis),
+        enemy_picks: enemy_champions.len(),
+        catalog: item_catalog,
+        params: &params,
+    })?;
+
+    Ok(LoadoutDto::new(recommendation, item_catalog))
 }
 
 #[tauri::command]
@@ -2078,6 +2165,46 @@ mod tests {
         db.seed_champions(&default_seed().expect("seed"))
             .expect("seed");
         db.load_catalog().expect("catalog")
+    }
+
+    fn state_with_pilot() -> AppState {
+        let db = Database::open_in_memory().expect("db");
+        let state = AppState::new(db).expect("state");
+        import_proposal(&state, PILOT_PROFILE_PROPOSAL_JSON, true).expect("pilot");
+        state
+    }
+
+    #[test]
+    fn loadout_uses_the_pilot_profile_and_the_enemy_team() {
+        let state = state_with_pilot();
+        let loadout = loadout_for(&state, 103, Some(Role::Mid), vec![266, 64, 84, 222, 111])
+            .expect("loadout");
+
+        assert_eq!(loadout.champion, 103);
+        assert_eq!(loadout.role, Some(Role::Mid));
+        assert_eq!(loadout.enemy_picks, 5);
+        assert!(loadout.profile_inferred);
+        assert!(!loadout.core.is_empty());
+        assert!(!loadout.runes.is_empty());
+        assert!(!loadout.threats.is_empty());
+        assert!(loadout
+            .caveats
+            .iter()
+            .any(|caveat| caveat.contains("inferido")));
+    }
+
+    #[test]
+    fn loadout_rejects_an_unknown_champion() {
+        let state = state_with_pilot();
+        let error = loadout_for(&state, 9999, None, Vec::new()).expect_err("unknown champion");
+        assert_eq!(error.code, "loadout_unknown_champion");
+    }
+
+    #[test]
+    fn loadout_rejects_the_own_champion_as_enemy() {
+        let state = state_with_pilot();
+        let error = loadout_for(&state, 103, Some(Role::Mid), vec![103]).expect_err("own enemy");
+        assert_eq!(error.code, "loadout_invalid_enemy");
     }
 
     #[test]

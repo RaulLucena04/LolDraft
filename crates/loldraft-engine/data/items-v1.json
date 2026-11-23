@@ -1,0 +1,1138 @@
+{
+  "schema": "1",
+  "version": "1.0.0",
+  "provenance": {
+    "kind": "curated",
+    "editor": "LolDraft",
+    "review": "pendiente de revisión experta"
+  },
+  "items": [
+    {
+      "id": "dorans_blade",
+      "name": "Doran's Blade",
+      "category": "damage",
+      "slot": "starter",
+      "function": "Inicio de línea para campeones de daño físico: vida, robo de vida y daño temprano.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.8 },
+        { "tag": "marksman", "weight": 0.8 },
+        { "tag": "ad", "weight": 0.9 },
+        { "tag": "early_game", "weight": 0.6 }
+      ],
+      "roles": ["top", "mid", "adc"]
+    },
+    {
+      "id": "dorans_ring",
+      "name": "Doran's Ring",
+      "category": "damage",
+      "slot": "starter",
+      "function": "Inicio de línea para magos: poder de habilidad, maná y daño sostenido en el intercambio.",
+      "fit": [
+        { "tag": "mage", "weight": 0.9 },
+        { "tag": "ap", "weight": 0.9 },
+        { "tag": "mana", "weight": 0.7 },
+        { "tag": "early_game", "weight": 0.6 }
+      ],
+      "roles": ["top", "mid"]
+    },
+    {
+      "id": "dorans_shield",
+      "name": "Doran's Shield",
+      "category": "defense",
+      "slot": "starter",
+      "function": "Inicio defensivo: regeneración constante y reducción del acoso de poke en línea.",
+      "fit": [
+        { "tag": "tank", "weight": 0.6 },
+        { "tag": "bruiser", "weight": 0.6 },
+        { "tag": "sustain", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "poke", "weight": 0.8 }],
+      "roles": ["top", "mid"]
+    },
+    {
+      "id": "world_atlas",
+      "name": "World Atlas",
+      "category": "utility",
+      "slot": "starter",
+      "function": "Inicio de support: genera oro compartido sin robar farma a los aliados.",
+      "fit": [
+        { "tag": "support", "weight": 1.0 },
+        { "tag": "enchanter", "weight": 0.6 },
+        { "tag": "utility", "weight": 0.8 }
+      ],
+      "roles": ["support"]
+    },
+    {
+      "id": "mosstomper_seedling",
+      "name": "Mosstomper Seedling",
+      "category": "defense",
+      "slot": "starter",
+      "function": "Mascota de jungla defensiva: escudo y protección al entrar en combate.",
+      "fit": [
+        { "tag": "tank", "weight": 0.8 },
+        { "tag": "bruiser", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "burst", "weight": 0.4 }],
+      "roles": ["jungle"]
+    },
+    {
+      "id": "gustwalker_hatchling",
+      "name": "Gustwalker Hatchling",
+      "category": "utility",
+      "slot": "starter",
+      "function": "Mascota de jungla móvil: acelera el recorrido y la entrada por el mapa.",
+      "fit": [
+        { "tag": "assassin", "weight": 0.7 },
+        { "tag": "bruiser", "weight": 0.5 },
+        { "tag": "mobility", "weight": 0.8 }
+      ],
+      "roles": ["jungle"]
+    },
+    {
+      "id": "plated_steelcaps",
+      "name": "Plated Steelcaps",
+      "category": "defense",
+      "slot": "boots",
+      "function": "Botas de armadura: reducen el daño de los ataques básicos enemigos.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "bruiser", "weight": 0.8 },
+        { "tag": "frontline", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.8 }
+      ],
+      "counters": [
+        { "threat": "physical", "weight": 0.9 },
+        { "threat": "dps", "weight": 0.6 }
+      ]
+    },
+    {
+      "id": "mercurys_treads",
+      "name": "Mercury's Treads",
+      "category": "defense",
+      "slot": "boots",
+      "function": "Botas de resistencia mágica y tenacidad: recortan la duración del control.",
+      "fit": [
+        { "tag": "tank", "weight": 0.8 },
+        { "tag": "bruiser", "weight": 0.8 },
+        { "tag": "frontline", "weight": 0.6 },
+        { "tag": "durability", "weight": 0.7 }
+      ],
+      "counters": [
+        { "threat": "magic", "weight": 0.9 },
+        { "threat": "hard_cc", "weight": 0.9 }
+      ]
+    },
+    {
+      "id": "sorcerers_shoes",
+      "name": "Sorcerer's Shoes",
+      "category": "damage",
+      "slot": "boots",
+      "function": "Botas de penetración mágica: aumentan el daño de habilidades contra resistencia mágica.",
+      "fit": [
+        { "tag": "mage", "weight": 0.9 },
+        { "tag": "burst", "weight": 0.7 },
+        { "tag": "ap", "weight": 0.9 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.4 }]
+    },
+    {
+      "id": "berserkers_greaves",
+      "name": "Berserker's Greaves",
+      "category": "damage",
+      "slot": "boots",
+      "function": "Botas de velocidad de ataque: mejoran el DPS sostenido con ataques básicos.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.9 },
+        { "tag": "auto_attack", "weight": 0.9 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "dps", "weight": 0.6 }
+      ]
+    },
+    {
+      "id": "ionian_boots",
+      "name": "Ionian Boots of Lucidity",
+      "category": "utility",
+      "slot": "boots",
+      "function": "Botas de aceleración: más usos de habilidad y de hechizos de invocador.",
+      "fit": [
+        { "tag": "mage", "weight": 0.6 },
+        { "tag": "support", "weight": 0.7 },
+        { "tag": "enchanter", "weight": 0.6 },
+        { "tag": "utility", "weight": 0.7 }
+      ]
+    },
+    {
+      "id": "thornmail",
+      "name": "Thornmail",
+      "category": "defense",
+      "slot": "item",
+      "function": "Armadura con anti-curación: aplica Heridas graves al recibir ataques y devuelve daño.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.7 }
+      ],
+      "counters": [
+        { "threat": "sustain", "weight": 0.9 },
+        { "threat": "physical", "weight": 0.5 }
+      ],
+      "roles": ["top", "jungle", "support"]
+    },
+    {
+      "id": "randuins_omen",
+      "name": "Randuin's Omen",
+      "category": "defense",
+      "slot": "item",
+      "function": "Armadura contra críticos y ataques básicos; su activo ralentiza al rival.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.7 }
+      ],
+      "counters": [
+        { "threat": "physical", "weight": 0.8 },
+        { "threat": "dps", "weight": 0.8 }
+      ],
+      "roles": ["top", "jungle", "support"]
+    },
+    {
+      "id": "frozen_heart",
+      "name": "Frozen Heart",
+      "category": "defense",
+      "slot": "item",
+      "function": "Armadura y maná que ralentiza la velocidad de ataque de los enemigos cercanos.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.8 },
+        { "tag": "mana", "weight": 0.5 }
+      ],
+      "counters": [
+        { "threat": "physical", "weight": 0.7 },
+        { "threat": "dps", "weight": 0.8 }
+      ],
+      "roles": ["top", "jungle", "support"]
+    },
+    {
+      "id": "sunfire_aegis",
+      "name": "Sunfire Aegis",
+      "category": "defense",
+      "slot": "item",
+      "function": "Objeto de frontline: vida, armadura y daño en área para limpiar oleadas y pelear cuerpo a cuerpo.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.7 }
+      ],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "jaks_sho",
+      "name": "Jak'Sho, The Protean",
+      "category": "defense",
+      "slot": "item",
+      "function": "Resistencias acumulativas para peleas largas; premia quedarse en combate.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "bruiser", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.6 }
+      ],
+      "counters": [
+        { "threat": "physical", "weight": 0.5 },
+        { "threat": "magic", "weight": 0.5 },
+        { "threat": "burst", "weight": 0.5 }
+      ],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "force_of_nature",
+      "name": "Force of Nature",
+      "category": "defense",
+      "slot": "item",
+      "function": "Resistencia mágica y velocidad al recibir habilidades; ideal para kiting y peleas prolongadas.",
+      "fit": [
+        { "tag": "tank", "weight": 0.8 },
+        { "tag": "bruiser", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.7 },
+        { "tag": "mobility", "weight": 0.5 }
+      ],
+      "counters": [{ "threat": "magic", "weight": 0.9 }],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "spirit_visage",
+      "name": "Spirit Visage",
+      "category": "defense",
+      "slot": "item",
+      "function": "Resistencia mágica y vida que potencian la curación y los escudos propios.",
+      "fit": [
+        { "tag": "tank", "weight": 0.7 },
+        { "tag": "bruiser", "weight": 0.7 },
+        { "tag": "sustain", "weight": 0.8 },
+        { "tag": "heal_shield", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "magic", "weight": 0.7 }],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "kaenic_rookern",
+      "name": "Kaenic Rookern",
+      "category": "defense",
+      "slot": "item",
+      "function": "Resistencia mágica y escudo periódico contra ráfagas de daño mágico.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.9 }
+      ],
+      "counters": [
+        { "threat": "magic", "weight": 0.9 },
+        { "threat": "poke", "weight": 0.7 }
+      ],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "maw_of_malmortius",
+      "name": "Maw of Malmortius",
+      "category": "defense",
+      "slot": "item",
+      "function": "Daño físico, resistencia mágica y escudo de emergencia contra explosiones mágicas.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.8 },
+        { "tag": "assassin", "weight": 0.7 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.8 }
+      ],
+      "counters": [
+        { "threat": "magic", "weight": 0.8 },
+        { "threat": "burst", "weight": 0.7 }
+      ],
+      "roles": ["top", "jungle", "mid"]
+    },
+    {
+      "id": "deaths_dance",
+      "name": "Death's Dance",
+      "category": "defense",
+      "slot": "item",
+      "function": "Daño físico y armadura que reparte el daño recibido en el tiempo; castiga a los burst.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.9 },
+        { "tag": "assassin", "weight": 0.7 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.8 }
+      ],
+      "counters": [
+        { "threat": "physical", "weight": 0.8 },
+        { "threat": "burst", "weight": 0.7 }
+      ],
+      "roles": ["top", "jungle", "mid"]
+    },
+    {
+      "id": "steraks_gage",
+      "name": "Sterak's Gage",
+      "category": "defense",
+      "slot": "item",
+      "function": "Vida y escudo anti-burst para bruisers que pelean en primera línea.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.7 },
+        { "tag": "ad", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.9 }
+      ],
+      "counters": [{ "threat": "burst", "weight": 0.8 }],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "guardian_angel",
+      "name": "Guardian Angel",
+      "category": "defense",
+      "slot": "item",
+      "function": "Armadura y resurrección: segunda oportunidad para carries y assassins que entran al combate.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.7 },
+        { "tag": "assassin", "weight": 0.8 },
+        { "tag": "ad", "weight": 0.7 },
+        { "tag": "crit", "weight": 0.4 },
+        { "tag": "durability", "weight": 0.6 }
+      ],
+      "counters": [
+        { "threat": "burst", "weight": 0.8 },
+        { "threat": "physical", "weight": 0.5 }
+      ],
+      "roles": ["top", "jungle", "mid", "adc"]
+    },
+    {
+      "id": "zhonyas_hourglass",
+      "name": "Zhonya's Hourglass",
+      "category": "defense",
+      "slot": "item",
+      "function": "Poder de habilidad y armadura; su estasis evita el burst y las engages que llegan primero.",
+      "fit": [
+        { "tag": "mage", "weight": 0.9 },
+        { "tag": "ap", "weight": 0.8 },
+        { "tag": "burst", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.6 }
+      ],
+      "counters": [
+        { "threat": "burst", "weight": 0.9 },
+        { "threat": "physical", "weight": 0.6 },
+        { "threat": "engage", "weight": 0.7 }
+      ],
+      "roles": ["top", "mid", "support"]
+    },
+    {
+      "id": "banshees_veil",
+      "name": "Banshee's Veil",
+      "category": "defense",
+      "slot": "item",
+      "function": "Poder de habilidad y escudo de hechizo: bloquea la primera habilidad de control o catch.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.7 },
+        { "tag": "utility", "weight": 0.6 }
+      ],
+      "counters": [
+        { "threat": "magic", "weight": 0.8 },
+        { "threat": "engage", "weight": 0.6 },
+        { "threat": "catch", "weight": 0.6 }
+      ],
+      "roles": ["mid"]
+    },
+    {
+      "id": "black_cleaver",
+      "name": "Black Cleaver",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño físico y rotura de armadura acumulativa contra composiciones con frontline.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.9 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "anti_tank", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.4 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.9 }],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "trinity_force",
+      "name": "Trinity Force",
+      "category": "damage",
+      "slot": "item",
+      "function": "Objeto de bruiser: daño físico, vida y aceleración para peleas de ataques básicos y habilidades.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.9 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "auto_attack", "weight": 0.6 },
+        { "tag": "mobility", "weight": 0.4 }
+      ],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "eclipse",
+      "name": "Eclipse",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño físico con escudo y aceleración tras dos golpes: intercambios cortos para bruisers y assassins.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.8 },
+        { "tag": "assassin", "weight": 0.7 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.6 }
+      ],
+      "counters": [{ "threat": "burst", "weight": 0.4 }],
+      "roles": ["top", "jungle", "mid"]
+    },
+    {
+      "id": "sundered_sky",
+      "name": "Sundered Sky",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño físico y curación en el golpe crítico periódico; sostiene peleas largas de bruiser.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.9 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "sustain", "weight": 0.5 },
+        { "tag": "durability", "weight": 0.5 }
+      ],
+      "counters": [{ "threat": "burst", "weight": 0.4 }],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "youmuus_ghostblade",
+      "name": "Youmuu's Ghostblade",
+      "category": "damage",
+      "slot": "item",
+      "function": "Letalidad y velocidad de movimiento para assassins que buscan entrar y salir.",
+      "fit": [
+        { "tag": "assassin", "weight": 0.9 },
+        { "tag": "ad", "weight": 0.9 },
+        { "tag": "mobility", "weight": 0.8 }
+      ],
+      "roles": ["jungle", "mid"]
+    },
+    {
+      "id": "seryldas_grudge",
+      "name": "Serylda's Grudge",
+      "category": "damage",
+      "slot": "item",
+      "function": "Penetración de armadura y ralentización: castiga tanques y limita la huida.",
+      "fit": [
+        { "tag": "assassin", "weight": 0.8 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "anti_tank", "weight": 0.7 },
+        { "tag": "utility", "weight": 0.4 }
+      ],
+      "counters": [
+        { "threat": "tanks", "weight": 0.7 },
+        { "threat": "mobility", "weight": 0.5 }
+      ],
+      "roles": ["top", "jungle", "mid", "adc"]
+    },
+    {
+      "id": "ludens_companion",
+      "name": "Luden's Companion",
+      "category": "damage",
+      "slot": "item",
+      "function": "Poder de habilidad, maná y daño en área al usar habilidades: núcleo de magos de poke.",
+      "fit": [
+        { "tag": "mage", "weight": 0.9 },
+        { "tag": "ap", "weight": 0.8 },
+        { "tag": "mana", "weight": 0.8 },
+        { "tag": "poke", "weight": 0.5 }
+      ],
+      "roles": ["mid"]
+    },
+    {
+      "id": "shadowflame",
+      "name": "Shadowflame",
+      "category": "damage",
+      "slot": "item",
+      "function": "Poder de habilidad y penetración efectiva contra objetivos con poca vida: remata burst.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.8 },
+        { "tag": "burst", "weight": 0.8 }
+      ],
+      "roles": ["mid"]
+    },
+    {
+      "id": "rabadons_deathcap",
+      "name": "Rabadon's Deathcap",
+      "category": "damage",
+      "slot": "item",
+      "function": "Multiplicador de poder de habilidad: objeto de escalado para magos.",
+      "fit": [
+        { "tag": "mage", "weight": 0.9 },
+        { "tag": "ap", "weight": 0.9 },
+        { "tag": "late_game", "weight": 0.7 }
+      ],
+      "roles": ["mid"]
+    },
+    {
+      "id": "void_staff",
+      "name": "Void Staff",
+      "category": "damage",
+      "slot": "item",
+      "function": "Penetración mágica porcentual: reduce la resistencia mágica de tanques y frontline.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.8 },
+        { "tag": "anti_tank", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.8 }],
+      "roles": ["mid"]
+    },
+    {
+      "id": "liandrys_torment",
+      "name": "Liandry's Torment",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño mágico porcentual y quemadura: castiga vida alta y peleas prolongadas.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.8 },
+        { "tag": "dps", "weight": 0.7 },
+        { "tag": "anti_tank", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.8 }],
+      "roles": ["top", "jungle", "mid", "support"]
+    },
+    {
+      "id": "rylais_crystal_scepter",
+      "name": "Rylai's Crystal Scepter",
+      "category": "damage",
+      "slot": "item",
+      "function": "Poder de habilidad y ralentización con habilidades: frena a los campeones móviles.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.7 },
+        { "tag": "utility", "weight": 0.7 },
+        { "tag": "sustain", "weight": 0.3 }
+      ],
+      "counters": [{ "threat": "mobility", "weight": 0.8 }],
+      "roles": ["mid", "support"]
+    },
+    {
+      "id": "cosmic_drive",
+      "name": "Cosmic Drive",
+      "category": "damage",
+      "slot": "item",
+      "function": "Poder de habilidad, aceleración y velocidad: magos que necesitan repositionarse.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.7 },
+        { "tag": "mobility", "weight": 0.8 }
+      ],
+      "roles": ["mid"]
+    },
+    {
+      "id": "kraken_slayer",
+      "name": "Kraken Slayer",
+      "category": "damage",
+      "slot": "item",
+      "function": "Velocidad de ataque y daño verdadero acumulado: DPS contra objetivos con mucha vida.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.9 },
+        { "tag": "auto_attack", "weight": 0.9 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "on_hit", "weight": 0.7 },
+        { "tag": "anti_tank", "weight": 0.7 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.8 }],
+      "roles": ["top", "jungle", "adc"]
+    },
+    {
+      "id": "infinity_edge",
+      "name": "Infinity Edge",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño crítico amplificado: multiplica el DPS de tiradores con objetos de crítico.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.9 },
+        { "tag": "auto_attack", "weight": 0.9 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "crit", "weight": 0.9 }
+      ],
+      "roles": ["adc"]
+    },
+    {
+      "id": "lord_dominiks_regards",
+      "name": "Lord Dominik's Regards",
+      "category": "damage",
+      "slot": "item",
+      "function": "Penetración de armadura para tiradores: responde a frontline y tanques.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.8 },
+        { "tag": "auto_attack", "weight": 0.8 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "anti_tank", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.9 }],
+      "roles": ["adc"]
+    },
+    {
+      "id": "phantom_dancer",
+      "name": "Phantom Dancer",
+      "category": "damage",
+      "slot": "item",
+      "function": "Velocidad de ataque, crítico y movimiento al atacar: kiting para tiradores.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.8 },
+        { "tag": "auto_attack", "weight": 0.8 },
+        { "tag": "crit", "weight": 0.7 },
+        { "tag": "mobility", "weight": 0.5 }
+      ],
+      "roles": ["adc"]
+    },
+    {
+      "id": "bloodthirster",
+      "name": "Bloodthirster",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño físico, robo de vida y escudo: sostiene al tirador frente a poke y burst.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.8 },
+        { "tag": "auto_attack", "weight": 0.8 },
+        { "tag": "ad", "weight": 0.8 },
+        { "tag": "sustain", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "burst", "weight": 0.4 }],
+      "roles": ["adc"]
+    },
+    {
+      "id": "blade_of_the_ruined_king",
+      "name": "Blade of the Ruined King",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño porcentual por golpe y robo de vida: DPS contra vida alta y duelos prolongados.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.7 },
+        { "tag": "bruiser", "weight": 0.6 },
+        { "tag": "auto_attack", "weight": 0.8 },
+        { "tag": "on_hit", "weight": 0.8 },
+        { "tag": "anti_tank", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.9 }],
+      "roles": ["top", "jungle", "adc"]
+    },
+    {
+      "id": "morellonomicon",
+      "name": "Morellonomicon",
+      "category": "damage",
+      "slot": "item",
+      "function": "Poder de habilidad con anti-curación: aplica Heridas graves con daño mágico.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "sustain", "weight": 0.9 }],
+      "roles": ["mid", "support"]
+    },
+    {
+      "id": "chempunk_chainsword",
+      "name": "Chempunk Chainsword",
+      "category": "damage",
+      "slot": "item",
+      "function": "Daño físico con anti-curación: aplica Heridas graves desde bruisers y luchadores.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.7 },
+        { "tag": "ad", "weight": 0.8 }
+      ],
+      "counters": [{ "threat": "sustain", "weight": 0.9 }],
+      "roles": ["top", "jungle", "mid"]
+    },
+    {
+      "id": "locket",
+      "name": "Locket of the Iron Solari",
+      "category": "utility",
+      "slot": "item",
+      "function": "Escudo en área para el equipo: mitiga engages y burst sobre los carries.",
+      "fit": [
+        { "tag": "support", "weight": 0.9 },
+        { "tag": "enchanter", "weight": 0.7 },
+        { "tag": "tank", "weight": 0.5 },
+        { "tag": "utility", "weight": 0.8 },
+        { "tag": "heal_shield", "weight": 0.7 }
+      ],
+      "counters": [
+        { "threat": "burst", "weight": 0.7 },
+        { "threat": "magic", "weight": 0.4 }
+      ],
+      "roles": ["support"]
+    },
+    {
+      "id": "redemption",
+      "name": "Redemption",
+      "category": "utility",
+      "slot": "item",
+      "function": "Curación en área a distancia: sostiene al equipo tras poke o engages.",
+      "fit": [
+        { "tag": "support", "weight": 0.9 },
+        { "tag": "enchanter", "weight": 0.8 },
+        { "tag": "heal_shield", "weight": 0.9 },
+        { "tag": "utility", "weight": 0.6 }
+      ],
+      "counters": [
+        { "threat": "poke", "weight": 0.5 },
+        { "threat": "burst", "weight": 0.3 }
+      ],
+      "roles": ["support"]
+    },
+    {
+      "id": "mikaels_blessing",
+      "name": "Mikael's Blessing",
+      "category": "utility",
+      "slot": "item",
+      "function": "Limpia control y cura a un aliado: respuesta directa a CC duro y catch.",
+      "fit": [
+        { "tag": "support", "weight": 0.9 },
+        { "tag": "enchanter", "weight": 0.8 },
+        { "tag": "heal_shield", "weight": 0.8 },
+        { "tag": "utility", "weight": 0.7 }
+      ],
+      "counters": [{ "threat": "hard_cc", "weight": 0.9 }],
+      "roles": ["support"]
+    },
+    {
+      "id": "knights_vow",
+      "name": "Knight's Vow",
+      "category": "utility",
+      "slot": "item",
+      "function": "Redirige parte del daño del aliado y lo cura: protege al carry desde el frontline.",
+      "fit": [
+        { "tag": "support", "weight": 0.9 },
+        { "tag": "tank", "weight": 0.6 },
+        { "tag": "utility", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.6 }
+      ],
+      "counters": [
+        { "threat": "burst", "weight": 0.6 },
+        { "threat": "physical", "weight": 0.4 }
+      ],
+      "roles": ["support"]
+    },
+    {
+      "id": "zekes_convergence",
+      "name": "Zeke's Convergence",
+      "category": "utility",
+      "slot": "item",
+      "function": "Potencia el daño del aliado tras un engage y ralentiza alrededor.",
+      "fit": [
+        { "tag": "support", "weight": 0.8 },
+        { "tag": "engage", "weight": 0.7 },
+        { "tag": "tank", "weight": 0.6 },
+        { "tag": "utility", "weight": 0.7 }
+      ],
+      "roles": ["support"]
+    },
+    {
+      "id": "moonstone_renewer",
+      "name": "Moonstone Renewer",
+      "category": "utility",
+      "slot": "item",
+      "function": "Amplifica curaciones y escudos encadenados: sostiene peleas largas de equipo.",
+      "fit": [
+        { "tag": "support", "weight": 0.9 },
+        { "tag": "enchanter", "weight": 0.9 },
+        { "tag": "heal_shield", "weight": 0.9 }
+      ],
+      "counters": [{ "threat": "poke", "weight": 0.4 }],
+      "roles": ["support"]
+    },
+    {
+      "id": "ardent_censer",
+      "name": "Ardent Censer",
+      "category": "utility",
+      "slot": "item",
+      "function": "Aumenta la velocidad de ataque y el daño de los aliados curados o escudados.",
+      "fit": [
+        { "tag": "support", "weight": 0.8 },
+        { "tag": "enchanter", "weight": 0.9 },
+        { "tag": "heal_shield", "weight": 0.7 },
+        { "tag": "auto_attack", "weight": 0.3 }
+      ],
+      "roles": ["support"]
+    },
+    {
+      "id": "staff_of_flowing_water",
+      "name": "Staff of Flowing Water",
+      "category": "utility",
+      "slot": "item",
+      "function": "Da poder de habilidad y aceleración a aliados curados o escudados.",
+      "fit": [
+        { "tag": "support", "weight": 0.8 },
+        { "tag": "enchanter", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.6 }
+      ],
+      "roles": ["support"]
+    }
+  ],
+  "rune_pages": [
+    {
+      "id": "conqueror_bruiser",
+      "name": "Conquistador · bruiser",
+      "primary_path": "Precision",
+      "keystone": "Conqueror",
+      "primary_runes": ["Triumph", "Legend: Alacrity", "Last Stand"],
+      "secondary_path": "Resolve",
+      "secondary_runes": ["Bone Plating", "Unflinching"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Página de peleas prolongadas para bruisers: daño acumulativo y aguante en el intercambio.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.6 },
+        { "tag": "durability", "weight": 0.7 },
+        { "tag": "sustain", "weight": 0.5 },
+        { "tag": "ad", "weight": 0.5 }
+      ],
+      "roles": ["top", "jungle", "mid"]
+    },
+    {
+      "id": "conqueror_tenacity",
+      "name": "Conquistador · tenacidad",
+      "primary_path": "Precision",
+      "keystone": "Conqueror",
+      "primary_runes": ["Triumph", "Legend: Tenacity", "Last Stand"],
+      "secondary_path": "Resolve",
+      "secondary_runes": ["Second Wind", "Unflinching"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Conquistador con tenacidad: mantiene el daño y recorta el control enemigo.",
+      "fit": [
+        { "tag": "bruiser", "weight": 0.8 },
+        { "tag": "frontline", "weight": 0.6 },
+        { "tag": "durability", "weight": 0.8 },
+        { "tag": "ad", "weight": 0.5 }
+      ],
+      "counters": [
+        { "threat": "hard_cc", "weight": 0.9 },
+        { "threat": "magic", "weight": 0.4 }
+      ],
+      "roles": ["top", "jungle"]
+    },
+    {
+      "id": "grasp_tank",
+      "name": "Grasp · tanque",
+      "primary_path": "Resolve",
+      "keystone": "Grasp of the Undying",
+      "primary_runes": ["Demolish", "Second Wind", "Overgrowth"],
+      "secondary_path": "Precision",
+      "secondary_runes": ["Triumph", "Legend: Tenacity"],
+      "shards": ["Health Scaling", "Armor", "Health Scaling"],
+      "function": "Página de tanque para línea: vida permanente, regeneración y presión de torre.",
+      "fit": [
+        { "tag": "tank", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.8 },
+        { "tag": "durability", "weight": 0.8 },
+        { "tag": "sustain", "weight": 0.5 }
+      ],
+      "counters": [
+        { "threat": "poke", "weight": 0.6 },
+        { "threat": "hard_cc", "weight": 0.4 }
+      ],
+      "roles": ["top"]
+    },
+    {
+      "id": "aftershock_engage",
+      "name": "Aftershock · engage",
+      "primary_path": "Resolve",
+      "keystone": "Aftershock",
+      "primary_runes": ["Font of Life", "Bone Plating", "Unflinching"],
+      "secondary_path": "Inspiration",
+      "secondary_runes": ["Hexflash", "Cosmic Insight"],
+      "shards": ["Health Scaling", "Armor", "Health Scaling"],
+      "function": "Página de engage: resistencias al entrar y herramientas para iniciar o seguir.",
+      "fit": [
+        { "tag": "tank", "weight": 0.8 },
+        { "tag": "engage", "weight": 0.9 },
+        { "tag": "frontline", "weight": 0.7 },
+        { "tag": "durability", "weight": 0.7 }
+      ],
+      "counters": [{ "threat": "burst", "weight": 0.8 }],
+      "roles": ["top", "jungle", "support"]
+    },
+    {
+      "id": "electrocute_burst",
+      "name": "Electrocutar · burst",
+      "primary_path": "Domination",
+      "keystone": "Electrocute",
+      "primary_runes": ["Sudden Impact", "Eyeball Collection", "Ultimate Hunter"],
+      "secondary_path": "Sorcery",
+      "secondary_runes": ["Absolute Focus", "Scorch"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Página de burst para assassins y magos de combo corto: daño adicional en el intercambio.",
+      "fit": [
+        { "tag": "assassin", "weight": 0.8 },
+        { "tag": "burst", "weight": 0.9 },
+        { "tag": "mage", "weight": 0.6 },
+        { "tag": "ap", "weight": 0.5 },
+        { "tag": "ad", "weight": 0.4 }
+      ],
+      "roles": ["mid", "jungle"]
+    },
+    {
+      "id": "dark_harvest_scaling",
+      "name": "Cosecha oscura · escalado",
+      "primary_path": "Domination",
+      "keystone": "Dark Harvest",
+      "primary_runes": ["Taste of Blood", "Eyeball Collection", "Ultimate Hunter"],
+      "secondary_path": "Sorcery",
+      "secondary_runes": ["Manaflow Band", "Gathering Storm"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Página de escalado para magos: acumula daño y crece hacia el final de la partida.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "ap", "weight": 0.7 },
+        { "tag": "poke", "weight": 0.6 },
+        { "tag": "late_game", "weight": 0.8 }
+      ],
+      "roles": ["mid"]
+    },
+    {
+      "id": "comet_poke",
+      "name": "Cometa arcano · poke",
+      "primary_path": "Sorcery",
+      "keystone": "Arcane Comet",
+      "primary_runes": ["Manaflow Band", "Transcendence", "Scorch"],
+      "secondary_path": "Inspiration",
+      "secondary_runes": ["Biscuit Delivery", "Cosmic Insight"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Página de acoso a distancia: maná, aceleración y daño repetido con habilidades.",
+      "fit": [
+        { "tag": "mage", "weight": 0.8 },
+        { "tag": "poke", "weight": 0.9 },
+        { "tag": "ap", "weight": 0.7 }
+      ],
+      "roles": ["mid", "support"]
+    },
+    {
+      "id": "lethal_tempo",
+      "name": "Ritmo letal · DPS",
+      "primary_path": "Precision",
+      "keystone": "Lethal Tempo",
+      "primary_runes": ["Presence of Mind", "Legend: Alacrity", "Cut Down"],
+      "secondary_path": "Resolve",
+      "secondary_runes": ["Bone Plating", "Overgrowth"],
+      "shards": ["Attack Speed", "Adaptive Force", "Health Scaling"],
+      "function": "Página de DPS sostenido: velocidad de ataque y daño contra objetivos con mucha vida.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.9 },
+        { "tag": "auto_attack", "weight": 0.9 },
+        { "tag": "dps", "weight": 0.8 },
+        { "tag": "ad", "weight": 0.6 }
+      ],
+      "counters": [{ "threat": "tanks", "weight": 0.6 }],
+      "roles": ["adc", "top", "jungle"]
+    },
+    {
+      "id": "fleet_sustain",
+      "name": "Pies ligeros · sustain",
+      "primary_path": "Precision",
+      "keystone": "Fleet Footwork",
+      "primary_runes": ["Presence of Mind", "Legend: Bloodline", "Coup de Grace"],
+      "secondary_path": "Resolve",
+      "secondary_runes": ["Second Wind", "Revitalize"],
+      "shards": ["Attack Speed", "Adaptive Force", "Health Scaling"],
+      "function": "Página de tirador para sobrevivir al poke: curación, movilidad y regeneración.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.8 },
+        { "tag": "auto_attack", "weight": 0.7 },
+        { "tag": "sustain", "weight": 0.8 },
+        { "tag": "mobility", "weight": 0.5 }
+      ],
+      "counters": [{ "threat": "poke", "weight": 0.7 }],
+      "roles": ["adc"]
+    },
+    {
+      "id": "first_strike",
+      "name": "Primer golpe · burst",
+      "primary_path": "Inspiration",
+      "keystone": "First Strike",
+      "primary_runes": ["Magical Footwear", "Biscuit Delivery", "Cosmic Insight"],
+      "secondary_path": "Domination",
+      "secondary_runes": ["Sudden Impact", "Treasure Hunter"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Página de aceleración económica para magos y assassins de burst.",
+      "fit": [
+        { "tag": "mage", "weight": 0.7 },
+        { "tag": "burst", "weight": 0.7 },
+        { "tag": "assassin", "weight": 0.6 },
+        { "tag": "late_game", "weight": 0.5 }
+      ],
+      "roles": ["mid"]
+    },
+    {
+      "id": "guardian_support",
+      "name": "Guardián · support",
+      "primary_path": "Resolve",
+      "keystone": "Guardian",
+      "primary_runes": ["Font of Life", "Bone Plating", "Revitalize"],
+      "secondary_path": "Inspiration",
+      "secondary_runes": ["Biscuit Delivery", "Cosmic Insight"],
+      "shards": ["Health Scaling", "Armor", "Health Scaling"],
+      "function": "Página defensiva de support: escudo reactivo para el carry frente a burst.",
+      "fit": [
+        { "tag": "support", "weight": 0.9 },
+        { "tag": "enchanter", "weight": 0.8 },
+        { "tag": "heal_shield", "weight": 0.8 },
+        { "tag": "utility", "weight": 0.7 }
+      ],
+      "counters": [{ "threat": "burst", "weight": 0.8 }],
+      "roles": ["support"]
+    },
+    {
+      "id": "aery_enchanter",
+      "name": "Aery · enchanter",
+      "primary_path": "Sorcery",
+      "keystone": "Summon Aery",
+      "primary_runes": ["Manaflow Band", "Transcendence", "Scorch"],
+      "secondary_path": "Resolve",
+      "secondary_runes": ["Font of Life", "Revitalize"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Página de enchanter: escudos y curación constantes, con algo de acoso.",
+      "fit": [
+        { "tag": "support", "weight": 0.9 },
+        { "tag": "enchanter", "weight": 0.9 },
+        { "tag": "heal_shield", "weight": 0.8 },
+        { "tag": "poke", "weight": 0.3 }
+      ],
+      "counters": [{ "threat": "poke", "weight": 0.5 }],
+      "roles": ["support"]
+    },
+    {
+      "id": "glacial_engage",
+      "name": "Glacial · engage",
+      "primary_path": "Inspiration",
+      "keystone": "Glacial Augment",
+      "primary_runes": ["Hexflash", "Biscuit Delivery", "Cosmic Insight"],
+      "secondary_path": "Resolve",
+      "secondary_runes": ["Font of Life", "Unflinching"],
+      "shards": ["Health Scaling", "Armor", "Health Scaling"],
+      "function": "Página de engage con ralentización: fija objetivos móviles y facilita el seguimiento.",
+      "fit": [
+        { "tag": "engage", "weight": 0.9 },
+        { "tag": "support", "weight": 0.7 },
+        { "tag": "tank", "weight": 0.6 },
+        { "tag": "utility", "weight": 0.7 }
+      ],
+      "counters": [{ "threat": "mobility", "weight": 0.8 }],
+      "roles": ["support"]
+    },
+    {
+      "id": "hail_of_blades",
+      "name": "Lluvia de cuchillas · assassin",
+      "primary_path": "Domination",
+      "keystone": "Hail of Blades",
+      "primary_runes": ["Sudden Impact", "Eyeball Collection", "Treasure Hunter"],
+      "secondary_path": "Precision",
+      "secondary_runes": ["Triumph", "Legend: Alacrity"],
+      "shards": ["Attack Speed", "Adaptive Force", "Health Scaling"],
+      "function": "Página de assassin con ataques básicos: ráfaga rápida tras entrar en combate.",
+      "fit": [
+        { "tag": "assassin", "weight": 0.8 },
+        { "tag": "auto_attack", "weight": 0.7 },
+        { "tag": "ad", "weight": 0.7 },
+        { "tag": "burst", "weight": 0.5 }
+      ],
+      "roles": ["jungle", "mid"]
+    },
+    {
+      "id": "phase_rush",
+      "name": "Fase rápida · movilidad",
+      "primary_path": "Sorcery",
+      "keystone": "Phase Rush",
+      "primary_runes": ["Manaflow Band", "Transcendence", "Gathering Storm"],
+      "secondary_path": "Inspiration",
+      "secondary_runes": ["Magical Footwear", "Cosmic Insight"],
+      "shards": ["Adaptive Force", "Adaptive Force", "Health Scaling"],
+      "function": "Página de reposicionamiento: velocidad y resistencia a ralentizaciones para kiting.",
+      "fit": [
+        { "tag": "mage", "weight": 0.7 },
+        { "tag": "mobility", "weight": 0.9 },
+        { "tag": "bruiser", "weight": 0.4 },
+        { "tag": "late_game", "weight": 0.5 }
+      ],
+      "roles": ["mid", "jungle"]
+    },
+    {
+      "id": "press_the_attack",
+      "name": "Ataque del depredador · línea",
+      "primary_path": "Precision",
+      "keystone": "Press the Attack",
+      "primary_runes": ["Triumph", "Legend: Alacrity", "Coup de Grace"],
+      "secondary_path": "Sorcery",
+      "secondary_runes": ["Absolute Focus", "Scorch"],
+      "shards": ["Attack Speed", "Adaptive Force", "Health Scaling"],
+      "function": "Página de tirador agresivo en línea: marca al objetivo y aumenta el daño del intercambio.",
+      "fit": [
+        { "tag": "marksman", "weight": 0.8 },
+        { "tag": "auto_attack", "weight": 0.8 },
+        { "tag": "early_game", "weight": 0.7 },
+        { "tag": "ad", "weight": 0.6 }
+      ],
+      "roles": ["adc"]
+    }
+  ]
+}

@@ -69,7 +69,9 @@ impl Provenance {
         }
     }
 
-    fn is_complete(&self) -> bool {
+    /// `true` si la procedencia identifica una fuente concreta. La usan los
+    /// catálogos curados para rechazar entradas sin editor o revisión.
+    pub fn is_complete(&self) -> bool {
         match self {
             Provenance::Riot => true,
             Provenance::Curated { editor, review } => {

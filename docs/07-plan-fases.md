@@ -263,9 +263,10 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
 > **Estado:** en curso. Implementados el esquema validado de estadísticas observadas, la importación
 > CSV/JSON, el shrinkage, la persistencia en SQLite, la pantalla de importación/activación y la señal
 > `power` conectada al motor con separación estricta soloq/pro y procedencia visible. También está
-> implementado un dataset importable de **builds y runas** por campeón/rol/cola, con selección por
-> winrate ajustado, persistencia y panel junto al pick. Pendientes: el cliente de Leaguepedia, la
-> caché HTTP condicional y los drafts profesionales.
+> implementado un **catálogo curado de objetos y runas** con recomendación por función frente a la
+> composición enemiga (`loadout_recommend`), que no requiere importar JSON, y un dataset importable de
+> builds y runas como función opcional. Pendientes: el cliente de Leaguepedia, la caché HTTP condicional y los drafts
+> profesionales.
 
 **Objetivo:** actualizar datos sin reinstalar y sin mezclar fuentes/licencias.
 
@@ -276,9 +277,11 @@ Criterio de salida: revisión y aprobación del usuario. No se escribe código d
    - Parser versionado de tablas Cargo; mapeo de campeones/equipos/parches.
    - Importación incremental e idempotente.
    - Cuarentena de filas inválidas y resumen de importación.
-2. **Estadísticas y builds**
+2. **Estadísticas, objetos y runas**
    - Importador CSV/JSON genérico con esquema validado.
-   - Dataset de builds y runas por campeón, rol y cola, con selección por winrate ajustado.
+   - Catálogo curado `items-v1.json`: función, encaje y contra-amenazas de cada objeto y página de
+     runas; `recommend_loadout` cruza amenazas del rival, perfil propio y rol.
+   - Dataset de builds y runas importable y **opcional**, con selección por winrate ajustado.
    - Adaptador de Lolalytics **solo si hay permiso**; en su defecto, importación manual.
    - Separación estricta soloq/pro, tier, región y parche.
    - Shrinkage y confianza en la capa de datos.

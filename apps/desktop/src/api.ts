@@ -8,6 +8,7 @@ import type {
   CommandError,
   DraftAnalysis,
   DraftView,
+  Loadout,
   ProfileSet,
   RecommendationSet,
   Role,
@@ -89,6 +90,8 @@ export const api = {
   buildsDelete: (id: string) => call<boolean>("builds_delete", { id }),
   buildsFor: (champion: number, role: Role | null, queue: StatsQueue) =>
     call<BuildLookup>("builds_for", { champion, role, queue }),
+  loadoutRecommend: (champion: number, role: Role | null, enemyPicks: number[]) =>
+    call<Loadout>("loadout_recommend", { champion, role, enemyPicks }),
   championProfile: (championKey: number) =>
     call<ChampionProfileDetail>("profile_champion", { championKey }),
   settingGet: (key: string) => call<unknown | null>("settings_get", { key }),

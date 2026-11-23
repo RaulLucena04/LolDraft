@@ -78,9 +78,9 @@ Inicio
 - Tarjeta de **estadísticas importadas**: importa un JSON o CSV local, muestra los datasets con
   cola, parche, filas, fuente y licencia, permite activar uno por cola y borrar los antiguos. Las
   filas inválidas de un CSV aparecen en cuarentena con línea y motivo.
-- Tarjeta de **builds importadas**: importa un JSON local con objetos y runas por campeón y rol,
-  activa un dataset por cola y muestra cuántas builds contiene. Si no hay dataset, la app lo dice:
-  no genera builds de ejemplo.
+- **Sin tarjeta de builds en Inicio:** el flujo principal de SoloQ no requiere importar objetos ni
+  runas. El backend conserva los comandos de builds importadas como función opcional para quien ya
+  tenga un dataset propio; no se muestran como paso necesario.
 - Sin tarjetas de estadísticas inventadas. Si no hay datos, se explica qué falta y cómo obtenerlos.
 
 ### 3.2 Simulador
@@ -166,10 +166,14 @@ Estado .............. "Cliente conectado" / "cerrado" / "fuera de champ select"
 - Los baneos se leen del cliente como dato **importante**: el motor no propone
   campeones baneados. Si el cliente no los expone, la interfaz lo advierte.
 - Junto al pick (propio si ya está bloqueado; si no, el mejor pick sugerido) se
-  muestra la **build y las runas** del dataset activo de SoloQ: objetos de
-  inicio, núcleo y situacionales, página de runas, muestra, winrate ajustado,
-  confianza, motivo de elección y procedencia. Sin dataset o sin fila para ese
-  campeón se explica; nunca se rellena con una build inventada.
+  muestra el panel **Objetos y runas**: detecta las amenazas del rival (daño
+  físico/mágico, CC duro, sustain, tanques, burst, poke, engage, movilidad…),
+  propone inicio, botas, núcleo, situacionales y páginas de runas, y explica
+  cada sugerencia con su función, la amenaza que responde y el encaje con el
+  campeón. No usa winrates ni builds importadas: el catálogo es curado y el
+  resultado se etiqueta como derivado de reglas. Si el campeón no tiene perfil,
+  se avisa de que solo se usan sus tags de Riot; si no hay rivales leídos, se
+  dice que el encaje es solo del campeón.
 - Detalle del contrato y límites en [`10-modo-soloq.md`](./10-modo-soloq.md).
 
 ### 3.3 Laboratorio de análisis

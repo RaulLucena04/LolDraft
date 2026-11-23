@@ -116,6 +116,32 @@ Nota: si un aliado ya bloqueado solo puede ocupar el rol reservado, el análisis
 lo deja sin rol y no lo cuenta en la composición, igual que en el simulador
 competitivo. No se le inventa una posición para que encaje.
 
+### 3.2 Objetos y runas por función
+
+Junto al pick aparece el panel **Objetos y runas**. No depende de un dataset de builds importado:
+cruza un catálogo curado de funciones con las amenazas del rival y con el perfil del campeón.
+
+1. El comando `loadout_recommend` recibe el campeón, el rol y los picks rivales ya leídos del
+   cliente. Construye el análisis del equipo rival con el mismo motor de composición (`analyze_team`)
+   y lo pasa a `loldraft_engine::items::recommend_loadout`.
+2. El motor detecta amenazas (reparto de daño físico/mágico, CC duro, movilidad, sustain, tanques,
+   burst, poke, engage, catch, DPS, splitpush, asedio, presión temprana y escalado). Cada amenaza
+   lleva nivel y confianza; una lectura parcial se marca como **posible**, nunca como confirmada.
+3. Calcula el encaje del campeón con su perfil (arquetipos y traits del conjunto activo). Si no hay
+   perfil se usan los tags de Riot y se avisa; si tampoco hay tags, no se inventa encaje.
+4. Devuelve inicio, botas, núcleo, situacionales y páginas de runas con un índice de encaje 0-100,
+   la función de cada objeto y los motivos (amenaza que responde, afinidad con el campeón, rol).
+
+El resultado se etiqueta como **derivado de reglas** y el catálogo como **curado**: el índice no es
+una probabilidad de victoria. Si el perfil del campeón es el piloto inferido, la interfaz añade el
+aviso «Perfil inferido» y un *caveat* en la lista de motivos. Los comandos de builds importadas
+siguen existiendo como opción, pero este panel no los necesita.
+
+El cliente no siempre expone el rival de línea con fiabilidad, así que el motor **no adivina** un
+duelo individual: analiza la composición enemiga completa y sus amenazas, que ya incluyen el perfil de
+cada rival leído. Si el cliente sí diera posiciones enemigas fiables, se podrían ponderar; hoy no se
+presenta una suposición como matchup.
+
 ## 4. Lectura del cliente
 
 `loldraft-sources::lcu` lee el cliente por su API local no documentada:
@@ -169,7 +195,8 @@ imposible no produce una recomendación fiable.
 ## 7. Verificación
 
 - Dominio: formato SoloQ, mapeo de turnos a índices y reserva de rol (23 tests).
-- Motor: fases equivalentes entre formatos y filtrado por rol fijo (73 tests).
+- Motor: fases equivalentes entre formatos, filtrado por rol fijo y catálogo de objetos/runas con
+  detección de amenazas y etiquetado de perfil inferido (109 tests).
 - Fuentes: `lockfile`, sesión azul/roja, turnos posteriores, pick propio
   bloqueado, espectador y posiciones asignadas (12 tests).
 - UI: compilación TypeScript y verificación contra cliente real: el draft se

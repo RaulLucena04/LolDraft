@@ -6,6 +6,7 @@
 
 pub mod analysis;
 pub mod builds;
+pub mod items;
 pub mod profile;
 pub mod proposals;
 pub mod recommendation;
@@ -15,6 +16,12 @@ pub mod taxonomy;
 pub use builds::{
     BuildBasis, BuildChoice, BuildsError, BuildsProvenance, ChampionBuildRow, ObservedBuilds,
     RunePage, BUILDS_SCHEMA_VERSION, MAX_BUILD_ROWS, MAX_BUILD_TEXT, MAX_ITEMS_PER_LIST,
+};
+pub use items::{
+    detect_threats, item_catalog, recommend_loadout, FitTag, FitWeight, ItemCatalog, ItemCategory,
+    ItemEntry, ItemError, ItemSlot, ItemSuggestion, LoadoutParams, LoadoutReason,
+    LoadoutRecommendation, LoadoutRequest, ProfileSource, RunePageEntry, RuneSuggestion, ThreatId,
+    ThreatSignal, ThreatWeight, ITEM_CATALOG_SCHEMA, ITEM_CATALOG_VERSION, LOADOUT_RULES_VERSION,
 };
 
 pub use analysis::{
@@ -47,7 +54,7 @@ pub use taxonomy::{
     TaxonomyError, TraitEntry, TraitId, TraitKind, TAXONOMY_VERSION,
 };
 
-pub const ENGINE_VERSION: &str = "0.6.0-phase3-recommendations";
+pub const ENGINE_VERSION: &str = "0.7.0-phase4-loadouts";
 
 pub fn engine_version() -> &'static str {
     ENGINE_VERSION

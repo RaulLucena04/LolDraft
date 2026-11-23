@@ -54,6 +54,7 @@ pub fn run() {
             commands::builds_activate,
             commands::builds_delete,
             commands::builds_for,
+            commands::loadout_recommend,
             commands::analysis_current,
             commands::recommendations_current,
             commands::soloq_recommend,

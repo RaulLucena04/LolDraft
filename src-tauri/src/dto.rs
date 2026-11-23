@@ -891,6 +891,167 @@ pub struct BuildLookupDto {
     pub dataset: Option<BuildsProvenanceDto>,
 }
 
+/// Motivo legible de una sugerencia de objeto o runas.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadoutReasonDto {
+    pub code: String,
+    pub label: String,
+    pub detail: String,
+}
+
+/// Objeto sugerido por función y matchup.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadoutItemDto {
+    pub id: String,
+    pub name: String,
+    /// `damage`, `defense` o `utility`.
+    pub category: &'static str,
+    pub function: String,
+    /// Índice de encaje 0..100; no es una probabilidad de victoria.
+    pub score: f32,
+    pub reasons: Vec<LoadoutReasonDto>,
+}
+
+/// Página de runas sugerida por función y matchup.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadoutRuneDto {
+    pub id: String,
+    pub name: String,
+    pub primary_path: String,
+    pub keystone: String,
+    pub primary_runes: Vec<String>,
+    pub secondary_path: String,
+    pub secondary_runes: Vec<String>,
+    pub shards: Vec<String>,
+    pub function: String,
+    pub score: f32,
+    pub reasons: Vec<LoadoutReasonDto>,
+}
+
+/// Amenaza del rival usada para puntuar objetos y runas.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadoutThreatDto {
+    pub id: &'static str,
+    pub label: String,
+    pub value_low: f32,
+    pub value_high: f32,
+    pub confidence: f32,
+    pub severity: f32,
+    pub confirmed: bool,
+}
+
+/// Objetos y runas recomendados para un campeón frente al rival actual.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadoutDto {
+    pub champion: u16,
+    pub champion_name: String,
+    pub role: Option<loldraft_domain::Role>,
+    pub starter: Option<LoadoutItemDto>,
+    pub boots: Option<LoadoutItemDto>,
+    pub core: Vec<LoadoutItemDto>,
+    pub situational: Vec<LoadoutItemDto>,
+    pub runes: Vec<LoadoutRuneDto>,
+    pub threats: Vec<LoadoutThreatDto>,
+    /// `profile`, `riot_tags` o `none`.
+    pub profile_source: &'static str,
+    pub profile_inferred: bool,
+    pub caveats: Vec<String>,
+    pub catalog_version: String,
+    pub rules_version: String,
+    pub catalog_item_count: usize,
+    pub catalog_rune_count: usize,
+    pub provenance_label: &'static str,
+    pub provenance_detail: Option<String>,
+    pub enemy_picks: usize,
+    pub enemy_confidence: f32,
+}
+
+impl LoadoutDto {
+    pub fn new(
+        recommendation: loldraft_engine::LoadoutRecommendation,
+        catalog: &loldraft_engine::ItemCatalog,
+    ) -> Self {
+        let map_reasons = |reasons: Vec<loldraft_engine::LoadoutReason>| {
+            reasons
+                .into_iter()
+                .map(|reason| LoadoutReasonDto {
+                    code: reason.code,
+                    label: reason.label,
+                    detail: reason.detail,
+                })
+                .collect()
+        };
+        let map_item = |item: loldraft_engine::ItemSuggestion| LoadoutItemDto {
+            id: item.id,
+            name: item.name,
+            category: item.category.as_str(),
+            function: item.function,
+            score: item.score,
+            reasons: map_reasons(item.reasons),
+        };
+
+        Self {
+            champion: recommendation.champion.0,
+            champion_name: recommendation.champion_name,
+            role: recommendation.role,
+            starter: recommendation.starter.map(map_item),
+            boots: recommendation.boots.map(map_item),
+            core: recommendation.core.into_iter().map(map_item).collect(),
+            situational: recommendation
+                .situational
+                .into_iter()
+                .map(map_item)
+                .collect(),
+            runes: recommendation
+                .runes
+                .into_iter()
+                .map(|page| LoadoutRuneDto {
+                    id: page.id,
+                    name: page.name,
+                    primary_path: page.primary_path,
+                    keystone: page.keystone,
+                    primary_runes: page.primary_runes,
+                    secondary_path: page.secondary_path,
+                    secondary_runes: page.secondary_runes,
+                    shards: page.shards,
+                    function: page.function,
+                    score: page.score,
+                    reasons: map_reasons(page.reasons),
+                })
+                .collect(),
+            threats: recommendation
+                .threats
+                .into_iter()
+                .map(|threat| LoadoutThreatDto {
+                    id: threat.id.as_str(),
+                    label: threat.label_es,
+                    value_low: threat.value_low,
+                    value_high: threat.value_high,
+                    confidence: threat.confidence,
+                    severity: threat.severity,
+                    confirmed: threat.confirmed,
+                })
+                .collect(),
+            profile_source: recommendation.profile_source.as_str(),
+            profile_inferred: recommendation.profile_inferred,
+            caveats: recommendation.caveats,
+            catalog_version: recommendation.catalog_version,
+            rules_version: recommendation.rules_version,
+            catalog_item_count: catalog.items.len(),
+            catalog_rune_count: catalog.rune_pages.len(),
+            provenance_label: catalog.provenance.label_es(),
+            provenance_detail: catalog.provenance.detail(),
+            enemy_picks: recommendation.enemy_picks,
+            enemy_confidence: recommendation.enemy_confidence,
+        }
+    }
+}
+
 /// Resultado de consultar el canal de actualizaciones.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

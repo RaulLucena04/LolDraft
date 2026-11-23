@@ -12,7 +12,7 @@ import { api } from "../api";
 import { ROLE_LABEL, ROLE_ORDER, SIDE_LABEL } from "../lib/format";
 import { RoleBadge, SideBadge } from "./Badges";
 import { ChampionAvatar } from "./ChampionAvatar";
-import { ChampionBuildPanel } from "./ChampionBuildPanel";
+import { LoadoutPanel } from "./LoadoutPanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 
 interface SoloqScreenProps {
@@ -734,10 +734,10 @@ export function SoloqScreen({
           )}
 
           {buildTarget && (
-            <ChampionBuildPanel
+            <LoadoutPanel
               champion={buildTarget}
               role={buildRole}
-              queue="soloq"
+              enemyPicks={filled(enemies).filter((key) => key !== ownPick)}
               context={ownChampion ? "own" : "suggested"}
             />
           )}

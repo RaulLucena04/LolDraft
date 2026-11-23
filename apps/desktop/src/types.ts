@@ -582,6 +582,80 @@ export interface BuildLookup {
   dataset: BuildsProvenance | null;
 }
 
+/** Motivo legible de una sugerencia de objeto o runas. */
+export interface LoadoutReason {
+  code: string;
+  label: string;
+  detail: string;
+}
+
+export type LoadoutCategory = "damage" | "defense" | "utility";
+
+/** Objeto sugerido por función y matchup. */
+export interface LoadoutItem {
+  id: string;
+  name: string;
+  category: LoadoutCategory;
+  function: string;
+  /** Índice de encaje 0..100; no es una probabilidad de victoria. */
+  score: number;
+  reasons: LoadoutReason[];
+}
+
+/** Página de runas sugerida por función y matchup. */
+export interface LoadoutRune {
+  id: string;
+  name: string;
+  primaryPath: string;
+  keystone: string;
+  primaryRunes: string[];
+  secondaryPath: string;
+  secondaryRunes: string[];
+  shards: string[];
+  function: string;
+  score: number;
+  reasons: LoadoutReason[];
+}
+
+/** Amenaza agregada del rival usada para puntuar el loadout. */
+export interface LoadoutThreat {
+  id: string;
+  label: string;
+  valueLow: number;
+  valueHigh: number;
+  confidence: number;
+  severity: number;
+  confirmed: boolean;
+}
+
+/** `profile` si hay perfil, `riot_tags` si solo hay tags, `none` sin datos. */
+export type LoadoutProfileSource = "profile" | "riot_tags" | "none";
+
+/** Objetos y runas derivados de reglas para el campeón frente al rival actual. */
+export interface Loadout {
+  champion: number;
+  championName: string;
+  role: Role | null;
+  starter: LoadoutItem | null;
+  boots: LoadoutItem | null;
+  core: LoadoutItem[];
+  situational: LoadoutItem[];
+  runes: LoadoutRune[];
+  threats: LoadoutThreat[];
+  profileSource: LoadoutProfileSource;
+  /** `true` si todas las celdas conocidas del perfil son inferidas (piloto). */
+  profileInferred: boolean;
+  caveats: string[];
+  catalogVersion: string;
+  rulesVersion: string;
+  catalogItemCount: number;
+  catalogRuneCount: number;
+  provenanceLabel: string;
+  provenanceDetail: string | null;
+  enemyPicks: number;
+  enemyConfidence: number;
+}
+
 /** Resultado de consultar el canal de actualizaciones. */
 export interface UpdateCheck {
   currentVersion: string;

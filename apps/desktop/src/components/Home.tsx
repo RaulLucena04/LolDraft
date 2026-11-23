@@ -5,7 +5,6 @@ import { formatRelative } from "../lib/format";
 import { Logo } from "./Logo";
 import { SideBadge, StatusPill } from "./Badges";
 import { StatsDatasetsCard } from "./StatsDatasetsCard";
-import { BuildsCard } from "./BuildsCard";
 import type { Toast } from "./ToastStack";
 import { UpdatesCard } from "./UpdatesCard";
 
@@ -92,7 +91,9 @@ export function Home({
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
                 Un asistente competitivo en Rust + Tauri. Simulador de las 20
                 acciones, análisis de composición y recomendaciones explicables.
-                En SoloQ, el draft se sincroniza solo con el cliente.
+                En SoloQ, el draft se sincroniza solo con el cliente y los
+                objetos y runas se recomiendan por función frente al rival, sin
+                importar JSON.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -149,7 +150,7 @@ export function Home({
                   </span>
                   <span className="mt-0.5 block text-xs text-muted">
                     Se sincroniza solo con el cliente durante el champ select y
-                    te da el mejor pick para tu turno.
+                    te da el mejor pick, objetos y runas para tu turno.
                   </span>
                 </span>
                 <span className="text-xl text-gold/70 transition group-hover:translate-x-0.5">
@@ -415,8 +416,6 @@ export function Home({
             onNotify={onNotify}
           />
 
-          <BuildsCard onNotify={onNotify} />
-
           <div className="panel p-5">
             <p className="eyebrow">Hoja de ruta</p>
             <ol className="mt-3 space-y-3">
@@ -450,15 +449,17 @@ export function Home({
                 </div>
               </li>
               <li className="flex gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line bg-surface2 text-[10px] font-bold text-muted">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-success/40 bg-success/10 text-[10px] font-bold text-success">
                   3
                 </span>
                 <div>
-                  <p className="text-xs font-bold text-muted">
+                  <p className="text-xs font-bold text-ink">
                     Recomendaciones explicables
                   </p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted/80">
-                    Picks y baneos con motivos, confianza y contexto de draft.
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                    Picks, baneos, objetos y runas con motivos y confianza. El
+                    loadout usa un catálogo curado de funciones y las amenazas
+                    del rival; no necesita builds importadas.
                   </p>
                 </div>
               </li>

@@ -3,13 +3,13 @@
 Aplicación de escritorio para simular, analizar y asistir drafts competitivos de League of Legends.
 Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind CSS.
 
-> **Estado del repositorio:** fases 1–3 implementadas y publicadas en
+> **Estado del repositorio:** fases 1–3 cerradas y fase 4 en curso, publicadas en
 > [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.4). El simulador de 20
 > acciones, el análisis de composición y las recomendaciones de pick/ban explicables funcionan; el
 > modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. La
-> Fase 4 ya importa estadísticas observadas (CSV/JSON) y conecta `power` a las recomendaciones con
-> separación estricta SoloQ/profesional; también importa builds y runas por campeón y rol, que se
-> muestran junto al pick. El talón de Aquiles siguen siendo los datos: solo existe un
+> Fase 4 importa estadísticas observadas (CSV/JSON), conecta `power` a las recomendaciones con
+> separación estricta SoloQ/profesional y recomienda objetos y runas **por función** frente al rival:
+> no hace falta importar builds para eso. El talón de Aquiles siguen siendo los datos: solo existe un
 > piloto inferido de 38 campeones, etiquetado siempre como `Inferred`, y los datasets observados hay
 > que importarlos a mano.
 
@@ -54,9 +54,13 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Estadísticas observadas:** importación de CSV/JSON con esquema validado, shrinkage y cuarentena de
   filas inválidas; el dataset activo alimenta `power` solo en su cola, y la UI muestra su procedencia
   (id, parche, fuente, licencia y filas). Sin dataset, la señal se marca ausente.
-- **Builds y runas:** dataset JSON importable por campeón, rol y cola. La app elige la build con mejor
-  winrate ajustado (o la más jugada / la curada, etiquetándolo) y muestra objetos, runas, muestra y
-  procedencia al lado del pick. Sin datos, no hay build: nunca se inventa.
+- **Objetos y runas por función:** catálogo curado incluido en el binario (objetos y páginas de runas)
+  que se cruza con las amenazas detectadas del rival y con el perfil del campeón propio. Explica cada
+  sugerencia con su función y la amenaza que responde, etiqueta el encaje como regla (no winrate) y
+  avisa cuando solo hay tags Riot. No requiere importar JSON.
+- **Builds importadas (opcional):** dataset JSON por campeón, rol y cola para quien quiera una build
+  observada. La app elige la de mejor winrate ajustado (o la más jugada / la curada, etiquetándolo) y
+  muestra datos, procedencia y confianza. Ya no es necesaria para jugar SoloQ.
 
 ## Análisis estratégico (Fase 2)
 
@@ -201,7 +205,9 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 `draft_undo`, `draft_redo`, `draft_set_role`, `draft_list`, `draft_load`, `draft_delete`,
 `profiles_list`, `profiles_import_pilot`, `profiles_import_proposal`, `profiles_import_set`,
 `profiles_activate`, `profile_champion`, `analysis_current`, `recommendations_current`,
-`soloq_recommend`, `lcu_champ_select`, `settings_get`, `settings_update`, `update_check`,
+`soloq_recommend`, `loadout_recommend`, `lcu_champ_select`, `stats_list`, `stats_import_json`,
+`stats_import_csv`, `stats_activate`, `stats_delete`, `builds_list`, `builds_import_json`,
+`builds_activate`, `builds_delete`, `builds_for`, `settings_get`, `settings_update`, `update_check`,
 `update_install`.
 
 La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
@@ -215,6 +221,10 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 - **Perfiles estratégicos:** existe un piloto de 38 campeones con procedencia `Inferred` y confianza
   0.35 para validar el motor. No es un dato observado ni curado y la app lo etiqueta como pendiente de
   revisión experta. Los campeones sin perfil quedan desconocidos, no en cero.
+- **Catálogo de objetos y runas:** fichero curado `crates/loldraft-engine/data/items-v1.json`,
+  versionado y validado con Serde. Describe qué hace cada objeto o página, sus etiquetas de encaje y
+  las amenazas que contrarresta. La recomendación se etiqueta como derivada de reglas (`Inferred`),
+  nunca como estadística observada; la revisión experta sigue pendiente.
 - **Lolalytics:** no se scrapea. Su API privada no autoriza uso de terceros; la estrategia de
   estadísticas se decidió con la API oficial de Riot y datos importados.
 
