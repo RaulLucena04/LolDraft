@@ -50,7 +50,8 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
   winrates falsos.
 - **Modo SoloQ:** el draft se rellena solo desde el cliente de League of Legends cada dos segundos
   (con pausa y actualización manual), incluido tu pick cuando lo bloqueas. Mejor pick por turno con
-  entrada manual como respaldo.
+  entrada manual como respaldo; al abrir el análisis una vez, el panel se recalcula solo cuando cambia
+  el draft, sin volver a pulsar.
 - **Estadísticas observadas:** importación de CSV/JSON con esquema validado, shrinkage y cuarentena de
   filas inválidas; el dataset activo alimenta `power` solo en su cola, y la UI muestra su procedencia
   (id, parche, fuente, licencia y filas). Sin dataset, la señal se marca ausente.

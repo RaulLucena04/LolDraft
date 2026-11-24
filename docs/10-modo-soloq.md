@@ -28,8 +28,10 @@ cada dos segundos.
 2. Cuando el cliente bloquea tu campeón, la tarjeta **Tu pick** pasa a
    «Bloqueado · turno N». Ese campeón se excluye de los candidatos y el botón
    «Ver mejor pick» se desactiva: ya no queda pick que recomendar.
-3. Mientras sigues eligiendo, pulsa **Ver mejor pick** para el análisis del
-   turno actual.
+3. Mientras sigues eligiendo, pulsa **Ver mejor pick** una sola vez. A partir
+   de ahí el panel se queda abierto y se recalcula solo cada vez que el
+   cliente o tú cambiáis el draft: no hace falta volver a pulsarlo. El botón
+   **Detener** apaga la actualización automática hasta que lo vuelvas a abrir.
 
 La barra de estado resume lo que está pasando sin ruido:
 
@@ -56,8 +58,11 @@ fallos de lectura (cliente cerrado, fuera de champ select) solo cambian la líne
 de estado; nunca vacían el draft ya leído.
 
 El estado **no se persiste**: es una consulta, no una sesión de draft. Al
-cambiar cualquier dato de entrada el resultado anterior se descarta, para no
-mostrar una recomendación calculada sobre otro estado.
+cambiar cualquier dato de entrada, el resultado visible se conserva mientras se
+recalcula (con el aviso «Calculando…») y se sustituye por el del estado nuevo;
+nunca se presenta el resultado anterior como si correspondiera al estado
+actual. Antes de abrir el panel, un cambio descarta el resultado y vuelve a
+mostrar el botón.
 
 ### 2.1 Baneos
 
@@ -200,5 +205,6 @@ imposible no produce una recomendación fiable.
 - Fuentes: `lockfile`, sesión azul/roja, turnos posteriores, pick propio
   bloqueado, espectador y posiciones asignadas (12 tests).
 - UI: compilación TypeScript y verificación contra cliente real: el draft se
-  rellena solo, el pick propio aparece al bloquearlo sin tocar nada, la pausa
-  conserva el draft y una caída del cliente no lo borra.
+  rellena solo, el pick propio aparece al bloquearlo sin tocar nada, el
+  análisis abierto se recalcula solo cuando cambian los picks y baneos, la
+  pausa conserva el draft y una caída del cliente no lo borra.

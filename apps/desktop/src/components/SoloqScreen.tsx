@@ -108,6 +108,7 @@ export function SoloqScreen({
   const [editing, setEditing] = useState<EditingSlot | null>(null);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<RecommendationSet | null>(null);
+  const [live, setLive] = useState(false);
   const [recommending, setRecommending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -115,6 +116,7 @@ export function SoloqScreen({
   const [sync, setSync] = useState<SyncState>({ kind: "syncing" });
   const [refreshing, setRefreshing] = useState(false);
   const lastPayload = useRef("");
+  const liveRef = useRef(false);
 
   const byKey = useMemo(() => {
     const map = new Map<number, Champion>();
@@ -131,11 +133,61 @@ export function SoloqScreen({
     return keys;
   }, [allies, enemies, bans, ownPick]);
 
-  // Cualquier cambio en el estado del draft invalida el resultado anterior:
-  // no se muestra una recomendación calculada para otro estado.
+  const payload = useMemo<SoloqDraftInput>(
+    () => ({
+      side,
+      slot,
+      role: role === "" ? null : role,
+      bans: filled(bans),
+      allyPicks: filled(allies),
+      enemyPicks: filled(enemies),
+    }),
+    [side, slot, role, bans, allies, enemies],
+  );
+
   useEffect(() => {
-    setResult(null);
-  }, [side, slot, role, allies, enemies, bans, ownPick]);
+    liveRef.current = live;
+  }, [live]);
+
+  // Antes de abrir el panel, cualquier cambio descarta el resultado anterior.
+  // Una vez abierto, el análisis sigue al draft: conserva lo visible y se
+  // recalcula en cuanto llega un estado nuevo, sin volver a pulsar el botón.
+  useEffect(() => {
+    if (!live || !hasProfiles) {
+      setRecommending(false);
+      setResult(null);
+      return;
+    }
+    if (ownPick !== null) {
+      setRecommending(false);
+      setResult(null);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    // Pequeña espera para agrupar varios cambios seguidos del cliente.
+    const timer = window.setTimeout(() => {
+      setRecommending(true);
+      setError(null);
+      api
+        .soloqRecommend(payload)
+        .then((output) => {
+          if (!cancelled) setResult(output);
+        })
+        .catch((caught) => {
+          if (cancelled) return;
+          setResult(null);
+          setError(errorMessage(caught));
+        })
+        .finally(() => {
+          if (!cancelled) setRecommending(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [live, hasProfiles, ownPick, payload]);
 
   const setSlotChampion = (target: EditingSlot, key: number | null) => {
     const update = (values: (number | null)[]) =>
@@ -152,6 +204,7 @@ export function SoloqScreen({
     setOwnPick(null);
     // El cliente sigue mandando: se vuelve a leer en el siguiente tick.
     lastPayload.current = "";
+    setLive(false);
     setResult(null);
     setError(null);
     setNotice(null);
@@ -188,13 +241,14 @@ export function SoloqScreen({
     setAllies(nextAllies);
     setEnemies(nextEnemies);
     setBans(nextBans);
-    setResult(null);
 
     if (announce) {
       setNotice(
         imported.unknownChampions.length > 0
           ? `Se leyeron ${nextAllies.filter((k) => k !== null).length + nextEnemies.filter((k) => k !== null).length} picks y ${nextBans.filter((k) => k !== null).length} baneos. ${imported.unknownChampions.length} campeón(es) del cliente no están en tu catálogo y se omitieron.`
-          : "Draft sincronizado con el cliente. Pulsa «Ver mejor pick» cuando quieras el análisis.",
+          : liveRef.current
+            ? "Draft sincronizado con el cliente. El análisis sigue al draft."
+            : "Draft sincronizado con el cliente. Pulsa «Ver mejor pick» cuando quieras el análisis.",
       );
     }
   }, []);
@@ -256,26 +310,15 @@ export function SoloqScreen({
     }
   };
 
-  const handleRecommend = async () => {
-    setRecommending(true);
+  const startLive = () => {
+    if (!hasProfiles || ownPick !== null) return;
+    setLive(true);
+  };
+
+  const stopLive = () => {
+    setLive(false);
+    setResult(null);
     setError(null);
-    const payload: SoloqDraftInput = {
-      side,
-      slot,
-      role: role === "" ? null : role,
-      bans: filled(bans),
-      allyPicks: filled(allies),
-      enemyPicks: filled(enemies),
-    };
-    try {
-      const output = await api.soloqRecommend(payload);
-      setResult(output);
-    } catch (recommendError) {
-      setResult(null);
-      setError(errorMessage(recommendError));
-    } finally {
-      setRecommending(false);
-    }
   };
 
   const best = result?.picks[0] ?? null;
@@ -670,18 +713,39 @@ export function SoloqScreen({
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void handleRecommend()}
-                disabled={recommending || !hasProfiles || ownChampion !== null}
-                className="btn-gold px-4 py-2 text-xs"
-              >
-                {ownChampion
-                  ? "Pick bloqueado"
-                  : recommending
-                    ? "Calculando…"
-                    : "Ver mejor pick"}
-              </button>
+              {ownChampion ? (
+                <span className="chip border-line text-muted">Pick bloqueado</span>
+              ) : live ? (
+                <>
+                  <span
+                    className={`chip ${
+                      recommending
+                        ? "border-gold/40 text-gold"
+                        : "border-success/40 text-success"
+                    }`}
+                    title="El panel se recalcula solo cuando cambia el draft o el cliente. No hace falta volver a pulsar."
+                  >
+                    {recommending ? "Actualizando…" : "● Actualización automática"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={stopLive}
+                    className="text-[10px] text-muted hover:text-ink"
+                    title="Deja de recalcular el análisis hasta que lo vuelvas a abrir"
+                  >
+                    Detener
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startLive}
+                  disabled={!hasProfiles}
+                  className="btn-gold px-4 py-2 text-xs"
+                >
+                  Ver mejor pick
+                </button>
+              )}
               {ownChampion && (
                 <span className="text-[11px] text-muted">
                   Ya has bloqueado a{" "}

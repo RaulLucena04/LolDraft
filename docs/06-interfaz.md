@@ -150,7 +150,7 @@ pregunta: qué pick encaja mejor en el turno propio de una partida de ranked.
 Tu situación ........ lado · turno de pick (1-5) · rol opcional
 Draft ............... 4 huecos aliados + tu pick, 5 rivales y 10 baneos
 Sincronización ...... automática cada 2 s (se puede pausar)
-Acción .............. "Ver mejor pick" (desactivado si tu pick ya está bloqueado)
+Acción .............. "Ver mejor pick" (una vez abierto, se recalcula solo)
 Resultado ........... tarjeta del mejor pick + panel de recomendaciones
 Estado .............. "Cliente conectado" / "cerrado" / "fuera de champ select"
 ```
@@ -161,8 +161,15 @@ Estado .............. "Cliente conectado" / "cerrado" / "fuera de champ select"
   «Bloqueado · turno N» y el campeón deja de ser candidato.
 - Solo se aplica un estado cuando cambia: una respuesta idéntica no invalida la
   recomendación visible. Un fallo de lectura tampoco borra el draft.
-- Al cambiar cualquier dato se descarta el resultado anterior: nunca se muestra
-  una recomendación calculada sobre otro estado.
+- **El análisis se queda abierto:** tras pulsar "Ver mejor pick", el panel
+  conserva el resultado y se recalcula solo cuando cambia el draft o el
+  cliente, sin volver a pulsar. Mientras llega el cálculo nuevo se mantiene el
+  anterior con el aviso "Calculando…". "Detener" apaga la actualización
+  automática. Si tu pick ya está bloqueado, el panel lo explica y espera al
+  siguiente draft.
+- Antes de abrirlo, cualquier cambio descarta el resultado anterior: nunca se
+  presenta una recomendación como si correspondiera a un estado que ya no
+  existe.
 - Los baneos se leen del cliente como dato **importante**: el motor no propone
   campeones baneados. Si el cliente no los expone, la interfaz lo advierte.
 - Junto al pick (propio si ya está bloqueado; si no, el mejor pick sugerido) se
