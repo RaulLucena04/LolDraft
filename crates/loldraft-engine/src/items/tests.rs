@@ -280,6 +280,19 @@ fn the_seed_catalog_is_valid_and_has_key_functions() {
     for id in ["conqueror_bruiser", "grasp_tank", "aery_enchanter"] {
         assert!(catalog.rune_page(id).is_some(), "falta la página {id}");
     }
+    assert!(catalog.templates.len() >= 10);
+    assert!(catalog.champion_builds.len() >= 150);
+    let template = catalog
+        .template("adc_crit")
+        .expect("la plantilla de tirador debe existir");
+    assert_eq!(
+        template.core,
+        vec![
+            "yun_tal".to_string(),
+            "infinity_edge".to_string(),
+            "lord_dominiks_regards".to_string()
+        ]
+    );
 }
 
 #[test]
@@ -306,16 +319,16 @@ fn sustain_increases_the_score_of_anti_heal_items() {
     let own = own_tank();
 
     let with = recommendation(
-        64,
-        "SYNTH_64",
+        86,
+        "Garen",
         Some(Role::Top),
         Some(&own),
         &[],
         Some(&with_sustain),
     );
     let without = recommendation(
-        64,
-        "SYNTH_64",
+        86,
+        "Garen",
         Some(Role::Top),
         Some(&own),
         &[],
@@ -333,40 +346,30 @@ fn sustain_increases_the_score_of_anti_heal_items() {
 }
 
 #[test]
-fn magic_threats_surface_magic_defenses() {
+fn magic_threats_change_the_boots_choice() {
     let enemy = enemy_analysis(0.90);
     let own = own_tank();
-    let recommendation = recommendation(
-        64,
-        "SYNTH_64",
-        Some(Role::Top),
-        Some(&own),
-        &[],
-        Some(&enemy),
+    let recommendation =
+        recommendation(86, "Garen", Some(Role::Top), Some(&own), &[], Some(&enemy));
+    assert_eq!(
+        recommendation.boots.as_ref().map(|boots| boots.id.as_str()),
+        Some("mercurys_treads")
     );
-    let has_magic_reason = recommendation
-        .starter
+    assert!(recommendation
+        .boots
+        .as_ref()
+        .unwrap()
+        .reasons
         .iter()
-        .chain(recommendation.boots.iter())
-        .chain(recommendation.core.iter())
-        .chain(recommendation.situational.iter())
-        .flat_map(|item| item.reasons.iter())
-        .any(|reason| reason.code == "threat:magic");
-    assert!(has_magic_reason);
+        .any(|reason| reason.code == "threat:magic"));
 }
 
 #[test]
 fn runes_answer_hard_cc_with_tenacity() {
     let enemy = enemy_analysis(0.90);
     let own = own_tank();
-    let recommendation = recommendation(
-        64,
-        "SYNTH_64",
-        Some(Role::Top),
-        Some(&own),
-        &[],
-        Some(&enemy),
-    );
+    let recommendation =
+        recommendation(86, "Garen", Some(Role::Top), Some(&own), &[], Some(&enemy));
     assert!(!recommendation.runes.is_empty());
     let has_tenacity = recommendation
         .runes
@@ -509,4 +512,299 @@ fn the_result_is_deterministic_and_has_no_duplicates() {
             page.id
         );
     }
+}
+
+fn damage_team(physical: f32, magic: f32) -> TeamAnalysis {
+    let roles = [Role::Top, Role::Jungle, Role::Mid, Role::Adc, Role::Support];
+    let profiles: Vec<ChampionProfile> = roles
+        .iter()
+        .enumerate()
+        .map(|(index, role)| {
+            profile(
+                20 + index as u16,
+                *role,
+                &[(ArchetypeId::Frontline, 0.5), (ArchetypeId::Dps, 0.5)],
+                &[
+                    (TraitId::DamagePhysical, physical),
+                    (TraitId::DamageMagic, magic),
+                    (TraitId::DamageTrue, 0.0),
+                    (TraitId::Durability, 0.5),
+                ],
+            )
+        })
+        .collect();
+    let set = set(profiles);
+    let picks: Vec<PickedChampion> = roles
+        .iter()
+        .enumerate()
+        .map(|(index, role)| PickedChampion::new(ChampionKey(20 + index as u16), *role, 1.0))
+        .collect();
+    analyze_team(Side::Red, &picks, &set, &AnalysisParams::default()).unwrap()
+}
+
+fn all_items(recommendation: &LoadoutRecommendation) -> Vec<&ItemSuggestion> {
+    recommendation
+        .starter
+        .iter()
+        .chain(recommendation.boots.iter())
+        .chain(recommendation.core.iter())
+        .chain(recommendation.situational.iter())
+        .collect()
+}
+
+#[test]
+fn jinx_buys_a_crit_core_in_order() {
+    let tags = vec!["Marksman".to_string()];
+    let recommendation = recommendation(222, "Jinx", Some(Role::Adc), None, &tags, None);
+    assert_eq!(recommendation.build_source, BuildSource::Template);
+    assert_eq!(
+        recommendation.build_name.as_deref(),
+        Some("Tirador de crítico")
+    );
+    let core: Vec<&str> = recommendation
+        .core
+        .iter()
+        .map(|item| item.id.as_str())
+        .collect();
+    assert_eq!(core, vec!["yun_tal", "infinity_edge", "runaans_hurricane"]);
+    assert_eq!(
+        recommendation.starter.as_ref().map(|item| item.id.as_str()),
+        Some("dorans_blade")
+    );
+    assert_eq!(
+        recommendation.boots.as_ref().map(|item| item.id.as_str()),
+        Some("berserkers_greaves")
+    );
+    assert!(!recommendation.runes.is_empty());
+}
+
+#[test]
+fn curated_templates_cover_common_champions_with_their_own_items() {
+    struct Case<'a> {
+        key: u16,
+        name: &'a str,
+        role: Role,
+        tags: &'a [&'a str],
+        core: &'a [&'a str],
+        build_name: &'a str,
+    }
+
+    let cases = [
+        Case {
+            key: 103,
+            name: "Ahri",
+            role: Role::Mid,
+            tags: &["Mage", "Assassin"],
+            core: &["ludens_companion", "shadowflame", "rabadons_deathcap"],
+            build_name: "Mago de burst",
+        },
+        Case {
+            key: 64,
+            name: "Lee Sin",
+            role: Role::Jungle,
+            tags: &["Fighter", "Assassin"],
+            core: &["eclipse", "black_cleaver", "death_dance"],
+            build_name: "Bruiser de daño físico",
+        },
+        Case {
+            key: 412,
+            name: "Thresh",
+            role: Role::Support,
+            tags: &["Support", "Tank"],
+            core: &["locket", "knights_vow", "zekes_convergence"],
+            build_name: "Support de engage",
+        },
+        Case {
+            key: 99,
+            name: "Lux",
+            role: Role::Mid,
+            tags: &["Mage", "Support"],
+            core: &["ludens_companion", "horizon_focus", "rabadons_deathcap"],
+            build_name: "Mago de poke",
+        },
+        Case {
+            key: 157,
+            name: "Yasuo",
+            role: Role::Mid,
+            tags: &["Fighter", "Assassin"],
+            core: &["yun_tal", "infinity_edge", "phantom_dancer"],
+            build_name: "Tirador de crítico",
+        },
+    ];
+
+    for case in &cases {
+        let tags: Vec<String> = case.tags.iter().map(|tag| tag.to_string()).collect();
+        let result = recommendation(case.key, case.name, Some(case.role), None, &tags, None);
+        assert_eq!(result.build_source, BuildSource::Template, "{}", case.name);
+        assert_eq!(
+            result.build_name.as_deref(),
+            Some(case.build_name),
+            "{}",
+            case.name
+        );
+        let ids: Vec<&str> = result.core.iter().map(|item| item.id.as_str()).collect();
+        assert_eq!(
+            &ids, case.core,
+            "{} recibió un núcleo incoherente",
+            case.name
+        );
+        assert!(
+            result.starter.is_some() && result.boots.is_some(),
+            "{} no recibió inicio o botas",
+            case.name
+        );
+        assert!(!result.runes.is_empty(), "{} no recibió runas", case.name);
+    }
+}
+
+#[test]
+fn a_champion_played_off_role_keeps_its_curated_build() {
+    let tags = vec!["Marksman".to_string(), "Support".to_string()];
+    let ashe = recommendation(22, "Ashe", Some(Role::Support), None, &tags, None);
+    assert_eq!(ashe.build_source, BuildSource::Template);
+    assert!(ashe.starter.is_some(), "Ashe support quedó sin inicio");
+    assert!(!ashe.core.is_empty(), "Ashe support quedó sin núcleo");
+    assert!(!ashe.runes.is_empty(), "Ashe support quedó sin runas");
+}
+
+#[test]
+fn garen_and_janna_do_not_receive_ap_or_anti_heal_cores() {
+    let garen = recommendation(
+        86,
+        "Garen",
+        Some(Role::Top),
+        None,
+        &["Fighter".to_string(), "Tank".to_string()],
+        None,
+    );
+    let garen_core: Vec<&str> = garen.core.iter().map(|item| item.id.as_str()).collect();
+    assert_eq!(
+        garen_core,
+        vec!["stridebreaker", "black_cleaver", "steraks_gage"]
+    );
+
+    let janna = recommendation(
+        40,
+        "Janna",
+        Some(Role::Support),
+        None,
+        &["Support".to_string(), "Mage".to_string()],
+        None,
+    );
+    let janna_core: Vec<&str> = janna.core.iter().map(|item| item.id.as_str()).collect();
+    assert_eq!(
+        janna_core,
+        vec![
+            "moonstone_renewer",
+            "staff_of_flowing_water",
+            "ardent_censer"
+        ]
+    );
+
+    for result in [&garen, &janna] {
+        for item in all_items(result) {
+            assert_ne!(
+                item.id, "morellonomicon",
+                "{} recibió Morellonomicón",
+                result.champion_name
+            );
+            assert_ne!(item.id, "chempunk_chainsword");
+        }
+    }
+}
+
+#[test]
+fn situational_items_require_their_threat() {
+    let garen_tags = vec!["Fighter".to_string(), "Tank".to_string()];
+    let calm = recommendation(86, "Garen", Some(Role::Top), None, &garen_tags, None);
+    assert!(find_item(&calm, "thornmail").is_none());
+    assert!(find_item(&calm, "spirit_visage").is_none());
+
+    let enemy = enemy_analysis(0.95);
+    let pressured = recommendation(
+        86,
+        "Garen",
+        Some(Role::Top),
+        None,
+        &garen_tags,
+        Some(&enemy),
+    );
+    assert!(find_item(&pressured, "thornmail").is_some());
+}
+
+#[test]
+fn boots_respond_to_the_enemy_damage_type() {
+    let tags = vec!["Fighter".to_string(), "Tank".to_string()];
+    let physical = recommendation(
+        86,
+        "Garen",
+        Some(Role::Top),
+        None,
+        &tags,
+        Some(&damage_team(0.97, 0.02)),
+    );
+    assert_eq!(
+        physical.boots.as_ref().map(|boots| boots.id.as_str()),
+        Some("plated_steelcaps")
+    );
+
+    let magic = recommendation(
+        86,
+        "Garen",
+        Some(Role::Top),
+        None,
+        &tags,
+        Some(&damage_team(0.02, 0.97)),
+    );
+    assert_eq!(
+        magic.boots.as_ref().map(|boots| boots.id.as_str()),
+        Some("mercurys_treads")
+    );
+}
+
+#[test]
+fn rules_fallback_keeps_damage_types_coherent() {
+    let tags = vec!["Mage".to_string()];
+    let recommendation = recommendation(9999, "SYNTH_MAGE", Some(Role::Mid), None, &tags, None);
+    assert_eq!(recommendation.build_source, BuildSource::Rules);
+    let physical_items = [
+        "youmuus_ghostblade",
+        "black_cleaver",
+        "infinity_edge",
+        "yun_tal",
+        "collector",
+        "trinity_force",
+        "death_dance",
+        "steraks_gage",
+        "profane_hydra",
+        "ravenous_hydra",
+        "manamune",
+        "kraken_slayer",
+        "blade_of_the_ruined_king",
+        "guardian_angel",
+        "mercurial_scimitar",
+        "edge_of_night",
+        "seryldas_grudge",
+    ];
+    for item in all_items(&recommendation) {
+        assert!(
+            !physical_items.contains(&item.id.as_str()),
+            "un mago recibió el objeto físico {}",
+            item.id
+        );
+    }
+    assert!(!recommendation.core.is_empty());
+}
+
+#[test]
+fn a_champion_without_profile_tags_or_template_gets_no_invented_build() {
+    let recommendation = recommendation(9999, "SIN_DATOS", Some(Role::Mid), None, &[], None);
+    assert_eq!(recommendation.build_source, BuildSource::Rules);
+    assert!(recommendation.core.is_empty());
+    assert!(recommendation.situational.is_empty());
+    assert!(recommendation.runes.is_empty());
+    assert!(recommendation
+        .caveats
+        .iter()
+        .any(|caveat| caveat.contains("reglas por función")));
 }

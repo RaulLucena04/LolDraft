@@ -906,6 +906,8 @@ pub struct LoadoutReasonDto {
 pub struct LoadoutItemDto {
     pub id: String,
     pub name: String,
+    /// Identificador de Data Dragon para el icono local (`/items/<icon>.png`).
+    pub icon: u32,
     /// `damage`, `defense` o `utility`.
     pub category: &'static str,
     pub function: String,
@@ -920,6 +922,8 @@ pub struct LoadoutItemDto {
 pub struct LoadoutRuneDto {
     pub id: String,
     pub name: String,
+    /// Identificador de la runa clave para el icono local (`/runes/<id>.png`).
+    pub keystone_id: u32,
     pub primary_path: String,
     pub keystone: String,
     pub primary_runes: Vec<String>,
@@ -969,6 +973,10 @@ pub struct LoadoutDto {
     pub provenance_detail: Option<String>,
     pub enemy_picks: usize,
     pub enemy_confidence: f32,
+    /// Plantilla curada aplicada, si existe.
+    pub build_name: Option<String>,
+    /// `template` o `rules`.
+    pub build_source: &'static str,
 }
 
 impl LoadoutDto {
@@ -989,6 +997,7 @@ impl LoadoutDto {
         let map_item = |item: loldraft_engine::ItemSuggestion| LoadoutItemDto {
             id: item.id,
             name: item.name,
+            icon: item.icon,
             category: item.category.as_str(),
             function: item.function,
             score: item.score,
@@ -1013,6 +1022,7 @@ impl LoadoutDto {
                 .map(|page| LoadoutRuneDto {
                     id: page.id,
                     name: page.name,
+                    keystone_id: page.keystone_id,
                     primary_path: page.primary_path,
                     keystone: page.keystone,
                     primary_runes: page.primary_runes,
@@ -1048,6 +1058,8 @@ impl LoadoutDto {
             provenance_detail: catalog.provenance.detail(),
             enemy_picks: recommendation.enemy_picks,
             enemy_confidence: recommendation.enemy_confidence,
+            build_name: recommendation.build_name,
+            build_source: recommendation.build_source.as_str(),
         }
     }
 }

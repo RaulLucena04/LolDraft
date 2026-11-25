@@ -100,6 +100,7 @@ export const api = {
   updateCheck: () => call<UpdateCheck>("update_check"),
   updateInstall: (version: string) =>
     call<UpdateInstall>("update_install", { version }),
+  openExternal: (url: string) => call<void>("open_external", { url }),
 };
 
 export { toCommandError };

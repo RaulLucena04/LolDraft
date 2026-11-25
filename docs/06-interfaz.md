@@ -172,15 +172,22 @@ Estado .............. "Cliente conectado" / "cerrado" / "fuera de champ select"
   existe.
 - Los baneos se leen del cliente como dato **importante**: el motor no propone
   campeones baneados. Si el cliente no los expone, la interfaz lo advierte.
-- Junto al pick (propio si ya está bloqueado; si no, el mejor pick sugerido) se
-  muestra el panel **Objetos y runas**: detecta las amenazas del rival (daño
-  físico/mágico, CC duro, sustain, tanques, burst, poke, engage, movilidad…),
-  propone inicio, botas, núcleo, situacionales y páginas de runas, y explica
-  cada sugerencia con su función, la amenaza que responde y el encaje con el
-  campeón. No usa winrates ni builds importadas: el catálogo es curado y el
-  resultado se etiqueta como derivado de reglas. Si el campeón no tiene perfil,
-  se avisa de que solo se usan sus tags de Riot; si no hay rivales leídos, se
-  dice que el encaje es solo del campeón.
+- Junto al pick (propio si ya está bloqueado; si no, el mejor pick sugerido) aparecen dos paneles
+  separados, **Objetos** y **Runas**, con iconos y nombres en español. Los objetos se ordenan como
+  inicio, botas, núcleo (orden de compra) y situacionales; las runas muestran la página principal y
+  alternativas con runa clave, ramas y fragmentos.
+- La base sale de una **plantilla curada por campeón** (inicio, botas, núcleo, situacionales y runas).
+  Si el campeón no tiene plantilla, se aplican **reglas por función** y se avisa. Las botas y los
+  situacionales se ajustan a las amenazas del rival (daño físico/mágico, CC duro, sustain, tanques,
+  burst, poke, engage, movilidad…). Un objeto marcado como situacional no aparece si el rival no
+  presenta la amenaza que contrarresta, y no se mezclan objetos de daño físico y mágico en campeones
+  claramente inclinados a un tipo. Cada sugerencia explica su función, la amenaza que responde y el
+  encaje con el campeón; no usa winrates ni builds importadas.
+- Una tira de **picks recomendados** con retratos y ajuste queda visible sobre la build para localizar
+  rápido al resto de candidatos, y cada rival leído enlaza a su página pública de **CounterStats**
+  (fuente externa: la app no copia ni redistribuye sus datos). Si el campeón no tiene perfil, se avisa
+  de que solo se usan sus tags de Riot; si no hay rivales leídos, se dice que el encaje es solo del
+  campeón.
 - Detalle del contrato y límites en [`10-modo-soloq.md`](./10-modo-soloq.md).
 
 ### 3.3 Laboratorio de análisis

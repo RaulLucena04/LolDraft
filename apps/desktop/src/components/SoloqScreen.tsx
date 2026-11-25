@@ -12,6 +12,7 @@ import { api } from "../api";
 import { ROLE_LABEL, ROLE_ORDER, SIDE_LABEL } from "../lib/format";
 import { RoleBadge, SideBadge } from "./Badges";
 import { ChampionAvatar } from "./ChampionAvatar";
+import { CounterStatsLink } from "./CounterStatsLink";
 import { LoadoutPanel } from "./LoadoutPanel";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 
@@ -634,6 +635,23 @@ export function SoloqScreen({
                     renderSlot("enemy", index, `Rival ${index + 1}`, enemies[index] ?? null),
                   )}
                 </div>
+                {filled(enemies).length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-muted">
+                      Counters en CounterStats
+                    </span>
+                    {filled(enemies).map((key) => {
+                      const champion = byKey.get(key);
+                      return champion ? (
+                        <CounterStatsLink
+                          key={key}
+                          championName={champion.name}
+                          label={champion.name}
+                        />
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">
@@ -764,6 +782,23 @@ export function SoloqScreen({
               )}
             </div>
           </section>
+
+          <RecommendationsPanel
+            recommendations={result}
+            recommending={recommending}
+            error={error}
+            hasProfiles={hasProfiles}
+            draftComplete={false}
+            onInspect={onInspect}
+            actionLabel={`Pick ${slot} de tu equipo`}
+            emptyHint={
+              ownChampion
+                ? "Tu pick ya está bloqueado; este panel servirá en el siguiente draft."
+                : sync.kind === "live"
+                  ? "El draft se rellena solo desde el cliente. Pulsa «Ver mejor pick» cuando quieras el análisis."
+                  : "Rellena los picks ya bloqueados y pulsa «Ver mejor pick»."
+            }
+          />
         </div>
 
         <div className="flex flex-col gap-4 xl:col-span-5">
@@ -797,6 +832,54 @@ export function SoloqScreen({
             </section>
           )}
 
+          {result && result.picks.length > 0 && (
+            <section className="panel border-gold/25 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="eyebrow text-gold">Picks recomendados</p>
+                <span className="text-[10px] uppercase tracking-wider text-muted">
+                  {result.candidatesConsidered} candidatos · ajuste
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+                {result.picks.slice(0, 6).map((pick, index) => (
+                  <button
+                    key={`${pick.champion.key}-${pick.role}`}
+                    type="button"
+                    onClick={() => onInspect(pick.champion.key)}
+                    title={`${pick.champion.name} · ${pick.score}/100 ajuste · ver perfil`}
+                    className={`group relative overflow-hidden rounded-lg border bg-bg/40 text-left transition hover:-translate-y-0.5 hover:border-gold/60 ${
+                      index === 0 ? "border-gold/50" : "border-line"
+                    }`}
+                  >
+                    <span className="absolute left-1 top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded bg-bg/85 px-1 text-[9px] font-bold text-gold">
+                      {index + 1}
+                    </span>
+                    <span className="relative block aspect-square w-full">
+                      <ChampionAvatar
+                        champion={pick.champion}
+                        size="fill"
+                        className="absolute inset-0 rounded-none border-0"
+                      />
+                    </span>
+                    <span className="block px-1.5 pb-1.5 pt-1">
+                      <span className="block truncate text-[10px] font-semibold text-ink">
+                        {pick.champion.name}
+                      </span>
+                      <span className="mt-0.5 flex items-center justify-between gap-1">
+                        <span className="truncate text-[9px] uppercase tracking-wider text-muted">
+                          {ROLE_LABEL[pick.role]}
+                        </span>
+                        <span className="tabular shrink-0 text-[10px] font-bold text-gold">
+                          {pick.score}
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           {buildTarget && (
             <LoadoutPanel
               champion={buildTarget}
@@ -805,23 +888,6 @@ export function SoloqScreen({
               context={ownChampion ? "own" : "suggested"}
             />
           )}
-
-          <RecommendationsPanel
-            recommendations={result}
-            recommending={recommending}
-            error={error}
-            hasProfiles={hasProfiles}
-            draftComplete={false}
-            onInspect={onInspect}
-            actionLabel={`Pick ${slot} de tu equipo`}
-            emptyHint={
-              ownChampion
-                ? "Tu pick ya está bloqueado; este panel servirá en el siguiente draft."
-                : sync.kind === "live"
-                  ? "El draft se rellena solo desde el cliente. Pulsa «Ver mejor pick» cuando quieras el análisis."
-                  : "Rellena los picks ya bloqueados y pulsa «Ver mejor pick»."
-            }
-          />
         </div>
       </main>
     </div>

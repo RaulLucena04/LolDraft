@@ -595,6 +595,8 @@ export type LoadoutCategory = "damage" | "defense" | "utility";
 export interface LoadoutItem {
   id: string;
   name: string;
+  /** Identificador de Data Dragon para el icono local (`/items/<icon>.png`). */
+  icon: number;
   category: LoadoutCategory;
   function: string;
   /** Índice de encaje 0..100; no es una probabilidad de victoria. */
@@ -606,6 +608,8 @@ export interface LoadoutItem {
 export interface LoadoutRune {
   id: string;
   name: string;
+  /** Identificador de la runa clave para el icono local (`/runes/<id>.png`). */
+  keystoneId: number;
   primaryPath: string;
   keystone: string;
   primaryRunes: string[];
@@ -654,6 +658,10 @@ export interface Loadout {
   provenanceDetail: string | null;
   enemyPicks: number;
   enemyConfidence: number;
+  /** Nombre de la plantilla curada aplicada, si existe. */
+  buildName: string | null;
+  /** `template` si hay plantilla curada, `rules` si se derivó por función. */
+  buildSource: "template" | "rules";
 }
 
 /** Resultado de consultar el canal de actualizaciones. */

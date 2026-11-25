@@ -1,8 +1,10 @@
 {
   "name": "loldraft",
   "private": true,
-  "version": "0.1.6",
-  "workspaces": ["apps/desktop"],
+  "version": "0.1.7",
+  "workspaces": [
+    "apps/desktop"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace loldraft-desktop",
     "build:ui": "npm run build --workspace loldraft-desktop",

@@ -4,7 +4,7 @@ Aplicación de escritorio para simular, analizar y asistir drafts competitivos d
 Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind CSS.
 
 > **Estado del repositorio:** fases 1–3 cerradas y fase 4 en curso, publicadas en
-> [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.6). El simulador de 20
+> [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.7). El simulador de 20
 > acciones, el análisis de composición y las recomendaciones de pick/ban explicables funcionan; el
 > modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. La
 > Fase 4 importa estadísticas observadas (CSV/JSON), conecta `power` a las recomendaciones con
@@ -55,10 +55,14 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Estadísticas observadas:** importación de CSV/JSON con esquema validado, shrinkage y cuarentena de
   filas inválidas; el dataset activo alimenta `power` solo en su cola, y la UI muestra su procedencia
   (id, parche, fuente, licencia y filas). Sin dataset, la señal se marca ausente.
-- **Objetos y runas por función:** catálogo curado incluido en el binario (objetos y páginas de runas)
-  que se cruza con las amenazas detectadas del rival y con el perfil del campeón propio. Explica cada
-  sugerencia con su función y la amenaza que responde, etiqueta el encaje como regla (no winrate) y
-  avisa cuando solo hay tags Riot. No requiere importar JSON.
+- **Objetos y runas por función:** dos paneles separados con iconos y nombres oficiales. Cada campeón
+  parte de una plantilla curada (inicio, botas, núcleo, situacionales y runas) incluida en el binario;
+  si no existe, se aplican reglas por función. La build se ajusta a las amenazas del rival (daño
+  físico/mágico, CC, sustain, tanques…), exige coherencia de daño AD/AP y solo muestra objetos
+  situacionales cuando el rival presenta la amenaza que contrarrestan. Explica cada sugerencia y
+  etiqueta el encaje como plantilla/regla, nunca como winrate. No requiere importar JSON.
+- **CounterStats:** los rivales leídos enlazan a su página pública de CounterStats. La app no copia ni
+  redistribuye esas estadísticas; abre la fuente externa para quien quiera consultar el enfrentamiento.
 - **Builds importadas (opcional):** dataset JSON por campeón, rol y cola para quien quiera una build
   observada. La app elige la de mejor winrate ajustado (o la más jugada / la curada, etiquetándolo) y
   muestra datos, procedencia y confianza. Ya no es necesaria para jugar SoloQ.
@@ -198,7 +202,9 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 | `apps/desktop` | UI React + TypeScript + Tailwind. |
 | `crates/loldraft-data/seeds/champions.json` | Semilla reproducible de identidad y roles. |
 | `apps/desktop/public/champions` | Retratos empaquetados de Data Dragon. |
-| `scripts/fetch-static-data.mjs` | Generador reproducible de la semilla y los retratos. |
+| `apps/desktop/public/items` | Iconos de objetos empaquetados de Data Dragon. |
+| `apps/desktop/public/runes` | Iconos de runas clave empaquetados de Data Dragon. |
+| `scripts/fetch-static-data.mjs` | Generador reproducible de la semilla, retratos, iconos y nombres oficiales del catálogo. |
 
 ### Comandos Tauri
 
@@ -209,7 +215,7 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 `soloq_recommend`, `loadout_recommend`, `lcu_champ_select`, `stats_list`, `stats_import_json`,
 `stats_import_csv`, `stats_activate`, `stats_delete`, `builds_list`, `builds_import_json`,
 `builds_activate`, `builds_delete`, `builds_for`, `settings_get`, `settings_update`, `update_check`,
-`update_install`.
+`update_install`, `open_external`.
 
 La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
 
@@ -223,9 +229,13 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
   0.35 para validar el motor. No es un dato observado ni curado y la app lo etiqueta como pendiente de
   revisión experta. Los campeones sin perfil quedan desconocidos, no en cero.
 - **Catálogo de objetos y runas:** fichero curado `crates/loldraft-engine/data/items-v1.json`,
-  versionado y validado con Serde. Describe qué hace cada objeto o página, sus etiquetas de encaje y
-  las amenazas que contrarresta. La recomendación se etiqueta como derivada de reglas (`Inferred`),
-  nunca como estadística observada; la revisión experta sigue pendiente.
+  versionado y validado con Serde. Describe qué hace cada objeto o página, sus iconos y nombres
+  oficiales, sus etiquetas de encaje y las amenazas que contrarresta. Incluye plantillas por familia y
+  una asignación por campeón (con sobrescritura opcional de núcleo y runas); sin plantilla se aplican
+  reglas por función. La recomendación se etiqueta como plantilla curada o derivada de reglas
+  (`Inferred`), nunca como estadística observada; la revisión experta sigue pendiente.
+- **CounterStats:** se enlaza la página pública de cada rival leído; no se scrapea, copia ni
+  redistribuye su contenido. La app solo abre el enlace en el navegador del sistema.
 - **Lolalytics:** no se scrapea. Su API privada no autoriza uso de terceros; la estrategia de
   estadísticas se decidió con la API oficial de Riot y datos importados.
 

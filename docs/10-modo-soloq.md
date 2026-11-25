@@ -121,26 +121,37 @@ Nota: si un aliado ya bloqueado solo puede ocupar el rol reservado, el análisis
 lo deja sin rol y no lo cuenta en la composición, igual que en el simulador
 competitivo. No se le inventa una posición para que encaje.
 
-### 3.2 Objetos y runas por función
+### 3.2 Objetos y runas por campeón
 
-Junto al pick aparece el panel **Objetos y runas**. No depende de un dataset de builds importado:
-cruza un catálogo curado de funciones con las amenazas del rival y con el perfil del campeón.
+Junto al pick aparecen dos paneles separados, **Objetos** y **Runas**, con iconos locales y nombres
+oficiales de Data Dragon en español. No dependen de un dataset de builds importado.
 
 1. El comando `loadout_recommend` recibe el campeón, el rol y los picks rivales ya leídos del
    cliente. Construye el análisis del equipo rival con el mismo motor de composición (`analyze_team`)
    y lo pasa a `loldraft_engine::items::recommend_loadout`.
-2. El motor detecta amenazas (reparto de daño físico/mágico, CC duro, movilidad, sustain, tanques,
+2. El motor busca primero la **plantilla curada** del campeón en el catálogo
+   (`crates/loldraft-engine/data/items-v1.json`): inicio, botas, núcleo en orden de compra,
+   situacionales y páginas de runas. Las plantillas agrupan familias de campeones (tirador de crítico,
+   mago de burst, juggernaut, support de engage, enchanter…) y cada campeón puede sobrescribir su
+   núcleo o sus runas. Si no hay plantilla, se aplican **reglas por función** y el resultado se
+   etiqueta como tal.
+3. El motor detecta amenazas (reparto de daño físico/mágico, CC duro, movilidad, sustain, tanques,
    burst, poke, engage, catch, DPS, splitpush, asedio, presión temprana y escalado). Cada amenaza
    lleva nivel y confianza; una lectura parcial se marca como **posible**, nunca como confirmada.
-3. Calcula el encaje del campeón con su perfil (arquetipos y traits del conjunto activo). Si no hay
-   perfil se usan los tags de Riot y se avisa; si tampoco hay tags, no se inventa encaje.
-4. Devuelve inicio, botas, núcleo, situacionales y páginas de runas con un índice de encaje 0-100,
+4. Ajusta botas y situacionales a esas amenazas. Un objeto `situational_only` solo se propone si el
+   rival presenta la amenaza que contrarresta: no se fuerza anti-curación ni se mezclan objetos AD y
+   AP en campeones claramente inclinados a un tipo de daño.
+5. Devuelve inicio, botas, núcleo, situacionales y páginas de runas con un índice de encaje 0-100,
    la función de cada objeto y los motivos (amenaza que responde, afinidad con el campeón, rol).
+   Las runas incluyen runa clave, rama principal, rama secundaria y fragmentos.
 
-El resultado se etiqueta como **derivado de reglas** y el catálogo como **curado**: el índice no es
-una probabilidad de victoria. Si el perfil del campeón es el piloto inferido, la interfaz añade el
-aviso «Perfil inferido» y un *caveat* en la lista de motivos. Los comandos de builds importadas
-siguen existiendo como opción, pero este panel no los necesita.
+El resultado se etiqueta como **plantilla curada** o **reglas por función**, y el catálogo como
+**curado**: el índice no es una probabilidad de victoria. Si el perfil del campeón es el piloto
+inferido, la interfaz añade el aviso «Perfil inferido» y un *caveat* en la lista de motivos. Los
+comandos de builds importadas siguen existiendo como opción, pero este panel no los necesita.
+
+Los enlaces a **CounterStats** de cada rival se abren en el navegador del sistema: la app no copia ni
+redistribuye esas estadísticas, solo enlaza la fuente pública para consultar el enfrentamiento.
 
 El cliente no siempre expone el rival de línea con fiabilidad, así que el motor **no adivina** un
 duelo individual: analiza la composición enemiga completa y sus amenazas, que ya incluyen el perfil de

@@ -20,11 +20,11 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::OnceLock;
 
 /// Versión del esquema del documento del catálogo.
-pub const ITEM_CATALOG_SCHEMA: &str = "1";
+pub const ITEM_CATALOG_SCHEMA: &str = "2";
 /// Versión del catálogo curado incluido en el binario.
-pub const ITEM_CATALOG_VERSION: &str = "1.0.0";
+pub const ITEM_CATALOG_VERSION: &str = "2.0.0";
 /// Versión de las reglas que puntúan objetos y runas.
-pub const LOADOUT_RULES_VERSION: &str = "1.0.0";
+pub const LOADOUT_RULES_VERSION: &str = "2.0.0";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -90,10 +90,12 @@ pub enum FitTag {
     HealShield,
     AntiTank,
     Dps,
+    Splitpush,
+    Catch,
 }
 
 impl FitTag {
-    pub const ALL: [FitTag; 26] = [
+    pub const ALL: [FitTag; 28] = [
         FitTag::Tank,
         FitTag::Frontline,
         FitTag::Bruiser,
@@ -120,6 +122,8 @@ impl FitTag {
         FitTag::HealShield,
         FitTag::AntiTank,
         FitTag::Dps,
+        FitTag::Splitpush,
+        FitTag::Catch,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -150,6 +154,8 @@ impl FitTag {
             Self::HealShield => "heal_shield",
             Self::AntiTank => "anti_tank",
             Self::Dps => "dps",
+            Self::Splitpush => "splitpush",
+            Self::Catch => "catch",
         }
     }
 
@@ -181,6 +187,8 @@ impl FitTag {
             Self::HealShield => "curación o escudos",
             Self::AntiTank => "anti-tanque",
             Self::Dps => "DPS sostenido",
+            Self::Splitpush => "splitpush",
+            Self::Catch => "catch",
         }
     }
 }
@@ -296,8 +304,17 @@ pub struct ThreatWeight {
 pub struct ItemEntry {
     pub id: String,
     pub name: String,
+    /// Identificador de Data Dragon para el icono local (`/items/<icon>.png`).
+    pub icon: u32,
     pub category: ItemCategory,
     pub slot: ItemSlot,
+    /// Peso curado de potencia general dentro de su clase, 0..1. No es una
+    /// estadística de partidas: sirve para desempatar objetos de la misma función.
+    pub baseline: f32,
+    /// `true` si solo debe proponerse cuando el rival presenta alguna de las
+    /// amenazas que el objeto contrarresta.
+    #[serde(default)]
+    pub situational_only: bool,
     /// Qué hace el objeto y contra qué se usa. Es la definición curada.
     pub function: String,
     pub fit: Vec<FitWeight>,
@@ -312,6 +329,8 @@ pub struct ItemEntry {
 pub struct RunePageEntry {
     pub id: String,
     pub name: String,
+    /// Identificador de la runa clave en Data Dragon (`/runes/<keystone_id>.png`).
+    pub keystone_id: u32,
     pub primary_path: String,
     pub keystone: String,
     #[serde(default)]
@@ -330,6 +349,40 @@ pub struct RunePageEntry {
     pub roles: Vec<Role>,
 }
 
+/// Plantilla curada de build para una familia de campeones.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BuildTemplate {
+    pub id: String,
+    pub name: String,
+    /// Objetos de inicio, en orden de preferencia.
+    pub starter: Vec<String>,
+    /// Botas posibles, en orden de preferencia.
+    pub boots: Vec<String>,
+    /// Núcleo de la build, en orden de compra.
+    pub core: Vec<String>,
+    /// Objetos situacionales: solo se muestran si encajan o si el rival
+    /// presenta la amenaza que contrarrestan.
+    pub situational: Vec<String>,
+    #[serde(default)]
+    pub runes: Vec<String>,
+}
+
+/// Asignación curada de un campeón concreto a una plantilla.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChampionBuild {
+    pub champion: u16,
+    pub template: String,
+    /// Sustituye por completo el núcleo de la plantilla cuando no está vacío.
+    #[serde(default)]
+    pub core: Vec<String>,
+    /// Sustituye por completo las páginas de runas de la plantilla cuando no
+    /// está vacío.
+    #[serde(default)]
+    pub runes: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ItemCatalog {
@@ -338,6 +391,10 @@ pub struct ItemCatalog {
     pub provenance: Provenance,
     pub items: Vec<ItemEntry>,
     pub rune_pages: Vec<RunePageEntry>,
+    #[serde(default)]
+    pub templates: Vec<BuildTemplate>,
+    #[serde(default)]
+    pub champion_builds: Vec<ChampionBuild>,
 }
 
 impl ItemCatalog {
@@ -376,6 +433,18 @@ impl ItemCatalog {
                     id: item.id.clone(),
                 });
             }
+            if item.icon == 0 {
+                return Err(ItemError::MissingIcon {
+                    section: "objeto",
+                    id: item.id.clone(),
+                });
+            }
+            validate_unit_weight("objeto", &item.id, "baseline", item.baseline)?;
+            if item.situational_only && item.counters.is_empty() {
+                return Err(ItemError::InvalidParams(
+                    "un objeto situacional debe declarar al menos una amenaza que contrarreste",
+                ));
+            }
             validate_fit("objeto", &item.id, &item.fit)?;
             validate_counters("objeto", &item.id, &item.counters)?;
             validate_roles("objeto", &item.id, &item.roles)?;
@@ -394,6 +463,12 @@ impl ItemCatalog {
                     id: page.id.clone(),
                 });
             }
+            if page.keystone_id == 0 {
+                return Err(ItemError::MissingIcon {
+                    section: "runas",
+                    id: page.id.clone(),
+                });
+            }
             validate_fit("runas", &page.id, &page.fit)?;
             validate_counters("runas", &page.id, &page.counters)?;
             validate_roles("runas", &page.id, &page.roles)?;
@@ -406,6 +481,97 @@ impl ItemCatalog {
                 require_text("runas", &page.id, rune)?;
             }
         }
+
+        let mut template_ids = HashSet::with_capacity(self.templates.len());
+        for template in &self.templates {
+            require_text("plantilla", &template.id, &template.name)?;
+            if !template_ids.insert(template.id.as_str()) {
+                return Err(ItemError::DuplicateId {
+                    section: "plantilla",
+                    id: template.id.clone(),
+                });
+            }
+            if template.core.is_empty() {
+                return Err(ItemError::EmptyText {
+                    section: "plantilla",
+                    id: template.id.clone(),
+                    field: "core",
+                });
+            }
+            if template.runes.is_empty() {
+                return Err(ItemError::EmptyText {
+                    section: "plantilla",
+                    id: template.id.clone(),
+                    field: "runes",
+                });
+            }
+            for id in template
+                .starter
+                .iter()
+                .chain(template.boots.iter())
+                .chain(template.core.iter())
+                .chain(template.situational.iter())
+            {
+                if !item_ids.contains(id.as_str()) {
+                    return Err(ItemError::UnknownReference {
+                        section: "plantilla",
+                        id: template.id.clone(),
+                        reference: id.clone(),
+                    });
+                }
+            }
+            for id in &template.runes {
+                if !rune_ids.contains(id.as_str()) {
+                    return Err(ItemError::UnknownReference {
+                        section: "plantilla",
+                        id: template.id.clone(),
+                        reference: id.clone(),
+                    });
+                }
+            }
+        }
+
+        let mut champions = HashSet::with_capacity(self.champion_builds.len());
+        for build in &self.champion_builds {
+            if build.champion == 0 {
+                return Err(ItemError::EmptyText {
+                    section: "campeón",
+                    id: "0".to_string(),
+                    field: "champion",
+                });
+            }
+            if !champions.insert(build.champion) {
+                return Err(ItemError::DuplicateId {
+                    section: "campeón",
+                    id: build.champion.to_string(),
+                });
+            }
+            if !template_ids.contains(build.template.as_str()) {
+                return Err(ItemError::UnknownReference {
+                    section: "campeón",
+                    id: build.champion.to_string(),
+                    reference: build.template.clone(),
+                });
+            }
+            for id in &build.core {
+                if !item_ids.contains(id.as_str()) {
+                    return Err(ItemError::UnknownReference {
+                        section: "campeón",
+                        id: build.champion.to_string(),
+                        reference: id.clone(),
+                    });
+                }
+            }
+            for id in &build.runes {
+                if !rune_ids.contains(id.as_str()) {
+                    return Err(ItemError::UnknownReference {
+                        section: "campeón",
+                        id: build.champion.to_string(),
+                        reference: id.clone(),
+                    });
+                }
+            }
+        }
         Ok(())
     }
 
@@ -415,6 +581,16 @@ impl ItemCatalog {
 
     pub fn rune_page(&self, id: &str) -> Option<&RunePageEntry> {
         self.rune_pages.iter().find(|page| page.id == id)
+    }
+
+    pub fn template(&self, id: &str) -> Option<&BuildTemplate> {
+        self.templates.iter().find(|template| template.id == id)
+    }
+
+    pub fn champion_build(&self, champion: ChampionKey) -> Option<&ChampionBuild> {
+        self.champion_builds
+            .iter()
+            .find(|build| build.champion == champion.0)
     }
 }
 
@@ -450,6 +626,14 @@ pub enum ItemError {
     },
     #[error("{section} duplicado: `{id}`")]
     DuplicateId { section: &'static str, id: String },
+    #[error("{section} `{id}` no declara icono")]
+    MissingIcon { section: &'static str, id: String },
+    #[error("{section} `{id}` referencia un id desconocido: {reference}")]
+    UnknownReference {
+        section: &'static str,
+        id: String,
+        reference: String,
+    },
     #[error("{section} `{id}` no declara afinidad funcional")]
     EmptyFit { section: &'static str, id: String },
     #[error("{section} `{id}` tiene un peso inválido en `{field}`: {value}")]
@@ -806,6 +990,8 @@ pub struct LoadoutReason {
 pub struct ItemSuggestion {
     pub id: String,
     pub name: String,
+    /// Identificador de Data Dragon para el icono local.
+    pub icon: u32,
     pub category: ItemCategory,
     pub function: String,
     pub score: f32,
@@ -816,6 +1002,7 @@ pub struct ItemSuggestion {
 pub struct RuneSuggestion {
     pub id: String,
     pub name: String,
+    pub keystone_id: u32,
     pub primary_path: String,
     pub keystone: String,
     pub primary_runes: Vec<String>,
@@ -825,6 +1012,31 @@ pub struct RuneSuggestion {
     pub function: String,
     pub score: f32,
     pub reasons: Vec<LoadoutReason>,
+}
+
+/// De dónde sale la base de la build: una plantilla curada o las reglas
+/// genéricas por función.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BuildSource {
+    Template,
+    Rules,
+}
+
+impl BuildSource {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Template => "template",
+            Self::Rules => "rules",
+        }
+    }
+
+    pub fn label_es(self) -> &'static str {
+        match self {
+            Self::Template => "plantilla curada",
+            Self::Rules => "reglas por función",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -846,6 +1058,9 @@ pub struct LoadoutRecommendation {
     pub rules_version: String,
     pub enemy_picks: usize,
     pub enemy_confidence: f32,
+    /// Nombre de la plantilla curada aplicada, si existe.
+    pub build_name: Option<String>,
+    pub build_source: BuildSource,
 }
 
 pub struct LoadoutRequest<'a> {
@@ -861,6 +1076,11 @@ pub struct LoadoutRequest<'a> {
 }
 
 /// Calcula objetos y runas para un campeón frente al equipo rival.
+///
+/// Si el campeón tiene una plantilla curada se respeta su orden de compra y se
+/// ajustan botas, situacionales y runas al rival. Sin plantilla se usan las
+/// reglas por función, que exigen coherencia de daño y no proponen objetos
+/// situacionales sin la amenaza correspondiente.
 pub fn recommend_loadout(request: &LoadoutRequest<'_>) -> Result<LoadoutRecommendation, ItemError> {
     request.params.validate()?;
     let affinity = build_affinity(request.profile, request.riot_tags);
@@ -877,69 +1097,160 @@ pub fn recommend_loadout(request: &LoadoutRequest<'_>) -> Result<LoadoutRecommen
         .role
         .or_else(|| request.profile.and_then(primary_role));
 
-    let mut starters = Vec::new();
-    let mut boots = Vec::new();
-    let mut items = Vec::new();
-    for entry in &request.catalog.items {
-        if !role_allows(&entry.roles, role) {
-            continue;
-        }
-        let Some(suggestion) = score_item(
-            entry,
+    let champion_build = request.catalog.champion_build(request.champion);
+    let template = champion_build.and_then(|build| request.catalog.template(&build.template));
+    let build_source = if template.is_some() {
+        BuildSource::Template
+    } else {
+        BuildSource::Rules
+    };
+    let build_name = template.map(|template| template.name.clone());
+
+    let starter;
+    let boots;
+    let core;
+    let situational;
+    let runes;
+
+    if let Some(template) = template {
+        starter = best_ordered_item(
+            &template.starter,
+            request,
             &affinity,
             &threats,
             profile_source,
-            request.params.min_score,
-        ) else {
-            continue;
-        };
-        match entry.slot {
-            ItemSlot::Starter => starters.push(suggestion),
-            ItemSlot::Boots => boots.push(suggestion),
-            ItemSlot::Item => items.push(suggestion),
-        }
-    }
-
-    sort_items(&mut starters);
-    sort_items(&mut boots);
-    sort_items(&mut items);
-
-    let starter = starters.into_iter().next();
-    let boots = boots.into_iter().next();
-    let core: Vec<ItemSuggestion> = items
-        .iter()
-        .take(request.params.core_count)
-        .cloned()
-        .collect();
-    let situational: Vec<ItemSuggestion> = items
-        .iter()
-        .skip(request.params.core_count)
-        .take(request.params.situational_count)
-        .cloned()
-        .collect();
-
-    let mut runes = Vec::new();
-    for page in &request.catalog.rune_pages {
-        if !role_allows(&page.roles, role) {
-            continue;
-        }
-        if let Some(suggestion) = score_rune(
-            page,
+            role,
+        );
+        boots = best_ordered_item(
+            &template.boots,
+            request,
             &affinity,
             &threats,
             profile_source,
-            request.params.min_score,
-        ) {
-            runes.push(suggestion);
+            role,
+        );
+
+        let core_ids = champion_build
+            .map(|build| build.core.as_slice())
+            .filter(|ids| !ids.is_empty())
+            .unwrap_or(template.core.as_slice());
+        let mut built = items_for_ids(
+            core_ids,
+            request,
+            &affinity,
+            &threats,
+            profile_source,
+            role,
+            true,
+        );
+        // Un campeón jugado fuera del rol de su plantilla (p. ej. un tirador de
+        // support) no debe quedarse sin núcleo. Si el filtro de rol lo vacía,
+        // se aplica igualmente la plantilla curada del campeón.
+        if built.is_empty() && role.is_some() {
+            built = items_for_ids(
+                core_ids,
+                request,
+                &affinity,
+                &threats,
+                profile_source,
+                None,
+                true,
+            );
         }
+        let core_ids: HashSet<String> = built.iter().map(|item| item.id.clone()).collect();
+        core = built;
+
+        let mut pool = items_for_ids(
+            &template.situational,
+            request,
+            &affinity,
+            &threats,
+            profile_source,
+            role,
+            false,
+        );
+        pool.retain(|item| !core_ids.contains(&item.id));
+        sort_items(&mut pool);
+        pool.dedup_by(|left, right| left.id == right.id);
+        situational = pool
+            .into_iter()
+            .take(request.params.situational_count)
+            .collect();
+
+        let rune_ids = champion_build
+            .map(|build| build.runes.as_slice())
+            .filter(|ids| !ids.is_empty())
+            .unwrap_or(template.runes.as_slice());
+        runes = collect_runes(
+            rune_ids.iter().map(String::as_str),
+            request,
+            &affinity,
+            &threats,
+            profile_source,
+            role,
+            0.0,
+        );
+    } else {
+        let mut starters = Vec::new();
+        let mut boots_pool = Vec::new();
+        let mut identity: Vec<ItemSuggestion> = Vec::new();
+        let mut extras: Vec<ItemSuggestion> = Vec::new();
+        for entry in &request.catalog.items {
+            if !role_allows(&entry.roles, role) || !damage_compatible(entry, &affinity) {
+                continue;
+            }
+            let Some(suggestion) = item_suggestion(
+                entry,
+                &affinity,
+                &threats,
+                profile_source,
+                request.params.min_score,
+                false,
+            ) else {
+                continue;
+            };
+            match entry.slot {
+                ItemSlot::Starter => starters.push(suggestion),
+                ItemSlot::Boots => boots_pool.push(suggestion),
+                ItemSlot::Item => {
+                    if item_fit(entry, &affinity) >= 0.15 {
+                        identity.push(suggestion);
+                    } else {
+                        extras.push(suggestion);
+                    }
+                }
+            }
+        }
+        sort_items(&mut starters);
+        sort_items(&mut boots_pool);
+        sort_items(&mut identity);
+        sort_items(&mut extras);
+        starter = starters.into_iter().next();
+        boots = boots_pool.into_iter().next();
+
+        let mut rest = identity.split_off(identity.len().min(request.params.core_count));
+        core = identity;
+        rest.extend(extras);
+        sort_items(&mut rest);
+        situational = rest
+            .into_iter()
+            .take(request.params.situational_count)
+            .collect();
+
+        runes = collect_runes(
+            request
+                .catalog
+                .rune_pages
+                .iter()
+                .map(|page| page.id.as_str()),
+            request,
+            &affinity,
+            &threats,
+            profile_source,
+            role,
+            request.params.min_score,
+        );
     }
-    runes.sort_by(|left, right| {
-        right
-            .score
-            .total_cmp(&left.score)
-            .then_with(|| left.id.cmp(&right.id))
-    });
-    runes.truncate(request.params.rune_count);
 
     let mut caveats = Vec::new();
     if profile_source == ProfileSource::RiotTags {
@@ -965,6 +1276,20 @@ pub fn recommend_loadout(request: &LoadoutRequest<'_>) -> Result<LoadoutRecommen
             request.champion_name
         ));
     }
+    match build_source {
+        BuildSource::Template => caveats.push(format!(
+            "La base (inicio, botas y núcleo) sigue la plantilla curada «{}». No es una build observada ni una probabilidad de victoria: el orden es una recomendación de compra.",
+            build_name.as_deref().unwrap_or("sin nombre")
+        )),
+        BuildSource::Rules => caveats.push(
+            "No hay plantilla curada para este campeón: la build se deriva solo de reglas por función y de las amenazas del rival."
+                .to_string(),
+        ),
+    }
+    caveats.push(
+        "Los objetos situacionales solo aparecen si encajan con el campeón o si el rival presenta la amenaza que contrarrestan."
+            .to_string(),
+    );
 
     let enemy_picks = request.enemy_picks;
     if enemy_picks == 0 {
@@ -1007,7 +1332,154 @@ pub fn recommend_loadout(request: &LoadoutRequest<'_>) -> Result<LoadoutRecommen
         rules_version: LOADOUT_RULES_VERSION.to_string(),
         enemy_picks,
         enemy_confidence: request.enemy.map(|enemy| enemy.confidence).unwrap_or(0.0),
+        build_name,
+        build_source,
     })
+}
+
+/// Recoge los objetos de una lista curada que respetan rol y coherencia de daño.
+fn items_for_ids(
+    ids: &[String],
+    request: &LoadoutRequest<'_>,
+    affinity: &Affinity,
+    threats: &[ThreatSignal],
+    profile_source: ProfileSource,
+    role: Option<Role>,
+    curated_pick: bool,
+) -> Vec<ItemSuggestion> {
+    let mut seen = HashSet::new();
+    ids.iter()
+        .filter_map(|id| {
+            let entry = request.catalog.item(id)?;
+            if !role_allows(&entry.roles, role) || !damage_compatible(entry, affinity) {
+                return None;
+            }
+            item_suggestion(entry, affinity, threats, profile_source, 0.0, curated_pick)
+        })
+        .filter(|item| seen.insert(item.id.clone()))
+        .collect()
+}
+
+/// Elige el mejor objeto de una lista ordenada de la plantilla respetando el
+/// rol y la coherencia de daño. El orden de la plantilla desempata.
+fn best_ordered_item(
+    ids: &[String],
+    request: &LoadoutRequest<'_>,
+    affinity: &Affinity,
+    threats: &[ThreatSignal],
+    profile_source: ProfileSource,
+    role: Option<Role>,
+) -> Option<ItemSuggestion> {
+    let best = best_ordered_item_for_role(ids, request, affinity, threats, profile_source, role);
+    if best.is_some() || role.is_none() {
+        return best;
+    }
+    // Fuera del rol de la plantilla (p. ej. un support jugando un campeón de
+    // mid) se conserva el objeto curado antes que dejar el hueco vacío.
+    best_ordered_item_for_role(ids, request, affinity, threats, profile_source, None)
+}
+
+fn best_ordered_item_for_role(
+    ids: &[String],
+    request: &LoadoutRequest<'_>,
+    affinity: &Affinity,
+    threats: &[ThreatSignal],
+    profile_source: ProfileSource,
+    role: Option<Role>,
+) -> Option<ItemSuggestion> {
+    let mut best: Option<(f32, ItemSuggestion)> = None;
+    let mut order = 0.0_f32;
+    for id in ids {
+        order += 1.0;
+        let Some(entry) = request.catalog.item(id) else {
+            continue;
+        };
+        if !role_allows(&entry.roles, role) || !damage_compatible(entry, affinity) {
+            continue;
+        }
+        let Some(suggestion) = item_suggestion(entry, affinity, threats, profile_source, 0.0, true)
+        else {
+            continue;
+        };
+        // El orden curado de la plantilla desempata: no se adelanta un objeto
+        // defensivo solo porque el rival tenga una amenaza.
+        let rank = suggestion.score + 0.02 * (ids.len() as f32 - order) / ids.len() as f32;
+        if best.as_ref().is_none_or(|(score, _)| rank > *score) {
+            best = Some((rank, suggestion));
+        }
+    }
+    best.map(|(_, suggestion)| suggestion)
+}
+
+fn collect_runes<'a, I>(
+    ids: I,
+    request: &LoadoutRequest<'_>,
+    affinity: &Affinity,
+    threats: &[ThreatSignal],
+    profile_source: ProfileSource,
+    role: Option<Role>,
+    min_score: f32,
+) -> Vec<RuneSuggestion>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let ids: Vec<&str> = ids.into_iter().collect();
+    let mut runes = collect_runes_for_role(
+        ids.iter().copied(),
+        request,
+        affinity,
+        threats,
+        profile_source,
+        role,
+        min_score,
+    );
+    if runes.is_empty() && role.is_some() {
+        // Igual que con los objetos: fuera del rol de la plantilla se conserva
+        // la página curada del campeón antes que no proponer runas.
+        runes = collect_runes_for_role(
+            ids.iter().copied(),
+            request,
+            affinity,
+            threats,
+            profile_source,
+            None,
+            min_score,
+        );
+    }
+    runes
+}
+
+fn collect_runes_for_role<'a, I>(
+    ids: I,
+    request: &LoadoutRequest<'_>,
+    affinity: &Affinity,
+    threats: &[ThreatSignal],
+    profile_source: ProfileSource,
+    role: Option<Role>,
+    min_score: f32,
+) -> Vec<RuneSuggestion>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let mut runes: Vec<RuneSuggestion> = ids
+        .into_iter()
+        .filter_map(|id| {
+            let page = request.catalog.rune_page(id)?;
+            if !role_allows(&page.roles, role) {
+                return None;
+            }
+            rune_suggestion(page, affinity, threats, profile_source, min_score)
+        })
+        .collect();
+    runes.sort_by(|left, right| {
+        right
+            .score
+            .total_cmp(&left.score)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    runes.dedup_by(|left, right| left.id == right.id);
+    runes.truncate(request.params.rune_count);
+    runes
 }
 
 fn profile_is_inferred(profile: &ChampionProfile) -> bool {
@@ -1159,19 +1631,25 @@ fn counter_score<'a>(
     (clamp_unit(score), matched)
 }
 
-fn score_item(
+fn item_suggestion(
     entry: &ItemEntry,
     affinity: &Affinity,
     threats: &[ThreatSignal],
     profile_source: ProfileSource,
     min_score: f32,
+    curated_pick: bool,
 ) -> Option<ItemSuggestion> {
     let fit = item_fit(entry, affinity);
     let (threat_score, matched) = counter_score(&entry.counters, threats);
-    if fit <= 0.01 && threat_score <= 0.01 {
+    if !curated_pick && fit <= 0.01 && threat_score <= 0.01 {
         return None;
     }
-    let score = clamp_unit(0.08 + 0.55 * fit + 0.70 * threat_score);
+    // Un objeto marcado como situacional no aparece si el rival no presenta la
+    // amenaza que contrarresta. Esto evita el anti-curación forzado.
+    if !curated_pick && entry.situational_only && matched.is_empty() {
+        return None;
+    }
+    let score = clamp_unit(0.10 + 0.50 * fit + 0.35 * threat_score + 0.05 * entry.baseline);
     if score < min_score {
         return None;
     }
@@ -1187,6 +1665,7 @@ fn score_item(
     Some(ItemSuggestion {
         id: entry.id.clone(),
         name: entry.name.clone(),
+        icon: entry.icon,
         category: entry.category,
         function: entry.function.clone(),
         score,
@@ -1194,7 +1673,7 @@ fn score_item(
     })
 }
 
-fn score_rune(
+fn rune_suggestion(
     page: &RunePageEntry,
     affinity: &Affinity,
     threats: &[ThreatSignal],
@@ -1206,7 +1685,7 @@ fn score_rune(
     if fit <= 0.01 && threat_score <= 0.01 {
         return None;
     }
-    let score = clamp_unit(0.08 + 0.60 * fit + 0.65 * threat_score);
+    let score = clamp_unit(0.12 + 0.58 * fit + 0.30 * threat_score);
     if score < min_score {
         return None;
     }
@@ -1222,6 +1701,7 @@ fn score_rune(
     Some(RuneSuggestion {
         id: page.id.clone(),
         name: page.name.clone(),
+        keystone_id: page.keystone_id,
         primary_path: page.primary_path.clone(),
         keystone: page.keystone.clone(),
         primary_runes: page.primary_runes.clone(),
@@ -1232,6 +1712,28 @@ fn score_rune(
         score,
         reasons,
     })
+}
+
+fn fit_weight(fit: &[FitWeight], tag: FitTag) -> f32 {
+    fit.iter()
+        .find(|entry| entry.tag == tag)
+        .map_or(0.0, |entry| entry.weight)
+}
+
+/// Evita mezclar objetos de daño físico y mágico en campeones claramente
+/// inclinados hacia un tipo de daño. Un campeón híbrido acepta ambos.
+fn damage_compatible(entry: &ItemEntry, affinity: &Affinity) -> bool {
+    let item_ad = fit_weight(&entry.fit, FitTag::Ad);
+    let item_ap = fit_weight(&entry.fit, FitTag::Ap);
+    let champion_ad = affinity.value(FitTag::Ad);
+    let champion_ap = affinity.value(FitTag::Ap);
+    if item_ad >= 0.5 && item_ap < 0.2 && champion_ap > champion_ad + 0.25 {
+        return false;
+    }
+    if item_ap >= 0.5 && item_ad < 0.2 && champion_ad > champion_ap + 0.25 {
+        return false;
+    }
+    true
 }
 
 fn push_counter_reasons(reasons: &mut Vec<LoadoutReason>, matched: &[(&ThreatSignal, f32)]) {
@@ -1337,11 +1839,13 @@ fn archetype_fit(id: ArchetypeId) -> &'static [(FitTag, f32)] {
             (FitTag::Enchanter, 0.5),
         ],
         ArchetypeId::Catch => &[
+            (FitTag::Catch, 0.9),
             (FitTag::Engage, 0.6),
             (FitTag::Assassin, 0.4),
             (FitTag::Mobility, 0.3),
         ],
         ArchetypeId::Splitpush => &[
+            (FitTag::Splitpush, 1.0),
             (FitTag::AutoAttack, 0.5),
             (FitTag::Bruiser, 0.4),
             (FitTag::LateGame, 0.3),

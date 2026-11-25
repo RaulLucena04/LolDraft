@@ -72,6 +72,7 @@ pub fn run() {
             commands::settings_update,
             commands::update_check,
             commands::update_install,
+            commands::open_external,
         ])
         .run(tauri::generate_context!())
         .expect("error while running LolDraft");

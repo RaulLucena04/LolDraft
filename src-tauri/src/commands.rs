@@ -2155,6 +2155,70 @@ fn team_view(side: Side, active: &ActiveSession, catalog: &ChampionCatalog) -> T
     }
 }
 
+/// Prefijo permitido para enlaces externos. La app no redistribuye esos datos,
+/// solo abre la página pública del campeón para que el usuario la consulte.
+const COUNTERSTATS_PREFIX: &str = "https://www.counterstats.net/league-of-legends/";
+
+/// Valida que el enlace sea exactamente una página de campeón de CounterStats.
+///
+/// Solo se acepta un `slug` en minúsculas (`leesin`, `nunu-willump`). Esto evita
+/// usar el comando como lanzador genérico y evita metacaracteres de shell en
+/// Windows (`&`, comillas, etc.).
+fn validate_counterstats_url(url: &str) -> Result<(), CommandError> {
+    let invalid = || {
+        CommandError::new(
+            "open_external_invalid",
+            "Solo se pueden abrir enlaces HTTPS de CounterStats.",
+        )
+    };
+    let Some(slug) = url.strip_prefix(COUNTERSTATS_PREFIX) else {
+        return Err(invalid());
+    };
+    if slug.is_empty()
+        || slug.len() > 80
+        || !slug.chars().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+        })
+    {
+        return Err(invalid());
+    }
+    Ok(())
+}
+
+/// Abre un enlace externo en el navegador del sistema.
+///
+/// Solo se permiten enlaces HTTPS de CounterStats: la app no redistribuye esos
+/// datos, solo abre la página pública del campeón. Restringir el host y el slug
+/// evita usar este comando como lanzador genérico.
+#[tauri::command]
+pub fn open_external(url: String) -> Result<(), CommandError> {
+    validate_counterstats_url(&url)?;
+
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = std::process::Command::new("cmd");
+        command.args(["/C", "start", "", &url]);
+        command
+    };
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = std::process::Command::new("open");
+        command.arg(&url);
+        command
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(&url);
+        command
+    };
+
+    command.spawn().map_err(|error| {
+        CommandError::internal(format!("No se pudo abrir el navegador: {error}"))
+    })?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2323,5 +2387,25 @@ mod tests {
         assert_eq!(pick.role, None);
         assert_eq!(pick.role_source, "unassigned");
         assert_eq!(pick.role_confidence, None);
+    }
+
+    #[test]
+    fn external_links_are_limited_to_counterstats_champion_pages() {
+        for slug in ["leesin", "drmundo", "kaisa", "nunu-willump"] {
+            let url = format!("{COUNTERSTATS_PREFIX}{slug}");
+            assert!(validate_counterstats_url(&url).is_ok(), "{url}");
+        }
+
+        for url in [
+            "https://example.com/league-of-legends/leesin",
+            "http://www.counterstats.net/league-of-legends/leesin",
+            "https://www.counterstats.net/league-of-legends/",
+            "https://www.counterstats.net/league-of-legends/leesin&calc.exe",
+            "https://www.counterstats.net/league-of-legends/leesin/extra",
+            "https://www.counterstats.net/league-of-legends/LeeSin",
+            "https://www.counterstats.net/league-of-legends/lee sin",
+        ] {
+            assert!(validate_counterstats_url(url).is_err(), "{url}");
+        }
     }
 }

@@ -1,17 +1,28 @@
-// Genera la semilla estática de campeones y descarga sus retratos.
+// Genera la semilla estática de campeones, descarga sus retratos y sincroniza
+// los nombres e iconos de objetos y runas del catálogo de builds.
 // Uso: node scripts/fetch-static-data.mjs
 //
 // Fuentes:
-//  - Data Dragon (Riot): identidad, tags de clase y retratos.
+//  - Data Dragon (Riot): identidad, tags de clase, retratos, objetos (es_ES),
+//    runas (es_ES) e iconos.
 //  - Meraki Analytics (MIT, atribución solicitada): posiciones jugables.
 // No se generan estadísticas ni perfiles estratégicos.
 
-import { mkdir, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, writeFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const ROOT = process.cwd();
 const SEED_PATH = join(ROOT, "crates", "loldraft-data", "seeds", "champions.json");
 const IMAGE_DIR = join(ROOT, "apps", "desktop", "public", "champions");
+const ITEM_CATALOG_PATH = join(
+  ROOT,
+  "crates",
+  "loldraft-engine",
+  "data",
+  "items-v1.json",
+);
+const ITEM_IMAGE_DIR = join(ROOT, "apps", "desktop", "public", "items");
+const RUNE_IMAGE_DIR = join(ROOT, "apps", "desktop", "public", "runes");
 
 const POSITION_MAP = {
   TOP: "top",
@@ -111,3 +122,102 @@ async function worker() {
 
 await Promise.all(Array.from({ length: 8 }, worker));
 console.log(`Retratos: ${JSON.stringify(results)} -> ${IMAGE_DIR}`);
+
+async function downloadAsset(url, dest) {
+  try {
+    const s = await stat(dest);
+    if (s.size > 0) return "cached";
+  } catch {}
+  const res = await fetch(url, { headers: { "user-agent": "LolDraft/0.1 static-data seed" } });
+  if (!res.ok) return `missing ${res.status}`;
+  await writeFile(dest, Buffer.from(await res.arrayBuffer()));
+  return "ok";
+}
+
+async function downloadQueue(queue, label) {
+  const tally = { ok: 0, cached: 0, failed: 0 };
+  async function run() {
+    while (queue.length) {
+      const job = queue.shift();
+      const result = await downloadAsset(job.url, job.dest);
+      if (result === "ok") tally.ok++;
+      else if (result === "cached") tally.cached++;
+      else {
+        tally.failed++;
+        console.warn(`${label} ${job.name}: ${result}`);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: 8 }, run));
+  console.log(`${label}: ${JSON.stringify(tally)}`);
+}
+
+// Nombres oficiales en español e iconos locales de objetos y runas.
+const catalog = JSON.parse(await readFile(ITEM_CATALOG_PATH, "utf8"));
+const esItems = await getJson(
+  `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/item.json`,
+);
+let renamed = 0;
+for (const item of catalog.items) {
+  const official = esItems.data?.[String(item.icon)];
+  if (official?.name && official.name !== item.name) {
+    item.name = official.name;
+    renamed++;
+  }
+}
+
+const runesReforged = await getJson(
+  `https://ddragon.leagueoflegends.com/cdn/${version}/data/es_ES/runesReforged.json`,
+);
+const keystoneIcons = new Map();
+const keystoneNames = new Map();
+for (const path of runesReforged) {
+  for (const slot of path.slots) {
+    for (const rune of slot.runes) {
+      keystoneIcons.set(rune.id, rune.icon);
+      keystoneNames.set(rune.id, rune.name);
+    }
+  }
+}
+let runesRenamed = 0;
+for (const page of catalog.rune_pages) {
+  const official = keystoneNames.get(page.keystone_id);
+  if (official && official !== page.keystone) {
+    page.keystone = official;
+    runesRenamed++;
+  }
+}
+
+await mkdir(ITEM_IMAGE_DIR, { recursive: true });
+await mkdir(RUNE_IMAGE_DIR, { recursive: true });
+
+await downloadQueue(
+  catalog.items.map((item) => ({
+    name: item.name,
+    url: `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${item.icon}.png`,
+    dest: join(ITEM_IMAGE_DIR, `${item.icon}.png`),
+  })),
+  "Iconos de objetos",
+);
+
+await downloadQueue(
+  catalog.rune_pages
+    .map((page) => {
+      const icon = keystoneIcons.get(page.keystone_id);
+      return icon
+        ? {
+            name: page.keystone,
+            url: `https://ddragon.leagueoflegends.com/cdn/img/${icon}`,
+            dest: join(RUNE_IMAGE_DIR, `${page.keystone_id}.png`),
+          }
+        : null;
+    })
+    .filter(Boolean),
+  "Iconos de runas",
+);
+
+await writeFile(ITEM_CATALOG_PATH, JSON.stringify(catalog, null, 2) + "\n", "utf8");
+console.log(
+  `Catálogo: ${catalog.items.length} objetos (${renamed} nombres sincronizados), ` +
+    `${catalog.rune_pages.length} páginas (${runesRenamed} runas clave) -> ${ITEM_CATALOG_PATH}`,
+);

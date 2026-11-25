@@ -67,3 +67,20 @@ export function formatPercent(value: number | null, digits = 0): string | null {
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
+
+/**
+ * Enlace público de CounterStats para un campeón. La app no redistribuye esos
+ * datos: solo abre la página para que el usuario consulte los enfrentamientos.
+ *
+ * CounterStats usa el nombre en minúsculas sin signos (`leesin`, `drmundo`,
+ * `kaisa`). Nunu es la única excepción conocida (`nunu-willump`).
+ */
+export function counterstatsUrl(name: string): string {
+  const normalized = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+  const slug = normalized === "nunuwillump" ? "nunu-willump" : normalized;
+  return `https://www.counterstats.net/league-of-legends/${slug}`;
+}
