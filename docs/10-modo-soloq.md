@@ -151,7 +151,9 @@ inferido, la interfaz añade el aviso «Perfil inferido» y un *caveat* en la li
 comandos de builds importadas siguen existiendo como opción, pero este panel no los necesita.
 
 Los enlaces a **CounterStats** de cada rival se abren en el navegador del sistema: la app no copia ni
-redistribuye esas estadísticas, solo enlaza la fuente pública para consultar el enfrentamiento.
+redistribuye esas estadísticas, solo enlaza la fuente pública para consultar el enfrentamiento. El
+panel de objetos incluye además un enlace **Builds de pros** a la página pública del campeón en
+ProBuilds, con la misma idea: comparar con partidas reales sin copiar ni repartir su contenido.
 
 El cliente no siempre expone el rival de línea con fiabilidad, así que el motor **no adivina** un
 duelo individual: analiza la composición enemiga completa y sus amenazas, que ya incluyen el perfil de

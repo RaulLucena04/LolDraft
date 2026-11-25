@@ -2155,44 +2155,69 @@ fn team_view(side: Side, active: &ActiveSession, catalog: &ChampionCatalog) -> T
     }
 }
 
-/// Prefijo permitido para enlaces externos. La app no redistribuye esos datos,
+/// Prefijos permitidos para enlaces externos. La app no redistribuye esos datos,
 /// solo abre la página pública del campeón para que el usuario la consulte.
 const COUNTERSTATS_PREFIX: &str = "https://www.counterstats.net/league-of-legends/";
+const PROBUILDS_PREFIX: &str = "https://probuilds.net/champions/details/";
+const PROBUILDS_ROLES: [&str; 5] = ["Top", "Jungle", "Middle", "ADC", "Support"];
 
-/// Valida que el enlace sea exactamente una página de campeón de CounterStats.
+/// Valida que el enlace sea exactamente una página de campeón de CounterStats o
+/// de ProBuilds.
 ///
-/// Solo se acepta un `slug` en minúsculas (`leesin`, `nunu-willump`). Esto evita
-/// usar el comando como lanzador genérico y evita metacaracteres de shell en
-/// Windows (`&`, comillas, etc.).
-fn validate_counterstats_url(url: &str) -> Result<(), CommandError> {
+/// CounterStats solo admite un `slug` en minúsculas (`leesin`, `nunu-willump`).
+/// ProBuilds admite el campeón (`Jinx`) y, opcionalmente, el rol (`Jinx/ADC`).
+/// Restringir host y segmentos evita usar el comando como lanzador genérico y
+/// evita metacaracteres de shell en Windows (`&`, comillas, etc.).
+fn validate_external_url(url: &str) -> Result<(), CommandError> {
     let invalid = || {
         CommandError::new(
             "open_external_invalid",
-            "Solo se pueden abrir enlaces HTTPS de CounterStats.",
+            "Solo se pueden abrir enlaces de CounterStats y ProBuilds.",
         )
     };
-    let Some(slug) = url.strip_prefix(COUNTERSTATS_PREFIX) else {
-        return Err(invalid());
-    };
-    if slug.is_empty()
-        || slug.len() > 80
-        || !slug.chars().all(|character| {
-            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
-        })
-    {
-        return Err(invalid());
+
+    if let Some(slug) = url.strip_prefix(COUNTERSTATS_PREFIX) {
+        if slug.is_empty()
+            || slug.len() > 80
+            || !slug.chars().all(|character| {
+                character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+            })
+        {
+            return Err(invalid());
+        }
+        return Ok(());
     }
-    Ok(())
+
+    if let Some(path) = url.strip_prefix(PROBUILDS_PREFIX) {
+        let mut segments = path.split('/');
+        let champion = segments.next().unwrap_or_default();
+        let role = segments.next();
+        if champion.is_empty()
+            || champion.len() > 32
+            || !champion.chars().all(|c| c.is_ascii_alphanumeric())
+            || segments.next().is_some()
+        {
+            return Err(invalid());
+        }
+        if let Some(role) = role {
+            if !PROBUILDS_ROLES.contains(&role) {
+                return Err(invalid());
+            }
+        }
+        return Ok(());
+    }
+
+    Err(invalid())
 }
 
 /// Abre un enlace externo en el navegador del sistema.
 ///
-/// Solo se permiten enlaces HTTPS de CounterStats: la app no redistribuye esos
-/// datos, solo abre la página pública del campeón. Restringir el host y el slug
-/// evita usar este comando como lanzador genérico.
+/// Solo se permiten enlaces HTTPS de CounterStats y ProBuilds: la app no
+/// redistribuye esos datos, solo abre la página pública del campeón. Restringir
+/// el host y los segmentos evita usar este comando como lanzador genérico.
 #[tauri::command]
 pub fn open_external(url: String) -> Result<(), CommandError> {
-    validate_counterstats_url(&url)?;
+    validate_external_url(&url)?;
 
     #[cfg(target_os = "windows")]
     let mut command = {
@@ -2390,10 +2415,15 @@ mod tests {
     }
 
     #[test]
-    fn external_links_are_limited_to_counterstats_champion_pages() {
+    fn external_links_are_limited_to_counterstats_and_probuilds() {
         for slug in ["leesin", "drmundo", "kaisa", "nunu-willump"] {
             let url = format!("{COUNTERSTATS_PREFIX}{slug}");
-            assert!(validate_counterstats_url(&url).is_ok(), "{url}");
+            assert!(validate_external_url(&url).is_ok(), "{url}");
+        }
+
+        for path in ["Jinx", "Jinx/ADC", "MonkeyKing/Jungle", "DrMundo/Top"] {
+            let url = format!("{PROBUILDS_PREFIX}{path}");
+            assert!(validate_external_url(&url).is_ok(), "{url}");
         }
 
         for url in [
@@ -2404,8 +2434,16 @@ mod tests {
             "https://www.counterstats.net/league-of-legends/leesin/extra",
             "https://www.counterstats.net/league-of-legends/LeeSin",
             "https://www.counterstats.net/league-of-legends/lee sin",
+            "https://probuilds.net/champions/details/",
+            "https://probuilds.net/champions/details/Jinx/",
+            "https://probuilds.net/champions/details/Jinx/Extra",
+            "https://probuilds.net/champions/details/Jinx/ADC/extra",
+            "https://probuilds.net/champions/details/Jinx%2FADC",
+            "https://probuilds.net/champions/details/Jinx/ADC?x=1",
+            "https://probuilds.net/champions/details/Jinx/ADC#x",
+            "https://evil.example/probuilds.net/champions/details/Jinx",
         ] {
-            assert!(validate_counterstats_url(url).is_err(), "{url}");
+            assert!(validate_external_url(url).is_err(), "{url}");
         }
     }
 }

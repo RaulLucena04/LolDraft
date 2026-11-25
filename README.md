@@ -4,7 +4,7 @@ Aplicación de escritorio para simular, analizar y asistir drafts competitivos d
 Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind CSS.
 
 > **Estado del repositorio:** fases 1–3 cerradas y fase 4 en curso, publicadas en
-> [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.7). El simulador de 20
+> [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.8). El simulador de 20
 > acciones, el análisis de composición y las recomendaciones de pick/ban explicables funcionan; el
 > modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. La
 > Fase 4 importa estadísticas observadas (CSV/JSON), conecta `power` a las recomendaciones con
@@ -236,6 +236,9 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
   (`Inferred`), nunca como estadística observada; la revisión experta sigue pendiente.
 - **CounterStats:** se enlaza la página pública de cada rival leído; no se scrapea, copia ni
   redistribuye su contenido. La app solo abre el enlace en el navegador del sistema.
+- **ProBuilds:** el panel de objetos enlaza la página pública del campeón para comparar con builds de
+  profesionales. Su licencia prohíbe copiar o mostrar su contenido, así que no se scrapea ni se
+  reutiliza: solo se abre el enlace externo.
 - **Lolalytics:** no se scrapea. Su API privada no autoriza uso de terceros; la estrategia de
   estadísticas se decidió con la API oficial de Riot y datos importados.
 

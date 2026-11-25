@@ -84,3 +84,13 @@ export function counterstatsUrl(name: string): string {
   const slug = normalized === "nunuwillump" ? "nunu-willump" : normalized;
   return `https://www.counterstats.net/league-of-legends/${slug}`;
 }
+
+/**
+ * Enlace público de ProBuilds para un campeón. La app no copia ni redistribuye
+ * sus builds: solo abre la página para que el usuario compare con partidas de
+ * profesionales. El `slug` de la semilla coincide con el que usa ProBuilds
+ * (`MonkeyKing`, `DrMundo`, `Kaisa`…).
+ */
+export function probuildsUrl(slug: string): string {
+  return `https://probuilds.net/champions/details/${slug}`;
+}

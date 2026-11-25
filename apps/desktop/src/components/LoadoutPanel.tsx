@@ -12,9 +12,10 @@ import type {
 } from "../types";
 import { formatPercent, roleText } from "../lib/format";
 import { ChampionAvatar } from "./ChampionAvatar";
+import { ProBuildsLink } from "./ProBuildsLink";
 
 interface LoadoutPanelProps {
-  champion: { key: number; name: string; imagePath: string };
+  champion: { key: number; slug: string; name: string; imagePath: string };
   role: Role | null;
   enemyPicks: number[];
   /** "own" cuando el campeón ya está bloqueado; "suggested" para el mejor pick. */
@@ -414,9 +415,15 @@ export function LoadoutPanel({
               {context === "own" ? "Tu pick" : "Mejor pick"}
             </span>
           </div>
-          <span className="text-[10px] uppercase tracking-wider text-muted">
-            {roleText(role ?? loadout?.role ?? null)}
-          </span>
+          <div className="flex items-center gap-2">
+            <ProBuildsLink
+              championSlug={champion.slug}
+              championName={champion.name}
+            />
+            <span className="text-[10px] uppercase tracking-wider text-muted">
+              {roleText(role ?? loadout?.role ?? null)}
+            </span>
+          </div>
         </div>
 
         <div className="mt-2 flex items-center gap-2">
