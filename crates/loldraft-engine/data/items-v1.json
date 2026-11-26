@@ -1,6 +1,6 @@
 {
   "schema": "2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "provenance": {
     "kind": "curated",
     "editor": "LolDraft",
@@ -2290,30 +2290,34 @@
       "baseline": 0.8
     },
     {
-      "id": "anathemas_chains",
+      "id": "unending_despair",
       "name": "Desesperanza eterna",
       "icon": 2502,
       "category": "defense",
       "slot": "item",
-      "situational_only": true,
-      "function": "Marca a un rival con daño reducido: respuesta directa al carry enemigo.",
+      "situational_only": false,
+      "function": "Sostén de pelea larga para tanques: daño mágico en área y curación periódica mientras dura el combate.",
       "fit": [
         {
           "tag": "tank",
+          "weight": 0.9
+        },
+        {
+          "tag": "frontline",
           "weight": 0.7
         },
         {
-          "tag": "utility",
-          "weight": 0.6
+          "tag": "durability",
+          "weight": 0.8
         },
         {
-          "tag": "durability",
+          "tag": "sustain",
           "weight": 0.6
         }
       ],
       "counters": [
         {
-          "threat": "burst",
+          "threat": "dps",
           "weight": 0.5
         }
       ],
@@ -2322,7 +2326,7 @@
         "jungle",
         "support"
       ],
-      "baseline": 0.75
+      "baseline": 0.78
     },
     {
       "id": "blackfire_torch",
@@ -3402,6 +3406,926 @@
         "top"
       ],
       "baseline": 0.85
+    },
+    {
+      "id": "dorans_bow",
+      "name": "Arco de Doran",
+      "icon": 1086,
+      "category": "damage",
+      "slot": "starter",
+      "situational_only": false,
+      "function": "Inicio de tirador: daño, velocidad de ataque y algo de omnisucción para aguantar el intercambio con autoataques.",
+      "fit": [
+        {
+          "tag": "marksman",
+          "weight": 0.8
+        },
+        {
+          "tag": "ad",
+          "weight": 0.7
+        },
+        {
+          "tag": "auto_attack",
+          "weight": 0.7
+        },
+        {
+          "tag": "on_hit",
+          "weight": 0.5
+        },
+        {
+          "tag": "early_game",
+          "weight": 0.5
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "adc"
+      ],
+      "baseline": 0.78
+    },
+    {
+      "id": "dorans_helm",
+      "name": "Yelmo de Doran",
+      "icon": 1120,
+      "category": "defense",
+      "slot": "starter",
+      "situational_only": false,
+      "function": "Inicio de tanque mixto: vida, armadura y resistencia mágica para sobrevivir a un carril con daño variado.",
+      "fit": [
+        {
+          "tag": "tank",
+          "weight": 0.7
+        },
+        {
+          "tag": "durability",
+          "weight": 0.8
+        },
+        {
+          "tag": "frontline",
+          "weight": 0.4
+        },
+        {
+          "tag": "early_game",
+          "weight": 0.5
+        }
+      ],
+      "counters": [
+        {
+          "threat": "physical",
+          "weight": 0.4
+        },
+        {
+          "threat": "magic",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "top",
+        "mid"
+      ],
+      "baseline": 0.76
+    },
+    {
+      "id": "stormrazor",
+      "name": "Navaja de asalto",
+      "icon": 3095,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Primer objeto de crítico con ataque con vigor: daño, velocidad de ataque y un estallido de velocidad de movimiento para posicionarse.",
+      "fit": [
+        {
+          "tag": "marksman",
+          "weight": 0.85
+        },
+        {
+          "tag": "crit",
+          "weight": 0.8
+        },
+        {
+          "tag": "auto_attack",
+          "weight": 0.7
+        },
+        {
+          "tag": "ad",
+          "weight": 0.6
+        },
+        {
+          "tag": "mobility",
+          "weight": 0.5
+        },
+        {
+          "tag": "early_game",
+          "weight": 0.3
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "adc"
+      ],
+      "baseline": 0.82
+    },
+    {
+      "id": "hexoptics_c44",
+      "name": "Óptica hextech C44",
+      "icon": 2523,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Objeto de crítico para tiradores de rango: más daño cuanto mayor sea la distancia y rango extra al rematar.",
+      "fit": [
+        {
+          "tag": "marksman",
+          "weight": 0.85
+        },
+        {
+          "tag": "crit",
+          "weight": 0.75
+        },
+        {
+          "tag": "ad",
+          "weight": 0.7
+        },
+        {
+          "tag": "dps",
+          "weight": 0.6
+        },
+        {
+          "tag": "poke",
+          "weight": 0.5
+        },
+        {
+          "tag": "late_game",
+          "weight": 0.5
+        }
+      ],
+      "roles": [
+        "mid",
+        "adc"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "rapid_firecannon",
+      "name": "Cañón de fuego rápido",
+      "icon": 3094,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Crítico con alcance extra en el ataque con vigor: permite hostigar y asediar sin entrar en rango de respuesta.",
+      "fit": [
+        {
+          "tag": "marksman",
+          "weight": 0.8
+        },
+        {
+          "tag": "crit",
+          "weight": 0.75
+        },
+        {
+          "tag": "auto_attack",
+          "weight": 0.6
+        },
+        {
+          "tag": "poke",
+          "weight": 0.5
+        },
+        {
+          "tag": "late_game",
+          "weight": 0.4
+        }
+      ],
+      "counters": [
+        {
+          "threat": "poke",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "adc"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "fiendhunter_bolts",
+      "name": "Dardos rastreademonios",
+      "icon": 2512,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Crítico con velocidad de habilidad definitiva: premia a los tiradores cuya definitiva define el inicio de la pelea.",
+      "fit": [
+        {
+          "tag": "marksman",
+          "weight": 0.8
+        },
+        {
+          "tag": "crit",
+          "weight": 0.7
+        },
+        {
+          "tag": "auto_attack",
+          "weight": 0.6
+        },
+        {
+          "tag": "burst",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "mid",
+        "adc"
+      ],
+      "baseline": 0.78
+    },
+    {
+      "id": "immortal_shieldbow",
+      "name": "Arcoescudo inmortal",
+      "icon": 6673,
+      "category": "defense",
+      "slot": "item",
+      "situational_only": true,
+      "function": "Crítico defensivo: escudo de emergencia al bajar de vida, para sobrevivir al burst que busca cerrar sobre el tirador.",
+      "fit": [
+        {
+          "tag": "marksman",
+          "weight": 0.8
+        },
+        {
+          "tag": "crit",
+          "weight": 0.6
+        },
+        {
+          "tag": "durability",
+          "weight": 0.7
+        },
+        {
+          "tag": "ad",
+          "weight": 0.6
+        }
+      ],
+      "counters": [
+        {
+          "threat": "burst",
+          "weight": 0.7
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "adc"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "overlords_bloodmail",
+      "name": "Sangría del soberano",
+      "icon": 2501,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Bruiser de vida alta: convierte vida adicional en daño y crece cuanto más herido está el portador.",
+      "fit": [
+        {
+          "tag": "bruiser",
+          "weight": 0.85
+        },
+        {
+          "tag": "ad",
+          "weight": 0.8
+        },
+        {
+          "tag": "tank",
+          "weight": 0.55
+        },
+        {
+          "tag": "durability",
+          "weight": 0.6
+        },
+        {
+          "tag": "late_game",
+          "weight": 0.6
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle"
+      ],
+      "baseline": 0.82
+    },
+    {
+      "id": "endless_hunger",
+      "name": "Hambre insaciable",
+      "icon": 2517,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Bruiser de pelea larga: omnisucción y tenacidad para sostenerse dentro del combate y resistir el CC.",
+      "fit": [
+        {
+          "tag": "bruiser",
+          "weight": 0.8
+        },
+        {
+          "tag": "ad",
+          "weight": 0.7
+        },
+        {
+          "tag": "sustain",
+          "weight": 0.8
+        },
+        {
+          "tag": "durability",
+          "weight": 0.6
+        }
+      ],
+      "counters": [
+        {
+          "threat": "hard_cc",
+          "weight": 0.5
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle",
+        "mid"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "bastionbreaker",
+      "name": "Quiebrabastiones",
+      "icon": 2520,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Letalidad con daño verdadero de habilidad y empuje de estructuras: para assassins que también castigan tanques y objetivos.",
+      "fit": [
+        {
+          "tag": "assassin",
+          "weight": 0.7
+        },
+        {
+          "tag": "burst",
+          "weight": 0.7
+        },
+        {
+          "tag": "ad",
+          "weight": 0.7
+        },
+        {
+          "tag": "anti_tank",
+          "weight": 0.6
+        },
+        {
+          "tag": "splitpush",
+          "weight": 0.5
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle",
+        "mid"
+      ],
+      "baseline": 0.78
+    },
+    {
+      "id": "umbral_glaive",
+      "name": "Guja sombría",
+      "icon": 3179,
+      "category": "utility",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Letalidad con control de visión: revela y destruye guardianes enemigos, para negar información antes de una jugada.",
+      "fit": [
+        {
+          "tag": "assassin",
+          "weight": 0.6
+        },
+        {
+          "tag": "support",
+          "weight": 0.6
+        },
+        {
+          "tag": "utility",
+          "weight": 0.9
+        },
+        {
+          "tag": "catch",
+          "weight": 0.5
+        }
+      ],
+      "roles": [
+        "support",
+        "jungle",
+        "mid"
+      ],
+      "baseline": 0.76
+    },
+    {
+      "id": "experimental_hexplate",
+      "name": "Experimento de hexarmadura",
+      "icon": 3073,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Bruiser con velocidad de habilidad definitiva: tras lanzar la definitiva gana velocidad de ataque y de movimiento para pelear o empujar.",
+      "fit": [
+        {
+          "tag": "bruiser",
+          "weight": 0.7
+        },
+        {
+          "tag": "ad",
+          "weight": 0.6
+        },
+        {
+          "tag": "splitpush",
+          "weight": 0.7
+        },
+        {
+          "tag": "durability",
+          "weight": 0.6
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle"
+      ],
+      "baseline": 0.76
+    },
+    {
+      "id": "chempunk_chainsword",
+      "name": "Mecanoespada punki",
+      "icon": 6609,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": true,
+      "function": "Heridas graves físicas: reduce la curación enemiga y aporta vida y velocidad de habilidad.",
+      "fit": [
+        {
+          "tag": "bruiser",
+          "weight": 0.6
+        },
+        {
+          "tag": "ad",
+          "weight": 0.6
+        },
+        {
+          "tag": "utility",
+          "weight": 0.4
+        }
+      ],
+      "counters": [
+        {
+          "threat": "sustain",
+          "weight": 0.85
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle",
+        "mid"
+      ],
+      "baseline": 0.74
+    },
+    {
+      "id": "actualizer",
+      "name": "Actualizador",
+      "icon": 2522,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Mago de maná: potencia temporalmente el maná para acelerar enfriamientos y aumentar daño, escudos y curaciones.",
+      "fit": [
+        {
+          "tag": "mage",
+          "weight": 0.8
+        },
+        {
+          "tag": "ap",
+          "weight": 0.8
+        },
+        {
+          "tag": "mana",
+          "weight": 0.7
+        },
+        {
+          "tag": "burst",
+          "weight": 0.6
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "jungle"
+      ],
+      "baseline": 0.78
+    },
+    {
+      "id": "cryptbloom",
+      "name": "Florescencia sepulcral",
+      "icon": 3137,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Penetración mágica porcentual: respuesta a equipos que acumulan resistencia mágica; al rematar, cura en área.",
+      "fit": [
+        {
+          "tag": "mage",
+          "weight": 0.8
+        },
+        {
+          "tag": "ap",
+          "weight": 0.8
+        },
+        {
+          "tag": "anti_tank",
+          "weight": 0.8
+        },
+        {
+          "tag": "utility",
+          "weight": 0.3
+        }
+      ],
+      "counters": [
+        {
+          "threat": "tanks",
+          "weight": 0.6
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "jungle",
+        "support"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "bloodletters_curse",
+      "name": "Maldición sanguinolenta",
+      "icon": 8010,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Mago de daño sostenido: cada impacto mágico reduce la resistencia mágica del rival, abriendo al equipo el daño mágico.",
+      "fit": [
+        {
+          "tag": "mage",
+          "weight": 0.8
+        },
+        {
+          "tag": "ap",
+          "weight": 0.7
+        },
+        {
+          "tag": "anti_tank",
+          "weight": 0.85
+        },
+        {
+          "tag": "dps",
+          "weight": 0.6
+        },
+        {
+          "tag": "utility",
+          "weight": 0.4
+        }
+      ],
+      "counters": [
+        {
+          "threat": "tanks",
+          "weight": 0.6
+        },
+        {
+          "threat": "magic",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "jungle",
+        "support"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "dusk_and_dawn",
+      "name": "Amanecer y anochecer",
+      "icon": 2510,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Luchador mágico de autoataques: hoja encantada que añade daño al impactar y repite efectos on-hit.",
+      "fit": [
+        {
+          "tag": "bruiser",
+          "weight": 0.7
+        },
+        {
+          "tag": "mage",
+          "weight": 0.5
+        },
+        {
+          "tag": "ap",
+          "weight": 0.7
+        },
+        {
+          "tag": "on_hit",
+          "weight": 0.8
+        },
+        {
+          "tag": "auto_attack",
+          "weight": 0.6
+        },
+        {
+          "tag": "dps",
+          "weight": 0.6
+        },
+        {
+          "tag": "sustain",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle",
+        "mid"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "hextech_gunblade",
+      "name": "Sable-pistola hextech",
+      "icon": 3146,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Híbrido de daño y robo de vida: rayo activo que ralentiza para fijar al objetivo en el burst.",
+      "fit": [
+        {
+          "tag": "ap",
+          "weight": 0.7
+        },
+        {
+          "tag": "ad",
+          "weight": 0.6
+        },
+        {
+          "tag": "burst",
+          "weight": 0.7
+        },
+        {
+          "tag": "sustain",
+          "weight": 0.7
+        },
+        {
+          "tag": "mobility",
+          "weight": 0.3
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "jungle"
+      ],
+      "baseline": 0.76
+    },
+    {
+      "id": "hextech_rocketbelt",
+      "name": "Cintomisil hextech",
+      "icon": 3152,
+      "category": "damage",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Mago de burst con dash: cierra distancia y añade misiles para entrar a la pelea o alcanzar al objetivo.",
+      "fit": [
+        {
+          "tag": "mage",
+          "weight": 0.8
+        },
+        {
+          "tag": "ap",
+          "weight": 0.7
+        },
+        {
+          "tag": "burst",
+          "weight": 0.7
+        },
+        {
+          "tag": "mobility",
+          "weight": 0.8
+        },
+        {
+          "tag": "engage",
+          "weight": 0.6
+        },
+        {
+          "tag": "catch",
+          "weight": 0.5
+        }
+      ],
+      "roles": [
+        "top",
+        "mid",
+        "jungle"
+      ],
+      "baseline": 0.78
+    },
+    {
+      "id": "protoplasm_harness",
+      "name": "Arnés de protoplasma",
+      "icon": 2525,
+      "category": "defense",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Frontline de vida pura: salvavidas que amplía la vida máxima y da velocidad y tenacidad mientras se regenera.",
+      "fit": [
+        {
+          "tag": "tank",
+          "weight": 0.8
+        },
+        {
+          "tag": "frontline",
+          "weight": 0.7
+        },
+        {
+          "tag": "durability",
+          "weight": 0.8
+        },
+        {
+          "tag": "sustain",
+          "weight": 0.6
+        }
+      ],
+      "counters": [
+        {
+          "threat": "burst",
+          "weight": 0.6
+        },
+        {
+          "threat": "physical",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle",
+        "support"
+      ],
+      "baseline": 0.78
+    },
+    {
+      "id": "hollow_radiance",
+      "name": "Fulgor vano",
+      "icon": 6664,
+      "category": "defense",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Tanque contra daño mágico: resistencia mágica, regeneración y onda de daño en área para limpiar oleadas y pelear cerca.",
+      "fit": [
+        {
+          "tag": "tank",
+          "weight": 0.8
+        },
+        {
+          "tag": "frontline",
+          "weight": 0.7
+        },
+        {
+          "tag": "durability",
+          "weight": 0.6
+        }
+      ],
+      "counters": [
+        {
+          "threat": "magic",
+          "weight": 0.6
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle"
+      ],
+      "baseline": 0.78
+    },
+    {
+      "id": "bandlepipes",
+      "name": "Bandlemusa",
+      "icon": 2524,
+      "category": "utility",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Objeto de apoyo con CC: al ralentizar o inmovilizar da velocidad de movimiento y velocidad de ataque a los aliados cercanos.",
+      "fit": [
+        {
+          "tag": "tank",
+          "weight": 0.6
+        },
+        {
+          "tag": "support",
+          "weight": 0.7
+        },
+        {
+          "tag": "engage",
+          "weight": 0.6
+        },
+        {
+          "tag": "utility",
+          "weight": 0.8
+        },
+        {
+          "tag": "durability",
+          "weight": 0.5
+        },
+        {
+          "tag": "frontline",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "support",
+        "top",
+        "jungle"
+      ],
+      "baseline": 0.74
+    },
+    {
+      "id": "dawncore",
+      "name": "Núcleo albar",
+      "icon": 6621,
+      "category": "utility",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Enchanter de escalado: convierte regeneración de maná en poder de curaciones y escudos para amplificar la curación del equipo.",
+      "fit": [
+        {
+          "tag": "enchanter",
+          "weight": 0.9
+        },
+        {
+          "tag": "support",
+          "weight": 0.7
+        },
+        {
+          "tag": "heal_shield",
+          "weight": 0.9
+        },
+        {
+          "tag": "ap",
+          "weight": 0.6
+        },
+        {
+          "tag": "mana",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "support"
+      ],
+      "baseline": 0.8
+    },
+    {
+      "id": "winters_approach",
+      "name": "Llegada del invierno",
+      "icon": 3119,
+      "category": "defense",
+      "slot": "item",
+      "situational_only": false,
+      "function": "Tanque con maná: vida y maná que escalan, pensado para campeones que necesitan aguantar y lanzar habilidades con frecuencia.",
+      "fit": [
+        {
+          "tag": "tank",
+          "weight": 0.7
+        },
+        {
+          "tag": "mana",
+          "weight": 0.8
+        },
+        {
+          "tag": "late_game",
+          "weight": 0.7
+        },
+        {
+          "tag": "durability",
+          "weight": 0.7
+        },
+        {
+          "tag": "sustain",
+          "weight": 0.4
+        }
+      ],
+      "roles": [
+        "top",
+        "jungle",
+        "support"
+      ],
+      "baseline": 0.76
     }
   ],
   "rune_pages": [
@@ -4186,6 +5110,7 @@
       "id": "adc_crit",
       "name": "Tirador de crítico",
       "starter": [
+        "dorans_bow",
         "dorans_blade",
         "dorans_shield",
         "world_atlas",
@@ -4209,7 +5134,12 @@
         "phantom_dancer",
         "bloodthirster",
         "guardian_angel",
-        "mortal_reminder"
+        "mortal_reminder",
+        "stormrazor",
+        "hexoptics_c44",
+        "rapid_firecannon",
+        "fiendhunter_bolts",
+        "immortal_shieldbow"
       ],
       "runes": [
         "lethal_tempo",
@@ -4221,6 +5151,7 @@
       "id": "adc_on_hit",
       "name": "Tirador on-hit",
       "starter": [
+        "dorans_bow",
         "dorans_blade",
         "dorans_shield",
         "mosstomper_seedling",
@@ -4241,7 +5172,9 @@
         "kraken_slayer",
         "runaans_hurricane",
         "wits_end",
-        "guardian_angel"
+        "guardian_angel",
+        "immortal_shieldbow",
+        "dusk_and_dawn"
       ],
       "runes": [
         "lethal_tempo",
@@ -4256,7 +5189,8 @@
         "dorans_blade",
         "dorans_shield",
         "mosstomper_seedling",
-        "gustwalker_hatchling"
+        "gustwalker_hatchling",
+        "dorans_bow"
       ],
       "boots": [
         "ionian_boots",
@@ -4305,7 +5239,10 @@
         "void_staff",
         "banshees_veil",
         "morellonomicon",
-        "horizon_focus"
+        "horizon_focus",
+        "hextech_rocketbelt",
+        "actualizer",
+        "cryptbloom"
       ],
       "runes": [
         "electrocute_burst",
@@ -4334,7 +5271,9 @@
         "void_staff",
         "zhonyas_hourglass",
         "banshees_veil",
-        "morellonomicon"
+        "morellonomicon",
+        "actualizer",
+        "cryptbloom"
       ],
       "runes": [
         "comet_poke",
@@ -4365,7 +5304,9 @@
         "void_staff",
         "zhonyas_hourglass",
         "blackfire_torch",
-        "morellonomicon"
+        "morellonomicon",
+        "cryptbloom",
+        "bloodletters_curse"
       ],
       "runes": [
         "comet_poke",
@@ -4394,7 +5335,9 @@
         "zhonyas_hourglass",
         "void_staff",
         "banshees_veil",
-        "morellonomicon"
+        "morellonomicon",
+        "actualizer",
+        "cryptbloom"
       ],
       "runes": [
         "phase_rush",
@@ -4425,7 +5368,10 @@
         "zhonyas_hourglass",
         "void_staff",
         "banshees_veil",
-        "morellonomicon"
+        "morellonomicon",
+        "hextech_rocketbelt",
+        "actualizer",
+        "cryptbloom"
       ],
       "runes": [
         "electrocute_burst",
@@ -4456,7 +5402,10 @@
         "liandrys_torment",
         "rylais_crystal_scepter",
         "zhonyas_hourglass",
-        "spirit_visage"
+        "spirit_visage",
+        "dusk_and_dawn",
+        "bloodletters_curse",
+        "protoplasm_harness"
       ],
       "runes": [
         "conqueror_bruiser",
@@ -4472,7 +5421,8 @@
         "dorans_shield",
         "mosstomper_seedling",
         "gustwalker_hatchling",
-        "scorchclaw_pup"
+        "scorchclaw_pup",
+        "dorans_helm"
       ],
       "boots": [
         "plated_steelcaps",
@@ -4488,7 +5438,11 @@
         "death_dance",
         "spear_of_shojin",
         "eclipse",
-        "maw_of_malmortius"
+        "maw_of_malmortius",
+        "experimental_hexplate",
+        "overlords_bloodmail",
+        "endless_hunger",
+        "chempunk_chainsword"
       ],
       "runes": [
         "conqueror_bruiser",
@@ -4503,7 +5457,8 @@
         "dorans_blade",
         "dorans_shield",
         "mosstomper_seedling",
-        "scorchclaw_pup"
+        "scorchclaw_pup",
+        "dorans_helm"
       ],
       "boots": [
         "plated_steelcaps",
@@ -4518,7 +5473,12 @@
         "death_dance",
         "dead_mans_plate",
         "thornmail",
-        "spirit_visage"
+        "spirit_visage",
+        "overlords_bloodmail",
+        "endless_hunger",
+        "protoplasm_harness",
+        "unending_despair",
+        "hollow_radiance"
       ],
       "runes": [
         "conqueror_bruiser",
@@ -4550,7 +5510,9 @@
         "edge_of_night",
         "axiom_arc",
         "guardian_angel",
-        "voltaic_cyclosword"
+        "voltaic_cyclosword",
+        "umbral_glaive",
+        "bastionbreaker"
       ],
       "runes": [
         "electrocute_burst",
@@ -4564,7 +5526,8 @@
       "starter": [
         "dorans_shield",
         "mosstomper_seedling",
-        "gustwalker_hatchling"
+        "gustwalker_hatchling",
+        "dorans_helm"
       ],
       "boots": [
         "plated_steelcaps",
@@ -4583,7 +5546,11 @@
         "kaenic_rookern",
         "force_of_nature",
         "spirit_visage",
-        "abyssal_mask"
+        "abyssal_mask",
+        "unending_despair",
+        "hollow_radiance",
+        "protoplasm_harness",
+        "bandlepipes"
       ],
       "runes": [
         "grasp_tank",
@@ -4611,7 +5578,8 @@
         "redemption",
         "mikaels_blessing",
         "thornmail",
-        "frozen_heart"
+        "frozen_heart",
+        "bandlepipes"
       ],
       "runes": [
         "aftershock_engage",
@@ -4636,6 +5604,7 @@
         "ardent_censer"
       ],
       "situational": [
+        "dawncore",
         "mikaels_blessing",
         "redemption",
         "shurelyas",
@@ -4667,7 +5636,9 @@
       "situational": [
         "morellonomicon",
         "zhonyas_hourglass",
-        "void_staff"
+        "void_staff",
+        "bloodletters_curse",
+        "cryptbloom"
       ],
       "runes": [
         "comet_poke",

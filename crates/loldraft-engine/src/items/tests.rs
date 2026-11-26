@@ -569,7 +569,7 @@ fn jinx_buys_a_crit_core_in_order() {
     assert_eq!(core, vec!["yun_tal", "infinity_edge", "runaans_hurricane"]);
     assert_eq!(
         recommendation.starter.as_ref().map(|item| item.id.as_str()),
-        Some("dorans_blade")
+        Some("dorans_bow")
     );
     assert_eq!(
         recommendation.boots.as_ref().map(|item| item.id.as_str()),
@@ -807,4 +807,52 @@ fn a_champion_without_profile_tags_or_template_gets_no_invented_build() {
         .caveats
         .iter()
         .any(|caveat| caveat.contains("reglas por función")));
+}
+
+#[test]
+fn refreshed_catalog_offers_current_items_by_role() {
+    // Tanque de frontline: el refresco 2.1.0 incorpora los objetos de tanque
+    // actuales y el inicio mixto de Doran.
+    let garen_tags = vec!["Fighter".to_string(), "Tank".to_string()];
+    let garen = recommendation(86, "Garen", Some(Role::Top), None, &garen_tags, None);
+    assert_eq!(
+        garen.starter.as_ref().map(|item| item.id.as_str()),
+        Some("dorans_helm")
+    );
+    assert!(find_item(&garen, "hollow_radiance").is_some());
+    assert!(find_item(&garen, "unending_despair").is_some());
+
+    let pressured = recommendation(
+        86,
+        "Garen",
+        Some(Role::Top),
+        None,
+        &garen_tags,
+        Some(&enemy_analysis(0.95)),
+    );
+    assert!(find_item(&pressured, "thornmail").is_some());
+    assert!(find_item(&pressured, "protoplasm_harness").is_some());
+
+    // Enchanter: el núcleo albar escala con la regeneración de maná.
+    let janna_tags = vec!["Support".to_string(), "Mage".to_string()];
+    let janna = recommendation(40, "Janna", Some(Role::Support), None, &janna_tags, None);
+    assert!(find_item(&janna, "dawncore").is_some());
+
+    // Tirador contra burst: el arcoescudo aparece solo con esa amenaza.
+    let jinx_tags = vec!["Marksman".to_string()];
+    let jinx = recommendation(
+        222,
+        "Jinx",
+        Some(Role::Adc),
+        None,
+        &jinx_tags,
+        Some(&enemy_analysis(0.95)),
+    );
+    assert!(find_item(&jinx, "immortal_shieldbow").is_some());
+    assert!(find_item(&jinx, "stormrazor").is_none());
+
+    // Mago de burst: el actualizador entra como opción de maná y daño.
+    let ahri_tags = vec!["Mage".to_string(), "Assassin".to_string()];
+    let ahri = recommendation(103, "Ahri", Some(Role::Mid), None, &ahri_tags, None);
+    assert!(find_item(&ahri, "actualizer").is_some());
 }

@@ -22,7 +22,7 @@ use std::sync::OnceLock;
 /// Versión del esquema del documento del catálogo.
 pub const ITEM_CATALOG_SCHEMA: &str = "2";
 /// Versión del catálogo curado incluido en el binario.
-pub const ITEM_CATALOG_VERSION: &str = "2.0.0";
+pub const ITEM_CATALOG_VERSION: &str = "2.1.0";
 /// Versión de las reglas que puntúan objetos y runas.
 pub const LOADOUT_RULES_VERSION: &str = "2.0.0";
 

@@ -426,6 +426,18 @@ página de runas, contra qué amenaza sirve y con qué tipo de campeón encaja. 
   `fit`, `counters` y `roles`.
 - `schema` y `version`: el catálogo se versiona aparte de las reglas (`LOADOUT_RULES_VERSION`).
 
+El catálogo se revisa contra el parche en vivo con `node scripts/audit-item-catalog.mjs`:
+
+- Falla si un objeto catalogado ya no se compra, si su nombre oficial en español cambió (por ejemplo,
+  el icono 2502 pasó de Cadenas de Anatema a Desesperanza eterna) o si falta su icono local.
+- Avisa de los legendarios comprables en la Grieta que aún no están catalogados. Se consideran
+  comprables los que CommunityDragon marca `inStore` y `displayInItemSets` con precio total de 2000 o
+  más, sin campeón, aliado ni moneda de modo requeridos, y con mapa 11 en Data Dragon. Ese filtro deja
+  fuera Arena, las variantes de seis cifras y las transformaciones.
+- No reescribe nada: las funciones, etiquetas de encaje y amenazas siguen siendo curadas a mano.
+  Tampoco entran las botas de la prueba de fuerza ni los objetos de misión de apoyo, porque no se
+  compran como objetos normales y recomendarlos sin contexto sería engañoso.
+
 La recomendación (`loldraft-engine::items::recommend_loadout`) es determinista y pura:
 
 1. Detecta amenazas del rival a partir del `TeamAnalysis`: reparto de daño físico/mágico, CC duro,
