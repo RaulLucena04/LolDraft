@@ -4,7 +4,7 @@ Aplicación de escritorio para simular, analizar y asistir drafts competitivos d
 Núcleo en Rust, escritorio con Tauri v2 y UI en React + TypeScript + Tailwind CSS.
 
 > **Estado del repositorio:** fases 1–3 cerradas y fase 4 en curso, publicadas en
-> [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.9). El simulador de 20
+> [Releases](https://github.com/RaulLucena04/LolDraft/releases/latest) (v0.1.10). El simulador de 20
 > acciones, el análisis de composición y las recomendaciones de pick/ban explicables funcionan; el
 > modo SoloQ se sincroniza solo con el cliente de League of Legends, incluido tu propio pick. La
 > Fase 4 importa estadísticas observadas (CSV/JSON), conecta `power` a las recomendaciones con
@@ -41,7 +41,9 @@ puntuación. No habrá explicaciones generadas a posteriori ni un LLM inventando
 - **Sincronización Data Dragon** desde la app para actualizar identidades sin borrar roles curados.
 - **UI de escritorio:** inicio, estado de datos, sesiones recientes, simulador con paneles azul/rojo,
   timeline compacta de 20 turnos, selector de campeones visible en la columna central con búsqueda y
-  filtros, drawer de campeón y avisos de error estables.
+  filtros, drawer de campeón y avisos de error estables. La identidad visual sigue la interfaz de
+  League: fondo azul casi negro, texto crema, ornamentos en latón, títulos en Cinzel y geometría
+  angular con esquinas cortadas.
 - **Actualizaciones sobre la app:** al arrancar se comprueba GitHub Releases; si hay una versión
   nueva, un aviso permite descargarla, verificar su `sha256` e instalarla en silencio, y LolDraft se
   reinicia con la versión nueva.

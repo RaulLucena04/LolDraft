@@ -9,7 +9,7 @@
 
 | Fuente | Estado verificado | Uso previsto | Licencia / condición |
 | --- | --- | --- | --- |
-| **Data Dragon (Riot)** | Activa. `versions.json` devuelve hasta `16.22.1`; `champion.json` incluye 173 campeones | Identidad, assets, stats base | Activos de Riot; uso bajo la política de terceros. Sin API key |
+| **Data Dragon (Riot)** | Activa. `versions.json` devuelve hasta `16.23.1`; `champion.json` incluye 173 campeones | Identidad, assets, stats base | Activos de Riot; uso bajo la política de terceros. Sin API key |
 | **Leaguepedia / Liquipedia** | API MediaWiki 1.43.10 con Cargo operativa | Drafts profesionales históricos | Contenido de la wiki; habitualmente CC BY-SA. Requiere atribución y respetar límites |
 | **Lolalytics** | No hay API pública. `a3.lolalytics.com` se declara API privada y prohíbe su uso por terceros | Estadísticas de solo queue (si se obtiene permiso) | Copyright de LoLalytics Limited. **No se integra scraping por defecto** |
 | **Riot API oficial** | Disponible con clave y rate limits | Verificación y estadísticas agregadas propias | Política de terceros de Riot; clave personal |

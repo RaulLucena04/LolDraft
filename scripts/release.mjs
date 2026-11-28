@@ -5,6 +5,7 @@
 //   npm run release -- --no-bump    recompila sin cambiar la versión
 //   npm run release -- --skip-build publica el último bundle ya compilado
 //   npm run release -- --out "D:\\updates"   publica en otra carpeta
+//   npm run release -- --notes-file notas.md
 //   npm run release -- --github     además crea la release de GitHub con
 //                                   `gh` (requiere `gh auth login`)
 //   npm run release -- --github --repo usuario/otro-repo
@@ -41,6 +42,7 @@ function parseArgs(argv) {
     repo: null,
     version: null,
     notes: null,
+    notesFile: null,
     out: null,
   };
   for (let index = 0; index < argv.length; index += 1) {
@@ -52,6 +54,9 @@ function parseArgs(argv) {
     } else if (arg === "--notes") {
       options.notes = argv[++index];
       if (!options.notes) throw new Error("--notes necesita un texto");
+    } else if (arg === "--notes-file") {
+      options.notesFile = argv[++index];
+      if (!options.notesFile) throw new Error("--notes-file necesita una ruta");
     } else if (arg === "--out") {
       options.out = argv[++index];
       if (!options.out) throw new Error("--out necesita una carpeta");
@@ -66,7 +71,7 @@ function parseArgs(argv) {
       options.github = true;
     } else if (arg === "--help" || arg === "-h") {
       console.log(
-        "Uso: npm run release -- [--version X.Y.Z] [--no-bump] [--skip-build] [--notes TEXTO] [--out CARPETA] [--github] [--repo OWNER/NOMBRE]",
+        "Uso: npm run release -- [--version X.Y.Z] [--no-bump] [--skip-build] [--notes TEXTO] [--notes-file RUTA] [--out CARPETA] [--github] [--repo OWNER/NOMBRE]",
       );
       process.exit(0);
     } else {
@@ -258,6 +263,14 @@ async function main() {
   const tauriConf = await readJson(TAURI_CONF);
   const current = rootPackage.version;
 
+  // Las notas llegan por fichero: pasar UTF-8 por argv las descuadra en Windows.
+  if (options.notes && options.notesFile) {
+    throw new Error("Usa --notes o --notes-file, no los dos a la vez");
+  }
+  const notes = options.notesFile
+    ? (await readFile(resolve(options.notesFile), "utf8")).trim()
+    : options.notes;
+
   let version = options.version;
   if (!version) version = options.bump ? bumpPatch(current) : current;
   assertVersion(version);
@@ -296,7 +309,7 @@ async function main() {
   const manifest = {
     version,
     installer: installerName,
-    notes: options.notes ?? `Versión ${version} de LolDraft.`,
+    notes: notes ?? `Versión ${version} de LolDraft.`,
     sha256: await sha256(published),
     generated_at: new Date().toISOString(),
   };
