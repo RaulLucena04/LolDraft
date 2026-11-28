@@ -423,7 +423,7 @@ export default function App() {
           <div className="flex justify-center">
             <Logo />
           </div>
-          <h1 className="mt-6 text-xl font-extrabold text-ink">
+          <h1 className="mt-6 font-display text-xl font-bold text-ink">
             No se pudo iniciar el catálogo
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">{fatal}</p>

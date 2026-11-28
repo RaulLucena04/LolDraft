@@ -213,12 +213,12 @@ export function DraftScreen({
                       quedan {remaining}
                     </span>
                   </div>
-                  <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-base font-extrabold tracking-tight text-ink">
+                  <p className="mt-1 flex flex-wrap items-baseline gap-x-2 font-display text-base font-bold tracking-normal text-ink">
                     {SIDE_LABEL[next.side]}{" "}
                     <span className="text-muted">
                       {KIND_LABEL[next.kind].toLowerCase()}
                     </span>
-                    <span className="text-[11px] font-normal text-muted">
+                    <span className="font-sans text-[11px] font-normal text-muted">
                       acción {next.number} de {draft.totalActions} · elige y
                       confirma
                     </span>
@@ -227,9 +227,9 @@ export function DraftScreen({
               ) : (
                 <>
                   <p className="eyebrow text-success">Draft completo</p>
-                  <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-base font-extrabold tracking-tight text-ink">
+                  <p className="mt-1 flex flex-wrap items-baseline gap-x-2 font-display text-base font-bold tracking-normal text-ink">
                     20 / 20 acciones
-                    <span className="text-[11px] font-normal text-muted">
+                    <span className="font-sans text-[11px] font-normal text-muted">
                       revisa la composición, ajusta roles o vuelve al inicio
                     </span>
                   </p>

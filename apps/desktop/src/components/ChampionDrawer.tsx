@@ -78,7 +78,7 @@ export function ChampionDrawer({
             <div className="min-w-0">
               <h2
                 id="champion-detail-title"
-                className="truncate text-2xl font-extrabold tracking-tight text-ink"
+                className="truncate font-display text-2xl font-bold tracking-normal text-ink"
               >
                 {champion.name}
               </h2>

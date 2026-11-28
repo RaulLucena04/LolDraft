@@ -203,7 +203,7 @@ function RuneIcon({ page, size = "md" }: { page: LoadoutRune; size?: "sm" | "md"
     return (
       <span
         aria-hidden="true"
-        className={`flex shrink-0 items-center justify-center rounded-full border border-line/90 bg-surface2 text-xs font-bold text-muted ${dimension}`}
+        className={`orb flex shrink-0 items-center justify-center border border-line/90 bg-surface2 text-xs font-bold text-muted ${dimension}`}
       >
         {page.keystone.slice(0, 1)}
       </span>
@@ -217,7 +217,7 @@ function RuneIcon({ page, size = "md" }: { page: LoadoutRune; size?: "sm" | "md"
       decoding="async"
       draggable={false}
       onError={() => setFailed(true)}
-      className={`shrink-0 rounded-full border border-blue/40 bg-bg object-cover ${dimension}`}
+      className={`orb shrink-0 border border-blue/40 bg-bg object-cover ${dimension}`}
     />
   );
 }

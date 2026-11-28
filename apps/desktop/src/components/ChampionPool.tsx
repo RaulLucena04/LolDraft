@@ -104,7 +104,7 @@ export function ChampionPool({
             type="checkbox"
             checked={onlyAvailable}
             onChange={(event) => setOnlyAvailable(event.target.checked)}
-            className="h-3 w-3 accent-[#D4AF37]"
+            className="h-3 w-3 accent-[#C89B3C]"
           />
           Solo disponibles
         </label>
@@ -139,7 +139,7 @@ export function ChampionPool({
                 className={
                   next.side === "blue"
                     ? "btn-blue px-3 py-1.5 text-xs"
-                    : "btn bg-red px-3 py-1.5 text-xs text-white hover:bg-red/90"
+                    : "btn-red px-3 py-1.5 text-xs"
                 }
               >
                 Confirmar <kbd className="text-[10px] opacity-70">↵</kbd>
@@ -178,7 +178,14 @@ export function ChampionPool({
               const usage = used.get(champion.key);
               const isSelected = selected?.key === champion.key;
               return (
-                <div key={champion.key} className="group relative">
+                <div
+                  key={champion.key}
+                  className={`group relative ${
+                    isSelected
+                      ? "drop-shadow-[0_0_7px_rgba(200,155,60,0.65)]"
+                      : ""
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -196,9 +203,9 @@ export function ChampionPool({
                           }`
                         : `${champion.name} · ${champion.title}`
                     }
-                    className={`relative block aspect-square w-full overflow-hidden rounded-md border transition ${
+                    className={`portrait relative block aspect-square w-full overflow-hidden border transition ${
                       isSelected
-                        ? "border-gold ring-2 ring-gold/50"
+                        ? "border-gold bg-gold/10"
                         : usage
                           ? "border-line/50 opacity-55 hover:opacity-90"
                           : "border-line hover:-translate-y-0.5 hover:border-gold/60"
@@ -215,10 +222,10 @@ export function ChampionPool({
                     </span>
                     {usage && (
                       <span
-                        className={`absolute right-0.5 top-0.5 rounded px-1 text-[8px] font-extrabold uppercase ${
+                        className={`absolute right-0.5 top-0.5 px-1 text-[8px] font-bold uppercase ${
                           usage.side === "blue"
-                            ? "bg-blue text-white"
-                            : "bg-red text-white"
+                            ? "bg-blue text-[#04211F]"
+                            : "bg-red text-[#2A0710]"
                         }`}
                       >
                         {usage.kind === "ban" ? "B" : "P"}

@@ -29,7 +29,7 @@ export function ChampionAvatar({
 
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-line/90 bg-surface2 font-bold text-muted ${
+      className={`portrait relative inline-flex shrink-0 items-center justify-center overflow-hidden border border-line/90 bg-surface2 font-bold text-muted ${
         SIZE_CLASS[size]
       } ${dimmed ? "opacity-45 grayscale" : ""} ${className}`}
     >

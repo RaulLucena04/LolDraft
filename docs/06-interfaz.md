@@ -5,8 +5,12 @@
 
 ## 1. Principios visuales
 
-- **Temática esports, pero sobria:** fondo oscuro, paneles con contraste, azul/rojo como identidad
-  de lado, dorado para énfasis. Nada de neones gratuitos ni animaciones que distraigan.
+- **Temática League of Legends, pero sobria:** la paleta sale de la interfaz del cliente — azul casi
+  negro, crema para el texto, latón dorado para ornamentos y turquesa/rojo para los bandos. Nada de
+  neones gratuitos, manchas de color degradadas ni animaciones que distraigan.
+- **Geometría angular:** casi nada redondeado. Paneles rectos con cantonaduras de latón, etiquetas y
+  retratos con la esquina cortada, barras planas y segmentadas. La única forma redondeada del
+  sistema es el orbe de runa, que el cliente dibuja circular.
 - **Jerarquía antes que densidad:** el estado del draft y el siguiente turno deben leerse en menos
   de un segundo. El detalle vive en paneles expandibles.
 - **Números honestos:** las barras muestran intervalos cuando falta información; no se pinta una
@@ -20,31 +24,56 @@
 
 ### 2.1 Tokens
 
-| Token | Valor inicial | Uso |
-| --- | --- | --- |
-| `bg` | `#0B0F14` | Fondo de aplicación |
-| `surface` | `#111823` | Paneles |
-| `surface-2` | `#17202C` | Tarjetas, hover |
-| `border` | `#243244` | Separadores |
-| `text` | `#E6EDF5` | Texto principal |
-| `muted` | `#93A4B8` | Texto secundario |
-| `blue` | `#3B82F6` | Lado azul |
-| `blue-soft` | `#1E3A5F` | Fondos de lado azul |
-| `red` | `#EF4444` | Lado rojo |
-| `red-soft` | `#4A1D1D` | Fondos de lado rojo |
-| `gold` | `#D4AF37` | Recomendación principal |
-| `success` | `#22C55E` | Fortaleza / dato confirmado |
-| `warning` | `#F59E0B` | Dato parcial |
-| `danger` | `#EF4444` | Error / carencia |
+Definidos en `apps/desktop/tailwind.config.js` y `apps/desktop/src/index.css`.
 
-Tipografía: `Inter` o la fuente del sistema; números con `font-variant-numeric: tabular-nums`.
-Espaciado en múltiplos de 4. Radios de 8–12 px. Sombras sutiles, sin glassmorphism excesivo.
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `bg` | `#010A13` | Fondo de aplicación |
+| `surface` | `#0A1428` | Paneles |
+| `surface2` | `#0D1B2E` | Tarjetas, campos |
+| `line` | `#1E283D` | Separadores y bordes |
+| `ink` | `#F0E6D2` | Texto principal (crema) |
+| `muted` | `#A09B8C` | Texto secundario (cálido) |
+| `blue` | `#0AC8B9` | Lado azul (turquesa) |
+| `blueSoft` | `#06322F` | Fondos de lado azul |
+| `red` | `#E84057` | Lado rojo |
+| `redSoft` | `#3A121B` | Fondos de lado rojo |
+| `gold` | `#C89B3C` | Ornamentos y recomendación principal |
+| `goldSoft` | `#E6C77A` | Realce de latón |
+| `goldDeep` | `#785A28` | Latón apagado, foco |
+| `success` | `#3DDC97` | Fortaleza / dato confirmado |
+| `warning` | `#E5A83C` | Dato parcial |
+| `danger` | `#E84057` | Error / carencia |
+
+**Tipografía:** `Cinzel` (SIL OFL, empaquetada en `public/fonts`) para títulos, encabezados y las
+etiquetas `.eyebrow`; `Inter` o la sans del sistema para el cuerpo. Cinzel tiene versalitas
+naturales en minúscula, lo que da el registro inscripcional del cliente sin forzar mayúsculas.
+Números con `font-variant-numeric: tabular-nums`. Espaciado en múltiplos de 4.
+
+**Radios:** `1–3 px` en toda la escala (`borderRadius` del tema). Las formas son rectas o con la
+esquina cortada vía `clip-path` (clases `.chip`, `.portrait`); `.orb` es la excepción redonda.
+
+**Fondo:** nada de radiales de color. Celosía diagonal hextech tenue fija sobre `#010A13` más un
+resplandor dorado cenital, definido en `body`.
 
 ### 2.2 Componentes base
 
-- `SidePanel` (azul/rojo), `ChampionSlot`, `BanRow`, `RoleBadge`, `ScoreBadge`,
-  `ConfidenceBadge`, `AnalysisBar` (con intervalo), `DataStatus`, `EmptyState`, `ErrorBanner`,
-  `Drawer`, `Toast`.
+Clases en `index.css`:
+
+- `.panel` — rectángulo `surface` con **cantonaduras de latón** en las cuatro esquinas (ocho
+  filetes de fondo) y sombra profunda. `.panel-quiet` para bloques secundarios.
+- `.eyebrow` — etiqueta de sección en Cinzel versalitas, `letter-spacing` amplio, en dorado.
+- `.rule` — filete ornamental con rombo al centro.
+- `.btn` con variantes `.btn-ghost`, `.btn-gold` (degradado de latón), `.btn-blue`, `.btn-red`.
+- `.field` — inputs rectos con borde `line` y foco dorado.
+- `.chip` — etiqueta con **esquina cortada**.
+- `.bar` — barra plana con borde, no píldora; `.portrait` — retrato con esquina cortada; `.orb` —
+  único círculo, reservado a iconos de runa.
+
+Componentes React: `SidePanel` (azul/rojo), `ChampionSlot`, `BanRow`, `RoleBadge`, `ScoreBadge`,
+`ConfidenceBadge`, `AnalysisBar` (con intervalo), `DataStatus`, `EmptyState`, `ErrorBanner`,
+`Drawer`, `Toast`.
+
 - Los iconos de rol son SVG propios o un set con licencia clara; no se depende de imágenes
   remotas.
 - Los retratos se sirven desde la caché local; mientras cargan, un placeholder neutro (nunca un

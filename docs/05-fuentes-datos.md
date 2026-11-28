@@ -460,6 +460,8 @@ Pantalla "Acerca de / Datos":
 
 - Riot Games: aviso de no afiliación y propiedad de activos.
 - Data Dragon: versión y fuente.
+- Cinzel: tipografía de títulos, **SIL Open Font License 1.1**; licencia incluida en
+  `apps/desktop/public/fonts/OFL.txt`.
 - Leaguepedia: atribución y licencia del dataset.
 - Lolalytics: solo si se usa con permiso; texto de atribución acordado.
 - Oracle's Elixir: atribución si se usa.

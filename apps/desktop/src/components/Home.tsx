@@ -75,89 +75,95 @@ export function Home({
           <div className="panel relative overflow-hidden p-7">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-blue/10 blur-2xl"
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent"
             />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -bottom-32 right-24 h-64 w-64 rounded-full bg-red/10 blur-2xl"
-            />
-            <div className="relative">
-              <p className="eyebrow text-gold">Simulador · Análisis · SoloQ</p>
-              <h1 className="mt-4 max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-ink">
-                Simula el draft.
-                <br />
-                <span className="text-muted">Entiende la composición.</span>
-              </h1>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
-                Un asistente competitivo en Rust + Tauri. Simulador de las 20
-                acciones, análisis de composición y recomendaciones explicables.
-                En SoloQ, el draft se sincroniza solo con el cliente y los
-                objetos y runas se recomiendan por función frente al rival, sin
-                importar JSON.
-              </p>
+            <p className="eyebrow">Simulador · Análisis · SoloQ</p>
+            <div className="rule mt-3" aria-hidden="true">
+              <span className="text-[9px] leading-none">◆</span>
+            </div>
+            <h1 className="mt-5 max-w-2xl text-[2.5rem] font-bold leading-[1.12] text-ink">
+              Simula el draft.
+              <br />
+              <span className="text-gold/75">Entiende la composición.</span>
+            </h1>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
+              Un asistente competitivo en Rust + Tauri. Simulador de las 20
+              acciones, análisis de composición y recomendaciones explicables.
+              En SoloQ, el draft se sincroniza solo con el cliente y los
+              objetos y runas se recomiendan por función frente al rival, sin
+              importar JSON.
+            </p>
 
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => onNewDraft("blue")}
-                  className="group relative overflow-hidden rounded-xl border border-blue/50 bg-blueSoft/35 px-5 py-4 text-left transition hover:border-blue hover:bg-blueSoft/55 disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-2 text-sm font-bold text-blue-100">
-                    <span className="h-2 w-2 rounded-full bg-blue" />
-                    Empezar con Azul
-                  </span>
-                  <span className="mt-1 block text-xs text-muted">
-                    Tu lado para el análisis posterior
-                  </span>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-blue/70 transition group-hover:translate-x-0.5">
-                    →
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => onNewDraft("red")}
-                  className="group relative overflow-hidden rounded-xl border border-red/50 bg-redSoft/35 px-5 py-4 text-left transition hover:border-red hover:bg-redSoft/55 disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-2 text-sm font-bold text-red-100">
-                    <span className="h-2 w-2 rounded-full bg-red" />
-                    Empezar con Rojo
-                  </span>
-                  <span className="mt-1 block text-xs text-muted">
-                    Mismo formato, perspectiva roja
-                  </span>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xl text-red/70 transition group-hover:translate-x-0.5">
-                    →
-                  </span>
-                </button>
-              </div>
-
-              <p className="mt-4 text-[11px] leading-relaxed text-muted/80">
-                Sin winrates como argumento principal. Los huecos de información
-                se muestran como pendientes, nunca como ceros o valores inventados.
-              </p>
-
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={onSoloq}
-                className="group mt-4 flex w-full items-center gap-3 rounded-xl border border-gold/40 bg-gold/5 px-4 py-3 text-left transition hover:border-gold hover:bg-gold/10"
+                disabled={busy}
+                onClick={() => onNewDraft("blue")}
+                className="group relative overflow-hidden border border-blue/40 bg-blueSoft/40 px-5 py-4 pl-6 text-left transition hover:border-blue hover:bg-blueSoft/60 disabled:opacity-50"
               >
-                <span className="flex-1">
-                  <span className="flex items-center gap-2 text-sm font-bold text-ink">
-                    <span className="h-2 w-2 rounded-full bg-gold" />
-                    Draft de SoloQ
-                  </span>
-                  <span className="mt-0.5 block text-xs text-muted">
-                    Se sincroniza solo con el cliente durante el champ select y
-                    te da el mejor pick, objetos y runas para tu turno.
-                  </span>
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 w-0.5 bg-blue"
+                />
+                <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-[0.08em] text-blue-100">
+                  Empezar con Azul
                 </span>
-                <span className="text-xl text-gold/70 transition group-hover:translate-x-0.5">
+                <span className="mt-1 block text-xs text-muted">
+                  Tu lado para el análisis posterior
+                </span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg text-blue/70 transition group-hover:translate-x-0.5">
+                  →
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onNewDraft("red")}
+                className="group relative overflow-hidden border border-red/40 bg-redSoft/40 px-5 py-4 pl-6 text-left transition hover:border-red hover:bg-redSoft/60 disabled:opacity-50"
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 w-0.5 bg-red"
+                />
+                <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-[0.08em] text-red-100">
+                  Empezar con Rojo
+                </span>
+                <span className="mt-1 block text-xs text-muted">
+                  Mismo formato, perspectiva roja
+                </span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg text-red/70 transition group-hover:translate-x-0.5">
                   →
                 </span>
               </button>
             </div>
+
+            <p className="mt-4 text-[11px] leading-relaxed text-muted/80">
+              Sin winrates como argumento principal. Los huecos de información
+              se muestran como pendientes, nunca como ceros o valores inventados.
+            </p>
+
+            <button
+              type="button"
+              onClick={onSoloq}
+              className="group relative mt-4 flex w-full items-center gap-3 border border-gold/40 bg-gold/[0.06] px-4 py-3 pl-6 text-left transition hover:border-gold hover:bg-gold/10"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-0.5 bg-gold"
+              />
+              <span className="relative flex-1">
+                <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-[0.08em] text-ink">
+                  Draft de SoloQ
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted">
+                  Se sincroniza solo con el cliente durante el champ select y
+                  te da el mejor pick, objetos y runas para tu turno.
+                </span>
+              </span>
+              <span className="text-lg text-gold/70 transition group-hover:translate-x-0.5">
+                →
+              </span>
+            </button>
           </div>
 
           <div className="panel p-5">
@@ -209,11 +215,11 @@ export function Home({
                             {formatRelative(session.updatedAt)}
                           </span>
                         </div>
-                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface2">
-                          <div
-                            className={`h-full rounded-full ${
+                        <div className="bar mt-2">
+                          <span
+                            className={
                               session.side === "blue" ? "bg-blue" : "bg-red"
-                            }`}
+                            }
                             style={{ width: `${progress}%` }}
                           />
                         </div>
@@ -253,7 +259,7 @@ export function Home({
                   Estado del catálogo
                 </h2>
               </div>
-              <span className="text-3xl font-extrabold tabular text-ink">
+              <span className="font-display text-4xl font-bold leading-none tabular text-gold">
                 {data.championCount}
               </span>
             </div>
@@ -286,11 +292,8 @@ export function Home({
                 <span>Cobertura de roles</span>
                 <span className="tabular">{coverage} %</span>
               </div>
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface2">
-                <div
-                  className="h-full rounded-full bg-success/80"
-                  style={{ width: `${coverage}%` }}
-                />
+              <div className="bar mt-1.5">
+                <span className="bg-success" style={{ width: `${coverage}%` }} />
               </div>
             </div>
 

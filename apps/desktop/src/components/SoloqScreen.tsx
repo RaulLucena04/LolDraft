@@ -453,7 +453,7 @@ export function SoloqScreen({
           </button>
           <div>
             <p className="eyebrow text-gold">SoloQ</p>
-            <h1 className="text-xl font-extrabold text-ink">
+            <h1 className="font-display text-xl font-bold text-ink">
               Draft en vivo · mejor pick
             </h1>
           </div>
@@ -808,7 +808,7 @@ export function SoloqScreen({
               <div className="mt-2 flex items-center gap-2.5">
                 <ChampionAvatar champion={best.champion} size="md" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-extrabold text-ink">
+                  <p className="truncate font-display text-base font-bold text-ink">
                     {best.champion.name}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-1">

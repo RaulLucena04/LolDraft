@@ -204,6 +204,7 @@ La CI de GitHub Actions ejecuta exactamente estas comprobaciones en Windows.
 | `apps/desktop/public/champions` | Retratos empaquetados de Data Dragon. |
 | `apps/desktop/public/items` | Iconos de objetos empaquetados de Data Dragon. |
 | `apps/desktop/public/runes` | Iconos de runas clave empaquetados de Data Dragon. |
+| `apps/desktop/public/fonts` | Tipografía de títulos Cinzel (SIL OFL, licencia incluida). |
 | `scripts/fetch-static-data.mjs` | Generador reproducible de la semilla, retratos, iconos y nombres oficiales del catálogo. |
 
 ### Comandos Tauri
@@ -225,6 +226,10 @@ La UI no recalcula reglas ni asignaciones: consume los DTOs que produce Rust.
   Riot Games, parche 16.22.1. Los retratos están empaquetados para funcionar sin conexión.
 - **Roles:** Meraki Analytics (`positions`), importados con `source: "meraki"` y confianza 0.8.
   La atribución se muestra en la UI. Los campeones sin dato quedan pendientes.
+- **Tipografía de títulos:** [Cinzel](https://github.com/NDISCOVER/Cinzel) bajo licencia
+  **SIL Open Font License 1.1**, empaquetada en `apps/desktop/public/fonts` junto a su licencia.
+  Se usa solo para títulos y encabezados; el cuerpo mantiene la sans del sistema. No es un activo
+  de Riot ni sustituye a la tipografía del cliente.
 - **Perfiles estratégicos:** existe un piloto de 38 campeones con procedencia `Inferred` y confianza
   0.35 para validar el motor. No es un dato observado ni curado y la app lo etiqueta como pendiente de
   revisión experta. Los campeones sin perfil quedan desconocidos, no en cero.
@@ -287,4 +292,6 @@ El código se publica bajo licencia doble **MIT OR Apache-2.0**:
 - [LICENSE-APACHE](LICENSE-APACHE)
 
 Puedes elegir la que prefieras. Los retratos, nombres y demás contenido de Riot Games **no** quedan
-cubiertos por esa licencia y siguen siendo propiedad de Riot Games, Inc.
+cubiertos por esa licencia y siguen siendo propiedad de Riot Games, Inc. La tipografía Cinzel
+(`apps/desktop/public/fonts`) se distribuye bajo la **SIL Open Font License 1.1**, cuyo texto viaja
+junto a los ficheros de la fuente.

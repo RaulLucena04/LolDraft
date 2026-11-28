@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cinzel (SIL Open Font License) sustituye a Beaufort para los títulos:
+   serif inscripcional, el mismo registro que usa el cliente de League. */
+@font-face {
+  font-family: "Cinzel";
+  src: url("/fonts/cinzel-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Cinzel";
+  src: url("/fonts/cinzel-latin-ext.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
 @layer base {
   :root {
     color-scheme: dark;
@@ -17,15 +42,38 @@
 
   body {
     @apply bg-bg text-ink font-sans antialiased;
+    /* Fondo del cliente: azul casi negro, celosía hextech tenue y un
+       resplandor dorado cenital. Nada de manchas de color degradadas. */
     background-image:
-      radial-gradient(circle at 8% -10%, rgba(59, 130, 246, 0.14), transparent 34rem),
-      radial-gradient(circle at 94% 0%, rgba(239, 68, 68, 0.1), transparent 30rem);
+      radial-gradient(
+        1200px 560px at 50% -14%,
+        rgba(200, 155, 60, 0.07),
+        transparent 72%
+      ),
+      linear-gradient(
+        45deg,
+        transparent 49.55%,
+        rgba(200, 155, 60, 0.05) 49.55%,
+        rgba(200, 155, 60, 0.05) 50.45%,
+        transparent 50.45%
+      ),
+      linear-gradient(
+        -45deg,
+        transparent 49.55%,
+        rgba(200, 155, 60, 0.05) 49.55%,
+        rgba(200, 155, 60, 0.05) 50.45%,
+        transparent 50.45%
+      );
+    background-size:
+      auto,
+      68px 68px,
+      68px 68px;
     background-attachment: fixed;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2b3a4e transparent;
+    scrollbar-color: #2a3850 transparent;
   }
 
   *::-webkit-scrollbar {
@@ -34,55 +82,234 @@
   }
 
   *::-webkit-scrollbar-thumb {
-    background: #2b3a4e;
-    border-radius: 999px;
+    background: #2a3850;
+    border-radius: 0;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: #785a28;
   }
 
   :focus-visible {
-    outline: 2px solid #d4af37;
+    outline: 2px solid #c89b3c;
     outline-offset: 2px;
   }
 
   ::selection {
-    background: rgba(212, 175, 55, 0.35);
+    background: rgba(200, 155, 60, 0.35);
   }
+}
+
+/* Sin capa: los títulos usan la display por encima de las utilidades de
+   tracking, para que ninguna letra compacta arruine la serif. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Cinzel", Georgia, "Times New Roman", serif;
+  letter-spacing: 0.015em;
 }
 
 @layer components {
   .panel {
-    @apply rounded-xl border border-line bg-surface shadow-panel;
+    position: relative;
+    border: 1px solid #1e283d;
+    border-radius: 2px;
+    background-color: rgba(10, 20, 40, 0.94);
+    box-shadow: 0 24px 48px -32px rgba(0, 0, 0, 0.95);
+    /* Cantonaduras de latón en las cuatro esquinas. */
+    background-image:
+      linear-gradient(#c89b3c, #c89b3c),
+      linear-gradient(#c89b3c, #c89b3c),
+      linear-gradient(#c89b3c, #c89b3c),
+      linear-gradient(#c89b3c, #c89b3c),
+      linear-gradient(#c89b3c, #c89b3c),
+      linear-gradient(#c89b3c, #c89b3c),
+      linear-gradient(#c89b3c, #c89b3c),
+      linear-gradient(#c89b3c, #c89b3c);
+    background-size:
+      14px 1px,
+      1px 14px,
+      14px 1px,
+      1px 14px,
+      14px 1px,
+      1px 14px,
+      14px 1px,
+      1px 14px;
+    background-position:
+      left top,
+      left top,
+      right top,
+      right top,
+      left bottom,
+      left bottom,
+      right bottom,
+      right bottom;
+    background-repeat: no-repeat;
   }
 
   .panel-quiet {
-    @apply rounded-xl border border-line/80 bg-surface/70;
+    border: 1px solid rgba(30, 40, 61, 0.8);
+    border-radius: 2px;
+    background-color: rgba(13, 27, 46, 0.7);
   }
 
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: #c89b3c;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45;
+    @apply inline-flex items-center justify-center gap-2 border px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-45;
+    border-radius: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .btn-ghost {
-    @apply btn border-line bg-surface2 text-ink hover:border-muted/60 hover:bg-surface2/80;
+    border-color: #2a3850;
+    background-color: #0d1b2e;
+    color: #e6ded0;
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    border-color: #785a28;
+    background-color: #132338;
+    color: #f0e6d2;
   }
 
   .btn-gold {
-    @apply btn border-gold/70 bg-gold text-[#1b1505] hover:bg-[#e0bd4e];
+    border-color: rgba(240, 230, 210, 0.35);
+    background: linear-gradient(180deg, #e6c77a 0%, #c89b3c 55%, #a87f2c 100%);
+    color: #1b1505;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .btn-gold:hover:not(:disabled) {
+    background: linear-gradient(180deg, #f0d891 0%, #d4a94a 55%, #b48a33 100%);
   }
 
   .btn-blue {
-    @apply btn border-blue/70 bg-blue text-white hover:bg-blue/90;
+    border-color: rgba(12, 40, 45, 0.6);
+    background: linear-gradient(180deg, #4fddd1 0%, #0ac8b9 55%, #06a89c 100%);
+    color: #04211f;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-blue:hover:not(:disabled) {
+    background: linear-gradient(180deg, #6fe7dd 0%, #23d4c6 55%, #08b3a6 100%);
+  }
+
+  .btn-red {
+    border-color: rgba(60, 14, 24, 0.6);
+    background: linear-gradient(180deg, #f4909d 0%, #e84057 55%, #c62f45 100%);
+    color: #2a0710;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .btn-red:hover:not(:disabled) {
+    background: linear-gradient(180deg, #f7a7b1 0%, #ef576c 55%, #d33a50 100%);
   }
 
   .field {
-    @apply rounded-lg border border-line bg-bg/60 px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:border-gold/70 focus:outline-none;
+    @apply border px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:outline-none;
+    border-radius: 2px;
+    border-color: #1e283d;
+    background-color: rgba(1, 10, 19, 0.75);
+  }
+
+  .field:hover {
+    border-color: #2a3850;
+  }
+
+  .field:focus {
+    border-color: #785a28;
+    background-color: rgba(1, 10, 19, 0.95);
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded-md border border-line bg-surface2 px-2 py-0.5 text-[11px] font-medium text-muted;
+    @apply inline-flex items-center gap-1 border px-2 py-0.5 text-[11px] font-semibold;
+    border-color: #1e283d;
+    background-color: #0d1b2e;
+    color: #a09b8c;
+    /* Esquina cortada, como las etiquetas del cliente. */
+    clip-path: polygon(
+      5px 0,
+      100% 0,
+      100% calc(100% - 5px),
+      calc(100% - 5px) 100%,
+      0 100%,
+      0 5px
+    );
+  }
+
+  /* Única forma redondeada del sistema: los iconos de runa, que el cliente
+     de League dibuja como orbes circulares. Todo lo demás es angular. */
+  .orb {
+    border-radius: 9999px;
+  }
+
+  /* Barra plana con segmentos, no una píldora. */
+  .bar {
+    height: 6px;
+    border: 1px solid #1e283d;
+    background-color: #060e1b;
+    overflow: hidden;
+  }
+
+  .bar > span {
+    display: block;
+    height: 100%;
+    background-color: #c89b3c;
+  }
+
+  /* Retrato de campeón con las esquinas cortadas. */
+  .portrait {
+    clip-path: polygon(
+      7px 0,
+      100% 0,
+      100% calc(100% - 7px),
+      calc(100% - 7px) 100%,
+      0 100%,
+      0 7px
+    );
+  }
+
+  /* Filete ornamental: trazo fino con un rombo al centro. */
+  .rule {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #785a28;
+  }
+
+  .rule::before,
+  .rule::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+  }
+
+  .rule::before {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(200, 155, 60, 0.45)
+    );
+  }
+
+  .rule::after {
+    background: linear-gradient(
+      90deg,
+      rgba(200, 155, 60, 0.45),
+      transparent
+    );
   }
 
   .tabular {
